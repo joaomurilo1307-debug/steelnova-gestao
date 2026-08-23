@@ -43,14 +43,14 @@ export default async function PainelPage() {
           {kpis.map((kpi) => (
             <div key={kpi.label} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
               <p className="text-xs uppercase tracking-wide text-neutral-500">{kpi.label}</p>
-              <p className="mt-2 text-2xl font-semibold text-white">{kpi.value}</p>
+              <p className="mt-2 text-2xl font-semibold text-fg">{kpi.value}</p>
               <p className="mt-1 text-xs text-neutral-500">{kpi.hint}</p>
             </div>
           ))}
         </div>
 
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white">Obras</h2>
+          <h2 className="text-sm font-semibold text-fg">Obras</h2>
           <Link
             href="/obras/nova"
             className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
@@ -78,8 +78,8 @@ export default async function PainelPage() {
                 >
                   <p className="text-[11px] uppercase tracking-wide text-neutral-500">{obra.cliente}</p>
                   <div className="mb-2 flex items-start justify-between gap-2">
-                    <h3 className="font-semibold text-white">{obra.nome}</h3>
-                    <span className="shrink-0 rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-medium text-brand">
+                    <h3 className="font-semibold text-fg">{obra.nome}</h3>
+                    <span className="shrink-0 rounded-full bg-brand/15 px-2 py-0.5 text-[11px] font-medium text-brand-dark">
                       {obraStatusLabel(obra.status)}
                     </span>
                   </div>
@@ -97,15 +97,15 @@ export default async function PainelPage() {
                   <div className="grid grid-cols-3 gap-2 text-sm">
                     <div>
                       <p className="text-[11px] text-neutral-500">Contrato</p>
-                      <p className="font-medium text-white">{formatBRLCompact(Number(obra.valorContrato))}</p>
+                      <p className="font-medium text-fg">{formatBRLCompact(Number(obra.valorContrato))}</p>
                     </div>
                     <div>
                       <p className="text-[11px] text-neutral-500">Custo real</p>
-                      <p className="font-medium text-white">{formatBRLCompact(custoReal)}</p>
+                      <p className="font-medium text-fg">{formatBRLCompact(custoReal)}</p>
                     </div>
                     <div>
                       <p className="text-[11px] text-neutral-500">Margem</p>
-                      <p className={`font-medium ${margem >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      <p className={`font-medium ${margem >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatBRLCompact(margem)}
                       </p>
                     </div>

@@ -151,26 +151,26 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Mão de obra a pagar</p>
-          <p className="mt-1 text-lg font-semibold text-white">{formatBRL(totalAPagar)}</p>
+          <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(totalAPagar)}</p>
         </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Desembolsado (material/adiant.)</p>
-          <p className="mt-1 text-lg font-semibold text-white">{formatBRL(totalDesembolsado)}</p>
+          <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(totalDesembolsado)}</p>
         </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Saldo a pagar (líquido)</p>
-          <p className="mt-1 text-lg font-semibold text-emerald-400">
+          <p className="mt-1 text-lg font-semibold text-emerald-600">
             {formatBRL(resumo.reduce((s, r) => s + r.saldo, 0))}
           </p>
         </div>
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-white">Lançamentos de ponto</h2>
+      <h2 className="mb-2 text-sm font-semibold text-fg">Lançamentos de ponto</h2>
       <form onSubmit={handleAddPonto} className="mb-3 flex flex-wrap items-end gap-2">
         <select
           value={novoPonto.funcionarioId}
           onChange={(e) => setNovoPonto({ ...novoPonto, funcionarioId: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         >
           <option value="">Funcionário...</option>
           {funcionarios.map((f) => (
@@ -183,19 +183,19 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           type="date"
           value={novoPonto.dia}
           onChange={(e) => setNovoPonto({ ...novoPonto, dia: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <input
           type="time"
           value={novoPonto.entrada}
           onChange={(e) => setNovoPonto({ ...novoPonto, entrada: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <input
           type="time"
           value={novoPonto.saida}
           onChange={(e) => setNovoPonto({ ...novoPonto, saida: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
           Lançar
@@ -207,12 +207,12 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
               placeholder="Nome"
               value={novoFunc.nome}
               onChange={(e) => setNovoFunc({ ...novoFunc, nome: e.target.value })}
-              className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
             <select
               value={novoFunc.regime}
               onChange={(e) => setNovoFunc({ ...novoFunc, regime: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             >
               <option value="Diaria">Diária</option>
               <option value="Fixo">Fixo</option>
@@ -223,7 +223,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
                 placeholder="Valor fixo"
                 value={novoFunc.valorFixo}
                 onChange={(e) => setNovoFunc({ ...novoFunc, valorFixo: e.target.value })}
-                className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
               />
             ) : (
               <input
@@ -231,19 +231,19 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
                 placeholder="Diária (opcional)"
                 value={novoFunc.diariaPadrao}
                 onChange={(e) => setNovoFunc({ ...novoFunc, diariaPadrao: e.target.value })}
-                className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
               />
             )}
-            <button type="submit" className="rounded-lg bg-ink-700 px-3 py-2 text-xs text-white hover:bg-ink-700/80">
+            <button type="submit" className="rounded-lg bg-ink-700 px-3 py-2 text-xs text-fg hover:bg-ink-700/80">
               Salvar
             </button>
           </form>
         </details>
       </form>
 
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800">
+      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-400">
+          <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="px-3 py-2 font-medium">Dia</th>
               <th className="px-3 py-2 font-medium">Funcionário</th>
@@ -256,13 +256,13 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <tbody>
             {lancamentos.map((l) => (
               <tr key={l.id} className="border-t border-ink-800">
-                <td className="px-3 py-2 text-neutral-400">{new Date(l.dia).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
-                <td className="px-3 py-2 text-white">{l.funcionario.nome}</td>
-                <td className="px-3 py-2 text-neutral-400">{l.entrada}</td>
-                <td className="px-3 py-2 text-neutral-400">{l.saida}</td>
-                <td className="px-3 py-2 text-neutral-400">{horasEntre(l.entrada, l.saida).toFixed(2)}h</td>
+                <td className="px-3 py-2 text-neutral-600">{new Date(l.dia).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
+                <td className="px-3 py-2 text-fg">{l.funcionario.nome}</td>
+                <td className="px-3 py-2 text-neutral-600">{l.entrada}</td>
+                <td className="px-3 py-2 text-neutral-600">{l.saida}</td>
+                <td className="px-3 py-2 text-neutral-600">{horasEntre(l.entrada, l.saida).toFixed(2)}h</td>
                 <td className="px-3 py-2">
-                  <button onClick={() => handleDeletePonto(l.id)} className="text-xs text-red-400 hover:underline">
+                  <button onClick={() => handleDeletePonto(l.id)} className="text-xs text-red-600 hover:underline">
                     Remover
                   </button>
                 </td>
@@ -279,10 +279,10 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </table>
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-white">Resumo por funcionário — acerto</h2>
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800">
+      <h2 className="mb-2 text-sm font-semibold text-fg">Resumo por funcionário — acerto</h2>
+      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-400">
+          <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="px-3 py-2 font-medium">Funcionário</th>
               <th className="px-3 py-2 font-medium">Regime</th>
@@ -296,13 +296,13 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <tbody>
             {resumo.map((r) => (
               <tr key={r.funcionario.id} className="border-t border-ink-800">
-                <td className="px-3 py-2 text-white">{r.funcionario.nome}</td>
-                <td className="px-3 py-2 text-neutral-400">{r.funcionario.regime}</td>
-                <td className="px-3 py-2 text-neutral-400">{r.horas.toFixed(2)}h</td>
-                <td className="px-3 py-2 text-neutral-400">{r.diarias.toFixed(2)}</td>
-                <td className="px-3 py-2 text-neutral-400">{formatBRL(r.aPagar)}</td>
-                <td className="px-3 py-2 text-neutral-400">{formatBRL(r.adiantado)}</td>
-                <td className="px-3 py-2 font-medium text-emerald-400">{formatBRL(r.saldo)}</td>
+                <td className="px-3 py-2 text-fg">{r.funcionario.nome}</td>
+                <td className="px-3 py-2 text-neutral-600">{r.funcionario.regime}</td>
+                <td className="px-3 py-2 text-neutral-600">{r.horas.toFixed(2)}h</td>
+                <td className="px-3 py-2 text-neutral-600">{r.diarias.toFixed(2)}</td>
+                <td className="px-3 py-2 text-neutral-600">{formatBRL(r.aPagar)}</td>
+                <td className="px-3 py-2 text-neutral-600">{formatBRL(r.adiantado)}</td>
+                <td className="px-3 py-2 font-medium text-emerald-600">{formatBRL(r.saldo)}</td>
               </tr>
             ))}
             {resumo.length === 0 && (
@@ -316,24 +316,24 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </table>
       </div>
 
-      <h2 className="mb-2 text-sm font-semibold text-white">Desembolsos (quem pagou do próprio bolso)</h2>
+      <h2 className="mb-2 text-sm font-semibold text-fg">Desembolsos (quem pagou do próprio bolso)</h2>
       <form onSubmit={handleAddDesembolso} className="mb-3 flex flex-wrap items-end gap-2">
         <input
           placeholder="Pessoa (quem pagou)"
           value={novoDesembolso.pessoa}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, pessoa: e.target.value })}
-          className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <input
           placeholder="Item"
           value={novoDesembolso.item}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, item: e.target.value })}
-          className="w-44 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="w-44 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <select
           value={novoDesembolso.categoria}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, categoria: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         >
           <option>Material</option>
           <option>Alimentação</option>
@@ -345,7 +345,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <select
             value={novoDesembolso.funcionarioRefId}
             onChange={(e) => setNovoDesembolso({ ...novoDesembolso, funcionarioRefId: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           >
             <option value="">Adiantamento p/...</option>
             {funcionarios.map((f) => (
@@ -361,16 +361,16 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           placeholder="Valor"
           value={novoDesembolso.valor}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, valor: e.target.value })}
-          className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
           Lançar
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800">
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-400">
+          <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="px-3 py-2 font-medium">Pessoa</th>
               <th className="px-3 py-2 font-medium">Item</th>
@@ -382,11 +382,11 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <tbody>
             {desembolsos.map((d) => (
               <tr key={d.id} className="border-t border-ink-800">
-                <td className="px-3 py-2 text-white">{d.pessoa}</td>
-                <td className="px-3 py-2 text-neutral-400">{d.item}</td>
-                <td className="px-3 py-2 text-neutral-400">{d.categoria}</td>
-                <td className="px-3 py-2 text-neutral-400">{d.funcionarioRef?.nome ?? "—"}</td>
-                <td className="px-3 py-2 text-white">{formatBRL(Number(d.valor))}</td>
+                <td className="px-3 py-2 text-fg">{d.pessoa}</td>
+                <td className="px-3 py-2 text-neutral-600">{d.item}</td>
+                <td className="px-3 py-2 text-neutral-600">{d.categoria}</td>
+                <td className="px-3 py-2 text-neutral-600">{d.funcionarioRef?.nome ?? "—"}</td>
+                <td className="px-3 py-2 text-fg">{formatBRL(Number(d.valor))}</td>
               </tr>
             ))}
             {desembolsos.length === 0 && (

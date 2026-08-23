@@ -60,14 +60,14 @@ export default function EquipePage() {
       <div className="p-6">
         {isAdmin && (
           <details className="mb-4 rounded-xl border border-ink-800 bg-ink-900 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-white">+ Criar acesso</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-fg">+ Criar acesso</summary>
             <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-2">
               <div>
                 <label className="mb-1 block text-xs text-neutral-500">Nome</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-48 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                  className="w-48 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
                 />
               </div>
               <div>
@@ -76,7 +76,7 @@ export default function EquipePage() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                  className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
                 />
               </div>
               <div>
@@ -84,7 +84,7 @@ export default function EquipePage() {
                 <input
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                  className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
                 />
               </div>
               <div>
@@ -92,7 +92,7 @@ export default function EquipePage() {
                 <select
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                  className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
                 >
                   <option value="ADMIN">Administrador</option>
                   <option value="ENGENHEIRO">Engenheiro</option>
@@ -104,18 +104,18 @@ export default function EquipePage() {
                 Criar
               </button>
             </form>
-            {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+            {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
             {created && (
-              <p className="mt-2 text-sm text-emerald-400">
+              <p className="mt-2 text-sm text-emerald-600">
                 Criado: {created.email} / senha {created.password} — anote e repasse com segurança.
               </p>
             )}
           </details>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800">
+        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
           <table className="w-full text-sm">
-            <thead className="bg-ink-900 text-left text-neutral-400">
+            <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">E-mail</th>
@@ -125,9 +125,9 @@ export default function EquipePage() {
             <tbody>
               {usuarios.map((u) => (
                 <tr key={u.id} className="border-t border-ink-800">
-                  <td className="px-4 py-3 text-white">{u.name}</td>
-                  <td className="px-4 py-3 text-neutral-400">{u.email}</td>
-                  <td className="px-4 py-3 text-neutral-400">{ROLE_LABEL[u.role] ?? u.role}</td>
+                  <td className="px-4 py-3 text-fg">{u.name}</td>
+                  <td className="px-4 py-3 text-neutral-600">{u.email}</td>
+                  <td className="px-4 py-3 text-neutral-600">{ROLE_LABEL[u.role] ?? u.role}</td>
                 </tr>
               ))}
             </tbody>

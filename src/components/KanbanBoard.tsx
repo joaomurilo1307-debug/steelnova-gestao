@@ -37,7 +37,7 @@ function TaskCard({ tarefa }: { tarefa: Tarefa }) {
       style={style}
       {...listeners}
       {...attributes}
-      className={`cursor-grab rounded-lg border border-ink-700 bg-ink-800 p-3 text-sm text-white active:cursor-grabbing ${
+      className={`cursor-grab rounded-lg border border-ink-700 bg-ink-800 p-3 text-sm text-fg active:cursor-grabbing ${
         isDragging ? "opacity-60" : ""
       }`}
     >
@@ -59,7 +59,7 @@ function Column({ col, tarefas }: { col: (typeof COLUNAS)[number]; tarefas: Tare
     >
       <div className="mb-3 flex items-center gap-2">
         <span className={`h-2 w-2 rounded-full ${col.accent}`} />
-        <p className="text-sm font-medium text-white">{col.label}</p>
+        <p className="text-sm font-medium text-fg">{col.label}</p>
         <span className="ml-auto text-xs text-neutral-500">{tarefas.length}</span>
       </div>
       <div className="flex flex-col gap-2">
@@ -122,7 +122,7 @@ export default function KanbanBoard({ obraId }: { obraId: string }) {
           value={novoTitulo}
           onChange={(e) => setNovoTitulo(e.target.value)}
           placeholder="Nova tarefa..."
-          className="flex-1 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          className="flex-1 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
         />
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
           Adicionar

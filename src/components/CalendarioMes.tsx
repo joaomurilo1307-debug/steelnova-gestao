@@ -55,8 +55,8 @@ export default function CalendarioMes({
                         key={e.id}
                         href={e.tipo === "rdo" ? `/obras/${e.obraId}/rdo` : `/obras/${e.obraId}/cronograma`}
                         title={`${e.titulo} — ${e.obraNome}`}
-                        className={`block truncate rounded px-1 py-0.5 text-[10px] ${
-                          e.tipo === "rdo" ? "bg-amber-500/20 text-amber-300" : "bg-brand/20 text-brand"
+                        className={`block truncate rounded px-1 py-0.5 text-[10px] font-medium ${
+                          e.tipo === "rdo" ? "bg-amber-100 text-amber-800" : "bg-brand/15 text-brand-dark"
                         }`}
                       >
                         {e.titulo}

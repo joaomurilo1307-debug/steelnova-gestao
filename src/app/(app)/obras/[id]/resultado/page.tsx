@@ -80,42 +80,42 @@ export default async function ObraResultadoPage({ params }: { params: { id: stri
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Receita</p>
-          <p className="mt-1 text-xl font-semibold text-white">{formatBRL(receita)}</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(receita)}</p>
         </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Custo total</p>
-          <p className="mt-1 text-xl font-semibold text-white">{formatBRL(custoTotal)}</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(custoTotal)}</p>
         </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Impostos ({(impostoPercent * 100).toFixed(1)}%)</p>
-          <p className="mt-1 text-xl font-semibold text-white">{formatBRL(impostos)}</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(impostos)}</p>
         </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Lucro</p>
-          <p className={`mt-1 text-xl font-semibold ${lucro >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+          <p className={`mt-1 text-xl font-semibold ${lucro >= 0 ? "text-emerald-600" : "text-red-600"}`}>
             {formatBRL(lucro)}
           </p>
         </div>
       </div>
 
       <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
-        <h2 className="mb-3 text-sm font-semibold text-white">Composição do custo</h2>
+        <h2 className="mb-3 text-sm font-semibold text-fg">Composição do custo</h2>
         <table className="w-full text-sm">
           <tbody>
             {linhas.map(([label, valor]) => (
               <tr key={label} className="border-t border-ink-800">
-                <td className="py-2 text-neutral-400">{label}</td>
-                <td className="py-2 text-right text-white">{formatBRL(valor)}</td>
+                <td className="py-2 text-neutral-600">{label}</td>
+                <td className="py-2 text-right text-fg">{formatBRL(valor)}</td>
               </tr>
             ))}
             <tr className="border-t border-ink-700 font-medium">
-              <td className="py-2 text-white">CUSTO TOTAL</td>
-              <td className="py-2 text-right text-white">{formatBRL(custoTotal)}</td>
+              <td className="py-2 text-fg">CUSTO TOTAL</td>
+              <td className="py-2 text-right text-fg">{formatBRL(custoTotal)}</td>
             </tr>
           </tbody>
         </table>
-        <p className="mt-4 text-sm text-neutral-400">
-          Margem sobre a receita: <span className="text-white">{(margem * 100).toFixed(1)}%</span>
+        <p className="mt-4 text-sm text-neutral-600">
+          Margem sobre a receita: <span className="text-fg">{(margem * 100).toFixed(1)}%</span>
         </p>
         <p className="mt-1 text-xs text-neutral-600">
           Receita = valor do contrato da obra (edite em Visão geral, se necessário). Imposto = % sobre faturamento

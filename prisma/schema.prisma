@@ -102,6 +102,11 @@ model Tarefa {
   percentConcluido  Int          @default(0)
   dataInicioReal    DateTime?
   dataFimReal       DateTime?
+  pessoas           Int?
+  horas             Decimal?     @db.Decimal(6, 2)
+  turno             String?
+  responsavelNome   String?
+  observacoes       String?
   ordem             Int          @default(0)
   responsavelId     String?
   predecessoraId    String?
@@ -250,14 +255,17 @@ enum ArquivoCategoria {
 }
 
 model Arquivo {
-  id           String           @id @default(cuid())
-  obraId       String
-  nome         String
-  categoria    ArquivoCategoria @default(OUTRO)
-  url          String
-  tamanho      Int
+  id             String           @id @default(cuid())
+  obraId         String
+  nome           String
+  categoria      ArquivoCategoria @default(OUTRO)
+  url            String
+  tamanho        Int
+  valor          Decimal?         @db.Decimal(12, 2)
+  descricao      String?
+  data           DateTime?
   uploadadoPorId String
-  createdAt    DateTime         @default(now())
+  createdAt      DateTime         @default(now())
 
   obra         Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
   uploadadoPor User @relation(fields: [uploadadoPorId], references: [id])

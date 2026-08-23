@@ -49,21 +49,21 @@ export default function NovoRdoPage() {
     <div className="p-6">
       <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-4">
         <div>
-          <label className="mb-1 block text-sm text-neutral-400">Data</label>
+          <label className="mb-1 block text-sm text-neutral-600">Data</label>
           <input
             type="date"
             required
             value={form.data}
             onChange={(e) => setForm({ ...form, data: e.target.value })}
-            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-400">Clima</label>
+          <label className="mb-1 block text-sm text-neutral-600">Clima</label>
           <select
             value={form.clima}
             onChange={(e) => setForm({ ...form, clima: e.target.value })}
-            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
           >
             <option>Bom</option>
             <option>Nublado</option>
@@ -72,37 +72,37 @@ export default function NovoRdoPage() {
           </select>
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-400">Efetivo em campo (pessoas)</label>
+          <label className="mb-1 block text-sm text-neutral-600">Efetivo em campo (pessoas)</label>
           <input
             type="number"
             min={0}
             required
             value={form.efetivo}
             onChange={(e) => setForm({ ...form, efetivo: e.target.value })}
-            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-400">Atividades executadas</label>
+          <label className="mb-1 block text-sm text-neutral-600">Atividades executadas</label>
           <textarea
             required
             rows={4}
             value={form.atividades}
             onChange={(e) => setForm({ ...form, atividades: e.target.value })}
-            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm text-neutral-400">Ocorrências (opcional)</label>
+          <label className="mb-1 block text-sm text-neutral-600">Ocorrências (opcional)</label>
           <textarea
             rows={2}
             value={form.ocorrencias}
             onChange={(e) => setForm({ ...form, ocorrencias: e.target.value })}
-            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+            className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
           />
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         <button
           type="submit"

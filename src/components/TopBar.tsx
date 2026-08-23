@@ -16,19 +16,19 @@ export default function TopBar({ title, subtitle }: { title: string; subtitle?: 
   return (
     <header className="flex items-center justify-between border-b border-ink-800 bg-ink-950 px-6 py-4">
       <div>
-        <h1 className="text-lg font-semibold text-white">{title}</h1>
+        <h1 className="text-lg font-semibold text-fg">{title}</h1>
         {subtitle && <p className="text-sm text-neutral-500">{subtitle}</p>}
       </div>
 
       <div className="flex items-center gap-3">
         {readOnly && (
-          <span className="flex items-center gap-1.5 text-xs text-neutral-400">
+          <span className="flex items-center gap-1.5 text-xs text-neutral-600">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Só leitura
           </span>
         )}
         {session?.user && (
-          <div className="flex items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-white">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-[11px] font-semibold">
+          <div className="flex items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-fg">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-[11px] font-semibold text-white">
               {initials}
             </span>
             {session.user.name}

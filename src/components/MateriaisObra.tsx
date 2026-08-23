@@ -70,7 +70,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             placeholder="Galpão 1, Tesouras..."
             value={form.grupo}
             onChange={(e) => setForm({ ...form, grupo: e.target.value })}
-            className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -78,7 +78,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
           <input
             value={form.nome}
             onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            className="w-48 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-48 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -87,7 +87,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             placeholder="kg, m², un..."
             value={form.unidade}
             onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -97,7 +97,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.quantidadePrevista}
             onChange={(e) => setForm({ ...form, quantidadePrevista: e.target.value })}
-            className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -105,7 +105,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
           <input
             value={form.fornecedor}
             onChange={(e) => setForm({ ...form, fornecedor: e.target.value })}
-            className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -115,7 +115,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.pesoUnitario}
             onChange={(e) => setForm({ ...form, pesoUnitario: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
@@ -123,9 +123,9 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800">
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-400">
+          <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="px-4 py-3 font-medium">Grupo</th>
               <th className="px-4 py-3 font-medium">Material</th>
@@ -139,16 +139,16 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
           <tbody>
             {materiais.map((m) => (
               <tr key={m.id} className="border-t border-ink-800">
-                <td className="px-4 py-3 text-neutral-400">{m.grupo ?? "—"}</td>
-                <td className="px-4 py-3 text-white">{m.nome}</td>
-                <td className="px-4 py-3 text-neutral-400">{m.fornecedor ?? "—"}</td>
-                <td className="px-4 py-3 text-neutral-400">
+                <td className="px-4 py-3 text-neutral-600">{m.grupo ?? "—"}</td>
+                <td className="px-4 py-3 text-fg">{m.nome}</td>
+                <td className="px-4 py-3 text-neutral-600">{m.fornecedor ?? "—"}</td>
+                <td className="px-4 py-3 text-neutral-600">
                   {Number(m.quantidadePrevista)} {m.unidade}
                 </td>
-                <td className="px-4 py-3 text-neutral-400">
+                <td className="px-4 py-3 text-neutral-600">
                   {Number(m.quantidadeRecebida)} {m.unidade}
                 </td>
-                <td className="px-4 py-3 text-neutral-400">
+                <td className="px-4 py-3 text-neutral-600">
                   {m.pesoUnitario ? `${(Number(m.pesoUnitario) * Number(m.quantidadePrevista)).toFixed(1)} kg` : "—"}
                 </td>
                 <td className="px-4 py-3">

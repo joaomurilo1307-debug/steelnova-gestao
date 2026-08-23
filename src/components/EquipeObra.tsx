@@ -52,7 +52,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
           <select
             value={form.userId}
             onChange={(e) => setForm({ ...form, userId: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           >
             <option value="">Selecione...</option>
             {usuarios.map((u) => (
@@ -68,7 +68,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
             placeholder="Engenheiro, Mestre de obra..."
             value={form.funcao}
             onChange={(e) => setForm({ ...form, funcao: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
@@ -80,10 +80,10 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
         {membros.map((m) => (
           <div key={m.id} className="flex items-center justify-between rounded-xl border border-ink-800 bg-ink-900 p-4">
             <div>
-              <p className="text-sm font-medium text-white">{m.user.name}</p>
+              <p className="text-sm font-medium text-fg">{m.user.name}</p>
               <p className="text-xs text-neutral-500">{m.funcao}</p>
             </div>
-            <button onClick={() => handleRemove(m.user.id)} className="text-xs text-red-400 hover:underline">
+            <button onClick={() => handleRemove(m.user.id)} className="text-xs text-red-600 hover:underline">
               Remover
             </button>
           </div>

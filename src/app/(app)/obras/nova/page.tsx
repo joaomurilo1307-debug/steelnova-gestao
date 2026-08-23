@@ -48,13 +48,13 @@ export default function NovaObraPage() {
 
   const field = (label: string, key: keyof typeof form, type = "text") => (
     <div>
-      <label className="mb-1 block text-sm text-neutral-400">{label}</label>
+      <label className="mb-1 block text-sm text-neutral-600">{label}</label>
       <input
         type={type}
         required={key !== "endereco"}
         value={form[key]}
         onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-        className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-white outline-none focus:border-brand"
+        className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
       />
     </div>
   );
@@ -72,7 +72,7 @@ export default function NovaObraPage() {
           {field("Data de início", "dataInicio", "date")}
           {field("Prazo previsto (dias)", "prazoPrevistoDias", "number")}
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
 
           <button
             type="submit"

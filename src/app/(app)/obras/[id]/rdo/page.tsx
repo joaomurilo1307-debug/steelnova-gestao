@@ -30,14 +30,14 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
           {rdos.map((rdo) => (
             <div key={rdo.id} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
               <div className="mb-2 flex items-center justify-between">
-                <p className="font-medium text-white">{rdo.data.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</p>
+                <p className="font-medium text-fg">{rdo.data.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</p>
                 <span className="text-xs text-neutral-500">
                   {rdo.clima} · {rdo.efetivo} pessoas · registrado por {rdo.autor.name}
                 </span>
               </div>
-              <p className="text-sm text-neutral-300">{rdo.atividades}</p>
+              <p className="text-sm text-fg-muted">{rdo.atividades}</p>
               {rdo.ocorrencias && (
-                <p className="mt-2 text-sm text-amber-400">Ocorrência: {rdo.ocorrencias}</p>
+                <p className="mt-2 text-sm text-amber-600">Ocorrência: {rdo.ocorrencias}</p>
               )}
             </div>
           ))}

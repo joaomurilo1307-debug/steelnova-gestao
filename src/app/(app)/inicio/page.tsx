@@ -45,15 +45,15 @@ export default async function InicioPage() {
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
             <p className="text-xs uppercase text-neutral-500">Obras ativas</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{obrasAtivas}</p>
+            <p className="mt-1 text-2xl font-semibold text-fg">{obrasAtivas}</p>
           </div>
           <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
             <p className="text-xs uppercase text-neutral-500">RDOs registrados hoje</p>
-            <p className="mt-1 text-2xl font-semibold text-white">{rdosHoje}</p>
+            <p className="mt-1 text-2xl font-semibold text-fg">{rdosHoje}</p>
           </div>
           <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
             <p className="text-xs uppercase text-neutral-500">Tarefas atrasadas</p>
-            <p className={`mt-1 text-2xl font-semibold ${tarefasAtrasadas.length > 0 ? "text-red-400" : "text-white"}`}>
+            <p className={`mt-1 text-2xl font-semibold ${tarefasAtrasadas.length > 0 ? "text-red-600" : "text-fg"}`}>
               {tarefasAtrasadas.length}
             </p>
           </div>
@@ -61,7 +61,7 @@ export default async function InicioPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
-            <h2 className="mb-3 text-sm font-semibold text-white">Agenda de hoje</h2>
+            <h2 className="mb-3 text-sm font-semibold text-fg">Agenda de hoje</h2>
             {tarefasHoje.length === 0 ? (
               <p className="text-sm text-neutral-500">Nenhuma atividade com início hoje.</p>
             ) : (
@@ -69,7 +69,7 @@ export default async function InicioPage() {
                 {tarefasHoje.map((t) => (
                   <li key={t.id} className="flex items-center justify-between text-sm">
                     <div>
-                      <p className="text-white">{t.titulo}</p>
+                      <p className="text-fg">{t.titulo}</p>
                       <Link href={`/obras/${t.obra.id}/cronograma`} className="text-xs text-brand hover:underline">
                         {t.obra.nome}
                       </Link>
@@ -82,7 +82,7 @@ export default async function InicioPage() {
           </div>
 
           <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
-            <h2 className="mb-3 text-sm font-semibold text-white">Atrasadas</h2>
+            <h2 className="mb-3 text-sm font-semibold text-fg">Atrasadas</h2>
             {tarefasAtrasadas.length === 0 ? (
               <p className="text-sm text-neutral-500">Nada atrasado — parabéns.</p>
             ) : (
@@ -90,12 +90,12 @@ export default async function InicioPage() {
                 {tarefasAtrasadas.map((t) => (
                   <li key={t.id} className="flex items-center justify-between text-sm">
                     <div>
-                      <p className="text-white">{t.titulo}</p>
+                      <p className="text-fg">{t.titulo}</p>
                       <Link href={`/obras/${t.obra.id}/cronograma`} className="text-xs text-brand hover:underline">
                         {t.obra.nome}
                       </Link>
                     </div>
-                    <span className="text-xs text-red-400">
+                    <span className="text-xs text-red-600">
                       {t.dataInicio?.toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                     </span>
                   </li>

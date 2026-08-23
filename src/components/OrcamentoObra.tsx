@@ -141,7 +141,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
   return (
     <div className="p-6">
       <details className="mb-4 rounded-xl border border-ink-800 bg-ink-900 p-4">
-        <summary className="cursor-pointer text-sm font-semibold text-white">
+        <summary className="cursor-pointer text-sm font-semibold text-fg">
           Parâmetros de precificação (taxas de mercado)
         </summary>
         <form onSubmit={handleSaveParams} className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -169,7 +169,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
                     [key]: e.target.value === "" ? (key === "valorAlvo" ? null : 0) : Number(e.target.value),
                   })
                 }
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
               />
             </div>
           ))}
@@ -189,7 +189,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           <input
             value={form.nome}
             onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -199,7 +199,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.baseQtd}
             onChange={(e) => setForm({ ...form, baseQtd: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <div>
@@ -207,7 +207,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           <select
             value={form.unidade}
             onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           >
             <option value="kg">kg</option>
             <option value="m²">m²</option>
@@ -223,7 +223,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.materiaPrima}
             onChange={(e) => setForm({ ...form, materiaPrima: e.target.value })}
-            className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+            className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
           />
         </div>
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
@@ -231,9 +231,9 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800">
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-400">
+          <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="px-3 py-3 font-medium">Serviço</th>
               <th className="px-3 py-3 font-medium">Base</th>
@@ -252,17 +252,17 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
               const c = calcServico(s, params);
               return (
                 <tr key={s.id} className="border-t border-ink-800">
-                  <td className="px-3 py-3 text-white">{s.nome}</td>
-                  <td className="px-3 py-3 text-neutral-400">{num(s.baseQtd)}</td>
-                  <td className="px-3 py-3 text-neutral-400">{s.unidade}</td>
-                  <td className="px-3 py-3 text-neutral-400">{formatBRL(num(s.materiaPrima))}</td>
-                  <td className="px-3 py-3 text-neutral-400">{formatBRL(c.insumos)}</td>
-                  <td className="px-3 py-3 text-neutral-400">{formatBRL(c.maoDeObra)}</td>
-                  <td className="px-3 py-3 text-neutral-400">{formatBRL(c.custo)}</td>
-                  <td className="px-3 py-3 text-neutral-400">{formatBRL(c.bdi)}</td>
-                  <td className="px-3 py-3 font-medium text-white">{formatBRL(c.preco)}</td>
+                  <td className="px-3 py-3 text-fg">{s.nome}</td>
+                  <td className="px-3 py-3 text-neutral-600">{num(s.baseQtd)}</td>
+                  <td className="px-3 py-3 text-neutral-600">{s.unidade}</td>
+                  <td className="px-3 py-3 text-neutral-600">{formatBRL(num(s.materiaPrima))}</td>
+                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.insumos)}</td>
+                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.maoDeObra)}</td>
+                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.custo)}</td>
+                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.bdi)}</td>
+                  <td className="px-3 py-3 font-medium text-fg">{formatBRL(c.preco)}</td>
                   <td className="px-3 py-3">
-                    <button onClick={() => handleDeleteServico(s.id)} className="text-xs text-red-400 hover:underline">
+                    <button onClick={() => handleDeleteServico(s.id)} className="text-xs text-red-600 hover:underline">
                       Remover
                     </button>
                   </td>
@@ -279,7 +279,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           </tbody>
           {servicos.length > 0 && (
             <tfoot>
-              <tr className="border-t border-ink-700 bg-ink-900 font-medium text-white">
+              <tr className="border-t border-ink-700 bg-ink-900 font-medium text-fg">
                 <td className="px-3 py-3" colSpan={6}>
                   TOTAL
                 </td>
@@ -294,12 +294,12 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
       </div>
 
       {params.valorAlvo !== null && (
-        <p className="mt-3 text-sm text-neutral-400">
-          Valor-alvo da proposta: <span className="text-white">{formatBRL(params.valorAlvo)}</span> — soma atual dos
+        <p className="mt-3 text-sm text-neutral-600">
+          Valor-alvo da proposta: <span className="text-fg">{formatBRL(params.valorAlvo)}</span> — soma atual dos
           serviços {formatBRL(totalPreco)}. {ajusteParaAlvo !== null && ajusteParaAlvo !== 0 && (
             <>
               Diferença (mobilização/margem para fechar no alvo):{" "}
-              <span className={ajusteParaAlvo >= 0 ? "text-emerald-400" : "text-red-400"}>
+              <span className={ajusteParaAlvo >= 0 ? "text-emerald-600" : "text-red-600"}>
                 {formatBRL(ajusteParaAlvo)}
               </span>
             </>

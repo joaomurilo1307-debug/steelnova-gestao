@@ -68,7 +68,7 @@ export default function FinancasPage() {
           {totalPorTipo.map((t) => (
             <div key={t.tipo} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
               <p className="text-xs uppercase text-neutral-500">{t.tipo}</p>
-              <p className="mt-1 text-lg font-semibold text-white">{formatBRL(t.total)}</p>
+              <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(t.total)}</p>
             </div>
           ))}
         </div>
@@ -79,7 +79,7 @@ export default function FinancasPage() {
             <select
               value={form.tipo}
               onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             >
               {TIPOS.map((t) => (
                 <option key={t}>{t}</option>
@@ -91,7 +91,7 @@ export default function FinancasPage() {
             <input
               value={form.descricao}
               onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function FinancasPage() {
             <input
               value={form.pessoa}
               onChange={(e) => setForm({ ...form, pessoa: e.target.value })}
-              className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
           </div>
           <div>
@@ -109,7 +109,7 @@ export default function FinancasPage() {
               step="0.01"
               value={form.valor}
               onChange={(e) => setForm({ ...form, valor: e.target.value })}
-              className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
           </div>
           <div>
@@ -118,7 +118,7 @@ export default function FinancasPage() {
               type="date"
               value={form.data}
               onChange={(e) => setForm({ ...form, data: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
           </div>
           <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
@@ -126,9 +126,9 @@ export default function FinancasPage() {
           </button>
         </form>
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800">
+        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
           <table className="w-full text-sm">
-            <thead className="bg-ink-900 text-left text-neutral-400">
+            <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>
                 <th className="px-4 py-3 font-medium">Data</th>
                 <th className="px-4 py-3 font-medium">Tipo</th>
@@ -140,11 +140,11 @@ export default function FinancasPage() {
             <tbody>
               {lancamentos.map((l) => (
                 <tr key={l.id} className="border-t border-ink-800">
-                  <td className="px-4 py-3 text-neutral-400">{new Date(l.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
-                  <td className="px-4 py-3 text-neutral-400">{l.tipo}</td>
-                  <td className="px-4 py-3 text-white">{l.descricao}</td>
-                  <td className="px-4 py-3 text-neutral-400">{l.pessoa ?? "—"}</td>
-                  <td className="px-4 py-3 text-white">{formatBRL(Number(l.valor))}</td>
+                  <td className="px-4 py-3 text-neutral-600">{new Date(l.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
+                  <td className="px-4 py-3 text-neutral-600">{l.tipo}</td>
+                  <td className="px-4 py-3 text-fg">{l.descricao}</td>
+                  <td className="px-4 py-3 text-neutral-600">{l.pessoa ?? "—"}</td>
+                  <td className="px-4 py-3 text-fg">{formatBRL(Number(l.valor))}</td>
                 </tr>
               ))}
               {lancamentos.length === 0 && (

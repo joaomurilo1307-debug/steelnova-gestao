@@ -6,7 +6,7 @@ export default function EmConstrucao({ title, subtitle }: { title: string; subti
       <TopBar title={title} subtitle={subtitle} />
       <div className="p-6">
         <div className="rounded-xl border border-dashed border-ink-800 p-10 text-center">
-          <p className="text-sm text-neutral-400">Módulo em construção — próxima fase do sistema.</p>
+          <p className="text-sm text-neutral-600">Módulo em construção — próxima fase do sistema.</p>
         </div>
       </div>
     </div>

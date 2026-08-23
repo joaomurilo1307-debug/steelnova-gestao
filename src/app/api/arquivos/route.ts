@@ -37,11 +37,15 @@ export async function POST(req: Request) {
   const file = form.get("file");
   const obraId = form.get("obraId");
   const categoriaRaw = form.get("categoria");
+  const valorRaw = form.get("valor");
+  const descricaoRaw = form.get("descricao");
+  const dataRaw = form.get("data");
 
   if (!(file instanceof File) || typeof obraId !== "string" || !obraId) {
     return NextResponse.json({ error: "arquivo e obraId são obrigatórios" }, { status: 400 });
   }
   const categoria = CATEGORIAS.includes(categoriaRaw as any) ? (categoriaRaw as string) : "OUTRO";
+  const valor = typeof valorRaw === "string" && valorRaw !== "" ? Number(valorRaw) : undefined;
 
   await mkdir(UPLOAD_DIR, { recursive: true });
   const ext = path.extname(file.name);
@@ -56,6 +60,9 @@ export async function POST(req: Request) {
       categoria: categoria as any,
       url: storedName,
       tamanho: bytes.byteLength,
+      valor: valor !== undefined && !Number.isNaN(valor) ? valor : undefined,
+      descricao: typeof descricaoRaw === "string" && descricaoRaw ? descricaoRaw : undefined,
+      data: typeof dataRaw === "string" && dataRaw ? new Date(dataRaw) : undefined,
       uploadadoPorId: (session.user as any).id,
     },
   });

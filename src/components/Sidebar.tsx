@@ -52,7 +52,7 @@ function NavGroup({
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
                 active
                   ? "bg-brand/15 font-medium text-brand"
-                  : "text-neutral-300 hover:bg-ink-800 hover:text-white"
+                  : "text-fg-muted hover:bg-ink-800 hover:text-fg"
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -74,7 +74,7 @@ export default function Sidebar() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-steelnova.png" alt="SteelNova" style={{ height: 32, width: 32 }} className="rounded" />
         <div>
-          <p className="text-sm font-semibold text-white">Obra SteelNova</p>
+          <p className="text-sm font-semibold text-fg">Obra SteelNova</p>
         </div>
       </div>
 

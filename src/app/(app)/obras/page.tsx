@@ -19,9 +19,9 @@ export default async function ObrasPage() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800">
+        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
           <table className="w-full text-sm">
-            <thead className="bg-ink-900 text-left text-neutral-400">
+            <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>
                 <th className="px-4 py-3 font-medium">Obra</th>
                 <th className="px-4 py-3 font-medium">Cliente</th>
@@ -34,14 +34,14 @@ export default async function ObrasPage() {
               {obras.map((obra) => (
                 <tr key={obra.id} className="border-t border-ink-800 hover:bg-ink-900">
                   <td className="px-4 py-3">
-                    <Link href={`/obras/${obra.id}`} className="font-medium text-white hover:text-brand">
+                    <Link href={`/obras/${obra.id}`} className="font-medium text-fg hover:text-brand">
                       {obra.nome}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-neutral-400">{obra.cliente}</td>
-                  <td className="px-4 py-3 text-neutral-400">{obraStatusLabel(obra.status)}</td>
-                  <td className="px-4 py-3 text-neutral-400">{formatBRLCompact(Number(obra.valorContrato))}</td>
-                  <td className="px-4 py-3 text-neutral-400">{obra.progresso}%</td>
+                  <td className="px-4 py-3 text-neutral-600">{obra.cliente}</td>
+                  <td className="px-4 py-3 text-neutral-600">{obraStatusLabel(obra.status)}</td>
+                  <td className="px-4 py-3 text-neutral-600">{formatBRLCompact(Number(obra.valorContrato))}</td>
+                  <td className="px-4 py-3 text-neutral-600">{obra.progresso}%</td>
                 </tr>
               ))}
               {obras.length === 0 && (

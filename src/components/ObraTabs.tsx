@@ -33,7 +33,7 @@ export default function ObraTabs({ obraId }: { obraId: string }) {
             className={`shrink-0 border-b-2 px-3 py-2.5 text-sm transition ${
               active
                 ? "border-brand font-medium text-brand"
-                : "border-transparent text-neutral-400 hover:text-white"
+                : "border-transparent text-neutral-600 hover:text-fg"
             }`}
           >
             {tab.label}
