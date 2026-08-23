@@ -7,6 +7,7 @@ const TABS = [
   { seg: "", label: "Visão geral" },
   { seg: "orcamento", label: "Orçamento" },
   { seg: "kanban", label: "Kanban" },
+  { seg: "lista", label: "Lista" },
   { seg: "cronograma", label: "Cronograma" },
   { seg: "rdo", label: "RDO" },
   { seg: "diarias", label: "Diárias" },

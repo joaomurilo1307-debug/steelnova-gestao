@@ -29,6 +29,13 @@ enum TarefaStatus {
   FEITO
 }
 
+enum TarefaPrioridade {
+  BAIXA
+  MEDIA
+  ALTA
+  URGENTE
+}
+
 enum RaciPapel {
   R
   A
@@ -64,6 +71,7 @@ model User {
   passwordHash String
   role         UserRole @default(VISUALIZADOR)
   active       Boolean  @default(true)
+  avatarUrl    String?  @db.Text
   createdAt    DateTime @default(now())
 
   obras          ObraMembro[]
@@ -99,6 +107,7 @@ model Obra {
   lancamentosPonto   LancamentoPonto[]
   desembolsos        Desembolso[]
   mensagens          ChatMensagem[]
+  proposta           Proposta?
 }
 
 model ChatMensagem {
@@ -125,31 +134,37 @@ model ObraMembro {
 }
 
 model Tarefa {
-  id                String       @id @default(cuid())
+  id                String            @id @default(cuid())
   obraId            String
   eap               String?
   fase              String?
   titulo            String
   descricao         String?
-  status            TarefaStatus @default(A_FAZER)
+  status            TarefaStatus      @default(A_FAZER)
+  prioridade        TarefaPrioridade  @default(MEDIA)
   dataInicio        DateTime?
-  duracaoDias       Int          @default(1)
-  percentConcluido  Int          @default(0)
+  duracaoDias       Int               @default(1)
+  percentConcluido  Int               @default(0)
   dataInicioReal    DateTime?
   dataFimReal       DateTime?
   pessoas           Int?
-  horas             Decimal?     @db.Decimal(6, 2)
+  horas             Decimal?          @db.Decimal(6, 2)
   turno             String?
   responsavelNome   String?
   observacoes       String?
-  ordem             Int          @default(0)
+  ordem             Int               @default(0)
   responsavelId     String?
   predecessoraId    String?
+  tarefaMaeId       String?
+  horasEstimadas    Decimal?          @db.Decimal(8, 2)
+  valorHora         Decimal?          @db.Decimal(10, 2)
 
   obra         Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
   responsavel  User?    @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
   predecessora Tarefa?  @relation("TarefaPredecessora", fields: [predecessoraId], references: [id])
   sucessoras   Tarefa[] @relation("TarefaPredecessora")
+  tarefaMae    Tarefa?  @relation("TarefaSubtarefas", fields: [tarefaMaeId], references: [id], onDelete: Cascade)
+  subtarefas   Tarefa[] @relation("TarefaSubtarefas")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -364,22 +379,37 @@ model Processo {
 }
 
 model Proposta {
-  id            String         @id @default(cuid())
-  cliente       String
-  contato       String?
-  segmento      String?
-  escopo        String
-  valor         Decimal?       @db.Decimal(14, 2)
-  status        PropostaStatus @default(RASCUNHO)
-  dataEnvio     DateTime?
-  validade      DateTime?
-  observacoes   String?
-  motivoPerda   String?
-  responsavelId String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id             String         @id @default(cuid())
+  cliente        String
+  contato        String?
+  segmento       String?
+  escopo         String
+  valor          Decimal?       @db.Decimal(14, 2)
+  custoEstimado  Decimal?       @db.Decimal(14, 2)
+  status         PropostaStatus @default(RASCUNHO)
+  dataEnvio      DateTime?
+  validade       DateTime?
+  observacoes    String?
+  motivoPerda    String?
+  responsavelId  String?
+  obraId         String?        @unique
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  responsavel User? @relation(fields: [responsavelId], references: [id])
+  responsavel User?              @relation(fields: [responsavelId], references: [id])
+  obra        Obra?              @relation(fields: [obraId], references: [id], onDelete: SetNull)
+  arquivos    PropostaArquivo[]
+}
+
+model PropostaArquivo {
+  id         String   @id @default(cuid())
+  propostaId String
+  nome       String
+  url        String
+  tamanho    Int
+  createdAt  DateTime @default(now())
+
+  proposta Proposta @relation(fields: [propostaId], references: [id], onDelete: Cascade)
 }
 
 model RaciAtribuicao {

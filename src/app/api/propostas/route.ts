@@ -10,11 +10,13 @@ const createSchema = z.object({
   segmento: z.string().optional(),
   escopo: z.string().min(1),
   valor: z.number().nonnegative().optional(),
+  custoEstimado: z.number().nonnegative().optional(),
   status: z.enum(["RASCUNHO", "ENVIADA", "EM_NEGOCIACAO", "APROVADA", "RECUSADA", "CONVERTIDA"]).optional(),
   dataEnvio: z.string().optional(),
   validade: z.string().optional(),
   observacoes: z.string().optional(),
   responsavelId: z.string().optional(),
+  obraId: z.string().optional(),
 });
 
 export async function GET() {
@@ -22,7 +24,11 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const propostas = await prisma.proposta.findMany({
-    include: { responsavel: { select: { id: true, name: true } } },
+    include: {
+      responsavel: { select: { id: true, name: true, avatarUrl: true } },
+      obra: { select: { id: true, nome: true, status: true } },
+      arquivos: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -47,11 +53,13 @@ export async function POST(req: Request) {
       segmento: parsed.data.segmento,
       escopo: parsed.data.escopo,
       valor: parsed.data.valor,
+      custoEstimado: parsed.data.custoEstimado,
       status: parsed.data.status ?? "RASCUNHO",
       dataEnvio: parsed.data.dataEnvio ? new Date(parsed.data.dataEnvio) : undefined,
       validade: parsed.data.validade ? new Date(parsed.data.validade) : undefined,
       observacoes: parsed.data.observacoes,
       responsavelId: parsed.data.responsavelId,
+      obraId: parsed.data.obraId,
     },
   });
 

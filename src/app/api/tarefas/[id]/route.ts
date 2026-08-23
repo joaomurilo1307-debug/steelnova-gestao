@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 const patchSchema = z.object({
   status: z.enum(["A_FAZER", "FAZENDO", "BLOQUEADO", "FEITO"]).optional(),
+  prioridade: z.enum(["BAIXA", "MEDIA", "ALTA", "URGENTE"]).optional(),
   eap: z.string().nullable().optional(),
   fase: z.string().nullable().optional(),
   titulo: z.string().min(1).optional(),
@@ -22,6 +23,9 @@ const patchSchema = z.object({
   observacoes: z.string().nullable().optional(),
   responsavelId: z.string().nullable().optional(),
   predecessoraId: z.string().nullable().optional(),
+  tarefaMaeId: z.string().nullable().optional(),
+  horasEstimadas: z.number().nonnegative().nullable().optional(),
+  valorHora: z.number().nonnegative().nullable().optional(),
   ordem: z.number().int().optional(),
 });
 

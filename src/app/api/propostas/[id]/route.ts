@@ -10,12 +10,14 @@ const patchSchema = z.object({
   segmento: z.string().nullable().optional(),
   escopo: z.string().min(1).optional(),
   valor: z.number().nonnegative().nullable().optional(),
+  custoEstimado: z.number().nonnegative().nullable().optional(),
   status: z.enum(["RASCUNHO", "ENVIADA", "EM_NEGOCIACAO", "APROVADA", "RECUSADA", "CONVERTIDA"]).optional(),
   dataEnvio: z.string().nullable().optional(),
   validade: z.string().nullable().optional(),
   observacoes: z.string().nullable().optional(),
   motivoPerda: z.string().nullable().optional(),
   responsavelId: z.string().nullable().optional(),
+  obraId: z.string().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

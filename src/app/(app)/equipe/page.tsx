@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import TopBar from "@/components/TopBar";
+import Avatar from "@/components/Avatar";
+import { resizeImageToDataUrl } from "@/lib/image";
 
-type Usuario = { id: string; name: string; email: string; role: string };
+type Usuario = { id: string; name: string; email: string; role: string; avatarUrl: string | null };
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrador",
@@ -24,6 +26,23 @@ export default function EquipePage() {
   const [resetId, setResetId] = useState<string | null>(null);
   const [resetValue, setResetValue] = useState("");
   const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+
+  async function handlePhoto(id: string, file: File) {
+    setUploadingId(id);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      const res = await fetch(`/api/usuarios/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ avatarUrl: dataUrl }),
+      });
+      if (res.ok) load();
+    } finally {
+      setUploadingId(null);
+    }
+  }
 
   async function handleReset(id: string) {
     if (resetValue.length < 8) {
@@ -148,7 +167,36 @@ export default function EquipePage() {
             <tbody>
               {usuarios.map((u) => (
                 <tr key={u.id} className="border-t border-ink-800">
-                  <td className="px-4 py-3 text-fg">{u.name}</td>
+                  <td className="px-4 py-3 text-fg">
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        disabled={!isAdmin || uploadingId === u.id}
+                        onClick={() => fileInputs.current[u.id]?.click()}
+                        className={isAdmin ? "cursor-pointer" : "cursor-default"}
+                        title={isAdmin ? "Trocar foto" : undefined}
+                      >
+                        <Avatar name={u.name} photoUrl={u.avatarUrl} size={32} />
+                      </button>
+                      {isAdmin && (
+                        <input
+                          ref={(el) => {
+                            fileInputs.current[u.id] = el;
+                          }}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handlePhoto(u.id, file);
+                            e.target.value = "";
+                          }}
+                        />
+                      )}
+                      <span>{u.name}</span>
+                      {uploadingId === u.id && <span className="text-xs text-neutral-500">enviando...</span>}
+                    </div>
+                  </td>
                   <td className="px-4 py-3 text-neutral-600">{u.email}</td>
                   <td className="px-4 py-3 text-neutral-600">{ROLE_LABEL[u.role] ?? u.role}</td>
                   {isAdmin && (

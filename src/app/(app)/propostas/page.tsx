@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { formatBRL } from "@/lib/format";
 
@@ -11,13 +11,20 @@ type Proposta = {
   segmento: string | null;
   escopo: string;
   valor: string | null;
+  custoEstimado: string | null;
   status: string;
   dataEnvio: string | null;
   validade: string | null;
   observacoes: string | null;
   motivoPerda: string | null;
   responsavel: { id: string; name: string } | null;
+  obraId: string | null;
+  obra: { id: string; nome: string; status: string } | null;
+  arquivos: { id: string; nome: string; tamanho: number }[];
 };
+
+type Obra = { id: string; nome: string };
+type Material = { id: string; nome: string; quantidadePrevista: string; quantidadeRecebida: string; unidade: string; fornecedor: string | null };
 
 const STATUS_OPTIONS = ["RASCUNHO", "ENVIADA", "EM_NEGOCIACAO", "APROVADA", "RECUSADA", "CONVERTIDA"];
 
@@ -39,9 +46,152 @@ const STATUS_BADGE: Record<string, string> = {
   CONVERTIDA: "bg-violet-100 text-violet-700",
 };
 
+function AquisicoesResumo({ obraId }: { obraId: string }) {
+  const [materiais, setMateriais] = useState<Material[] | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/materiais?obraId=${obraId}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setMateriais);
+  }, [obraId]);
+
+  if (!materiais) return <p className="text-xs text-neutral-500">Carregando aquisições...</p>;
+  const pendentes = materiais.filter((m) => Number(m.quantidadePrevista) - Number(m.quantidadeRecebida) > 0.001);
+
+  return (
+    <div>
+      <p className="mb-1 text-xs font-medium text-neutral-500">Compras e aquisições da obra ({materiais.length} itens, {pendentes.length} pendentes)</p>
+      {pendentes.length === 0 ? (
+        <p className="text-xs text-emerald-600">Tudo recebido.</p>
+      ) : (
+        <ul className="flex flex-col gap-0.5">
+          {pendentes.slice(0, 6).map((m) => (
+            <li key={m.id} className="text-xs text-fg-muted">
+              {m.nome} — falta {(Number(m.quantidadePrevista) - Number(m.quantidadeRecebida)).toLocaleString("pt-BR")} {m.unidade}
+              {m.fornecedor && ` (${m.fornecedor})`}
+            </li>
+          ))}
+          {pendentes.length > 6 && <li className="text-xs text-neutral-500">+ {pendentes.length - 6} outros...</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function PropostaDetalhe({ p, obras, onChanged }: { p: Proposta; obras: Obra[]; onChanged: () => void }) {
+  const [uploading, setUploading] = useState(false);
+
+  async function patch(body: any) {
+    await fetch(`/api/propostas/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    onChanged();
+  }
+
+  async function handleUpload(file: File) {
+    setUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    await fetch(`/api/propostas/${p.id}/arquivos`, { method: "POST", body: fd });
+    setUploading(false);
+    onChanged();
+  }
+
+  async function handleDeleteArquivo(arquivoId: string) {
+    await fetch(`/api/propostas/arquivos/${arquivoId}`, { method: "DELETE" });
+    onChanged();
+  }
+
+  const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand";
+
+  return (
+    <tr className="border-t border-ink-800/60 bg-ink-800/30">
+      <td colSpan={7} className="px-4 py-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500">Custo estimado (R$)</label>
+            <input
+              type="number"
+              step="0.01"
+              defaultValue={p.custoEstimado ?? ""}
+              onBlur={(e) => patch({ custoEstimado: e.target.value ? Number(e.target.value) : null })}
+              className={inputCls}
+            />
+            {p.valor && p.custoEstimado && (
+              <p className="mt-1 text-xs text-neutral-500">
+                Margem: {formatBRL(Number(p.valor) - Number(p.custoEstimado))} (
+                {(((Number(p.valor) - Number(p.custoEstimado)) / Number(p.valor)) * 100).toFixed(1)}%)
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500">Referência a projeto/obra</label>
+            <select defaultValue={p.obraId ?? ""} onChange={(e) => patch({ obraId: e.target.value || null })} className={inputCls}>
+              <option value="">Nenhuma (proposta autônoma)</option>
+              {obras.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.nome}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500">Motivo de perda (se recusada)</label>
+            <input defaultValue={p.motivoPerda ?? ""} onBlur={(e) => patch({ motivoPerda: e.target.value || null })} className={inputCls} />
+          </div>
+        </div>
+
+        {p.obraId && (
+          <div className="mt-4 rounded-lg border border-ink-800 bg-ink-900 p-3">
+            <AquisicoesResumo obraId={p.obraId} />
+          </div>
+        )}
+
+        <div className="mt-4">
+          <div className="mb-1 flex items-center justify-between">
+            <p className="text-xs font-medium text-neutral-500">Arquivos anexados (planilhas, propostas, orçamentos)</p>
+            <label className="cursor-pointer text-xs text-brand hover:underline">
+              {uploading ? "Enviando..." : "+ Anexar arquivo"}
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUpload(f);
+                  e.target.value = "";
+                }}
+              />
+            </label>
+          </div>
+          {p.arquivos.length === 0 ? (
+            <p className="text-xs text-neutral-500">Nenhum arquivo anexado.</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {p.arquivos.map((a) => (
+                <li key={a.id} className="flex items-center justify-between text-xs">
+                  <a href={`/api/propostas/arquivos/${a.id}`} className="text-fg hover:underline">
+                    {a.nome} <span className="text-neutral-500">({(a.tamanho / 1024).toFixed(0)} KB)</span>
+                  </a>
+                  <button onClick={() => handleDeleteArquivo(a.id)} className="text-red-600 hover:underline">
+                    Remover
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function PropostasPage() {
   const [propostas, setPropostas] = useState<Proposta[]>([]);
+  const [obras, setObras] = useState<Obra[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [form, setForm] = useState({
     cliente: "",
     contato: "",
@@ -53,8 +203,9 @@ export default function PropostasPage() {
   });
 
   async function load() {
-    const res = await fetch("/api/propostas");
-    if (res.ok) setPropostas(await res.json());
+    const [pRes, oRes] = await Promise.all([fetch("/api/propostas"), fetch("/api/obras")]);
+    if (pRes.ok) setPropostas(await pRes.json());
+    if (oRes.ok) setObras(await oRes.json());
   }
 
   useEffect(() => {
@@ -178,7 +329,7 @@ export default function PropostasPage() {
               <tr>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Cliente</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Escopo</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Segmento</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Obra vinculada</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Valor</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Validade</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Status</th>
@@ -187,36 +338,42 @@ export default function PropostasPage() {
             </thead>
             <tbody>
               {propostas.map((p) => (
-                <tr key={p.id} className="border-t border-ink-800">
-                  <td className="px-4 py-3 text-fg">
-                    {p.cliente}
-                    {p.contato && <p className="text-xs text-neutral-500">{p.contato}</p>}
-                  </td>
-                  <td className="px-4 py-3 text-neutral-600">{p.escopo}</td>
-                  <td className="px-4 py-3 text-neutral-600">{p.segmento ?? "—"}</td>
-                  <td className="px-4 py-3 text-fg">{p.valor ? formatBRL(Number(p.valor)) : "—"}</td>
-                  <td className="px-4 py-3 text-neutral-600">
-                    {p.validade ? new Date(p.validade).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <select
-                      value={p.status}
-                      onChange={(e) => handleStatus(p.id, e.target.value)}
-                      className={`rounded-full border-0 px-2 py-1 text-xs font-medium outline-none ${STATUS_BADGE[p.status] ?? ""}`}
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {STATUS_LABEL[s]}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button onClick={() => handleDelete(p.id)} className="text-xs text-red-600 hover:underline">
-                      Excluir
-                    </button>
-                  </td>
-                </tr>
+                <Fragment key={p.id}>
+                  <tr className="border-t border-ink-800">
+                    <td className="px-4 py-3 text-fg">
+                      <button onClick={() => setExpandedId(expandedId === p.id ? null : p.id)} className="text-left hover:underline">
+                        {expandedId === p.id ? "▾ " : "▸ "}
+                        {p.cliente}
+                      </button>
+                      {p.contato && <p className="pl-3 text-xs text-neutral-500">{p.contato}</p>}
+                    </td>
+                    <td className="px-4 py-3 text-neutral-600">{p.escopo}</td>
+                    <td className="px-4 py-3 text-neutral-600">{p.obra?.nome ?? "—"}</td>
+                    <td className="px-4 py-3 text-fg">{p.valor ? formatBRL(Number(p.valor)) : "—"}</td>
+                    <td className="px-4 py-3 text-neutral-600">
+                      {p.validade ? new Date(p.validade).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <select
+                        value={p.status}
+                        onChange={(e) => handleStatus(p.id, e.target.value)}
+                        className={`rounded-full border-0 px-2 py-1 text-xs font-medium outline-none ${STATUS_BADGE[p.status] ?? ""}`}
+                      >
+                        {STATUS_OPTIONS.map((s) => (
+                          <option key={s} value={s}>
+                            {STATUS_LABEL[s]}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button onClick={() => handleDelete(p.id)} className="text-xs text-red-600 hover:underline">
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                  {expandedId === p.id && <PropostaDetalhe p={p} obras={obras} onChanged={load} />}
+                </Fragment>
               ))}
               {propostas.length === 0 && (
                 <tr>

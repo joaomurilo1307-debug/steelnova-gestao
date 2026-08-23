@@ -11,6 +11,7 @@ import {
   useDroppable,
 } from "@dnd-kit/core";
 import TaskModal from "@/components/TaskModal";
+import Avatar from "@/components/Avatar";
 
 type Tarefa = {
   id: string;
@@ -21,7 +22,7 @@ type Tarefa = {
   duracaoDias: number;
   percentConcluido: number;
   responsavelId: string | null;
-  responsavel: { id: string; name: string } | null;
+  responsavel: { id: string; name: string; avatarUrl: string | null } | null;
 };
 
 const COLUNAS: { key: Tarefa["status"]; label: string; dot: string; accent: string }[] = [
@@ -42,10 +43,6 @@ function dueInfo(t: Tarefa) {
   const diff = Math.round((fim.getTime() - hoje.getTime()) / MS_DIA);
   const atrasada = fim < hoje && t.status !== "FEITO";
   return { texto: fim.toLocaleDateString("pt-BR", { timeZone: "UTC" }), atrasada, diasAtraso: -diff };
-}
-
-function iniciais(nome: string) {
-  return nome.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 }
 
 function TaskCard({ tarefa, accent, onClick }: { tarefa: Tarefa; accent: string; onClick: () => void }) {
@@ -83,12 +80,7 @@ function TaskCard({ tarefa, accent, onClick }: { tarefa: Tarefa; accent: string;
 
       <div className="mt-2 flex items-center justify-between">
         {tarefa.responsavel ? (
-          <span
-            title={tarefa.responsavel.name}
-            className="flex h-6 w-6 items-center justify-center rounded-full bg-brand text-[9px] font-semibold text-white"
-          >
-            {iniciais(tarefa.responsavel.name)}
-          </span>
+          <Avatar name={tarefa.responsavel.name} photoUrl={tarefa.responsavel.avatarUrl} size={24} className="text-[9px]" />
         ) : (
           <span className="text-[10px] text-neutral-400">sem responsável</span>
         )}

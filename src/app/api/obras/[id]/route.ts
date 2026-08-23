@@ -21,7 +21,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const obra = await prisma.obra.findUnique({
     where: { id: params.id },
-    include: { membros: { include: { user: { select: { id: true, name: true } } } } },
+    include: { membros: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } } },
   });
 
   if (!obra) return NextResponse.json({ error: "não encontrado" }, { status: 404 });

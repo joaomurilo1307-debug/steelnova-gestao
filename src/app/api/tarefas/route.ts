@@ -11,6 +11,7 @@ const createTarefaSchema = z.object({
   titulo: z.string().min(1),
   descricao: z.string().optional(),
   status: z.enum(["A_FAZER", "FAZENDO", "BLOQUEADO", "FEITO"]).optional(),
+  prioridade: z.enum(["BAIXA", "MEDIA", "ALTA", "URGENTE"]).optional(),
   dataInicio: z.string().optional(),
   duracaoDias: z.number().int().positive().optional(),
   pessoas: z.number().int().nonnegative().optional(),
@@ -20,6 +21,9 @@ const createTarefaSchema = z.object({
   observacoes: z.string().optional(),
   responsavelId: z.string().optional(),
   predecessoraId: z.string().optional(),
+  tarefaMaeId: z.string().optional(),
+  horasEstimadas: z.number().nonnegative().optional(),
+  valorHora: z.number().nonnegative().optional(),
 });
 
 export async function GET(req: Request) {
@@ -32,8 +36,9 @@ export async function GET(req: Request) {
   const tarefas = await prisma.tarefa.findMany({
     where: obraId ? { obraId } : undefined,
     include: {
-      responsavel: { select: { id: true, name: true } },
+      responsavel: { select: { id: true, name: true, avatarUrl: true } },
       obra: { select: { id: true, nome: true } },
+      _count: { select: { subtarefas: true } },
     },
     orderBy: [{ ordem: "asc" }, { createdAt: "asc" }],
   });
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
       titulo: parsed.data.titulo,
       descricao: parsed.data.descricao,
       status: parsed.data.status ?? "A_FAZER",
+      prioridade: parsed.data.prioridade ?? "MEDIA",
       dataInicio: parsed.data.dataInicio ? new Date(parsed.data.dataInicio) : undefined,
       duracaoDias: parsed.data.duracaoDias ?? 1,
       pessoas: parsed.data.pessoas,
@@ -71,6 +77,9 @@ export async function POST(req: Request) {
       observacoes: parsed.data.observacoes,
       responsavelId: parsed.data.responsavelId,
       predecessoraId: parsed.data.predecessoraId,
+      tarefaMaeId: parsed.data.tarefaMaeId,
+      horasEstimadas: parsed.data.horasEstimadas,
+      valorHora: parsed.data.valorHora,
       ordem: count,
     },
   });
