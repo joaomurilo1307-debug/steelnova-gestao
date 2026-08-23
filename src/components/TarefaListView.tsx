@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import Avatar from "@/components/Avatar";
 import { personColor } from "@/lib/personColor";
 
 type Tarefa = {
   id: string;
   titulo: string;
+  fase: string | null;
   status: "A_FAZER" | "FAZENDO" | "BLOQUEADO" | "FEITO";
   prioridade: "BAIXA" | "MEDIA" | "ALTA" | "URGENTE";
   dataInicio: string | null;
@@ -17,6 +18,8 @@ type Tarefa = {
   horasEstimadas: string | null;
   valorHora: string | null;
 };
+
+const SEM_BLOCO = "Sem bloco";
 
 type Membro = { userId: string; nome: string; avatarUrl: string | null };
 
@@ -66,8 +69,12 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<Membro[]>([]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [blocosColapsados, setBlocosColapsados] = useState<Set<string>>(new Set());
   const [novoTitulo, setNovoTitulo] = useState("");
   const [novaData, setNovaData] = useState("");
+  const [novoBloco, setNovoBloco] = useState("");
+  const [criandoBloco, setCriandoBloco] = useState(false);
+  const [nomeNovoBloco, setNomeNovoBloco] = useState("");
 
   async function load() {
     const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
@@ -89,11 +96,19 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
     await fetch("/api/tarefas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ obraId, titulo: novoTitulo, dataInicio: novaData || undefined }),
+      body: JSON.stringify({ obraId, titulo: novoTitulo, fase: novoBloco || undefined, dataInicio: novaData || undefined }),
     });
     setNovoTitulo("");
     setNovaData("");
     load();
+  }
+
+  function handleCriarBloco(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nomeNovoBloco.trim()) return;
+    setNovoBloco(nomeNovoBloco.trim());
+    setNomeNovoBloco("");
+    setCriandoBloco(false);
   }
 
   async function patch(id: string, body: any) {
@@ -105,22 +120,43 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
     load();
   }
 
-  // monta hierarquia: raízes + filhos, por ordem
-  const linhas = useMemo(() => {
+  // blocos existentes (fase das tarefas raiz), na ordem de primeira aparição
+  const blocos = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tarefas) if (!t.tarefaMaeId) set.add(t.fase?.trim() || SEM_BLOCO);
+    return Array.from(set);
+  }, [tarefas]);
+
+  const blocosParaSelecionar = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tarefas) if (t.fase?.trim()) set.add(t.fase.trim());
+    return Array.from(set);
+  }, [tarefas]);
+
+  // agrupa por bloco (fase da tarefa raiz), e dentro de cada bloco monta a hierarquia raiz+filhos
+  const gruposPorBloco = useMemo(() => {
     const porMae = new Map<string, Tarefa[]>();
     for (const t of tarefas) {
       const key = t.tarefaMaeId ?? "__root__";
       if (!porMae.has(key)) porMae.set(key, []);
       porMae.get(key)!.push(t);
     }
-    const out: { tarefa: Tarefa; depth: number }[] = [];
-    function walk(key: string, depth: number) {
-      for (const t of porMae.get(key) ?? []) {
-        out.push({ tarefa: t, depth });
-        if (!collapsed.has(t.id)) walk(t.id, depth + 1);
+    const out = new Map<string, { tarefa: Tarefa; depth: number }[]>();
+    const raizes = porMae.get("__root__") ?? [];
+    for (const raiz of raizes) {
+      const bloco = raiz.fase?.trim() || SEM_BLOCO;
+      if (!out.has(bloco)) out.set(bloco, []);
+      out.get(bloco)!.push({ tarefa: raiz, depth: 0 });
+      if (!collapsed.has(raiz.id)) {
+        function walkFilhos(key: string, depth: number) {
+          for (const t of porMae.get(key) ?? []) {
+            out.get(bloco)!.push({ tarefa: t, depth });
+            if (!collapsed.has(t.id)) walkFilhos(t.id, depth + 1);
+          }
+        }
+        walkFilhos(raiz.id, 1);
       }
     }
-    walk("__root__", 0);
     return out;
   }, [tarefas, collapsed]);
 
@@ -129,6 +165,39 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
   return (
     <div className={compacto ? "" : "p-6"}>
       {compacto && <h2 className="mb-2 text-sm font-semibold text-fg">{titulo}</h2>}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {!criandoBloco ? (
+          <>
+            <select value={novoBloco} onChange={(e) => setNovoBloco(e.target.value)} className={inputCls}>
+              <option value="">Sem bloco</option>
+              {blocosParaSelecionar.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => setCriandoBloco(true)} className="text-xs text-brand hover:underline">
+              + Novo bloco
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleCriarBloco} className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={nomeNovoBloco}
+              onChange={(e) => setNomeNovoBloco(e.target.value)}
+              placeholder="Nome do bloco (Aquisição, Fabricação, Montagem...)"
+              className={`${inputCls} w-64`}
+            />
+            <button type="submit" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark">
+              Criar
+            </button>
+            <button type="button" onClick={() => setCriandoBloco(false)} className="text-xs text-neutral-500 hover:underline">
+              Cancelar
+            </button>
+          </form>
+        )}
+      </div>
       <form onSubmit={handleAdd} className="mb-3 flex flex-wrap items-center gap-2">
         <input
           value={novoTitulo}
@@ -138,7 +207,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
         />
         <input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} className={inputCls} />
         <button type="submit" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark">
-          + Adicionar
+          + Adicionar {novoBloco && <span className="font-normal opacity-80">em &quot;{novoBloco}&quot;</span>}
         </button>
       </form>
       <div className={`${compacto ? "max-h-[40vh]" : "max-h-[75vh]"} overflow-auto rounded-xl border border-ink-800 bg-ink-900`}>
@@ -158,13 +227,38 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
             </tr>
           </thead>
           <tbody>
-            {linhas.map(({ tarefa: t, depth }) => {
-              const fim = prazo(t);
-              const atrasada = !!fim && t.status !== "FEITO" && fim < new Date(new Date().toDateString());
-              const temFilhas = tarefas.some((x) => x.tarefaMaeId === t.id);
-              const custo = t.horasEstimadas && t.valorHora ? Number(t.horasEstimadas) * Number(t.valorHora) : null;
-
+            {blocos.map((bloco) => {
+              const linhasDoBloco = gruposPorBloco.get(bloco) ?? [];
+              const blocoColapsado = blocosColapsados.has(bloco);
               return (
+                <Fragment key={bloco}>
+                  <tr className="border-t border-ink-800 bg-ink-800/60">
+                    <td colSpan={10} className="px-3 py-1.5">
+                      <button
+                        onClick={() =>
+                          setBlocosColapsados((c) => {
+                            const next = new Set(c);
+                            next.has(bloco) ? next.delete(bloco) : next.add(bloco);
+                            return next;
+                          })
+                        }
+                        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500"
+                      >
+                        {blocoColapsado ? "▸" : "▾"} {bloco}
+                        <span className="font-normal normal-case text-neutral-400">
+                          · {linhasDoBloco.length} {linhasDoBloco.length === 1 ? "atividade" : "atividades"}
+                        </span>
+                      </button>
+                    </td>
+                  </tr>
+                  {!blocoColapsado &&
+                    linhasDoBloco.map(({ tarefa: t, depth }) => {
+                      const fim = prazo(t);
+                      const atrasada = !!fim && t.status !== "FEITO" && fim < new Date(new Date().toDateString());
+                      const temFilhas = tarefas.some((x) => x.tarefaMaeId === t.id);
+                      const custo = t.horasEstimadas && t.valorHora ? Number(t.horasEstimadas) * Number(t.valorHora) : null;
+
+                      return (
                 <tr key={t.id} className="border-t border-ink-800">
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 20 }}>
@@ -290,9 +384,12 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                     {custo !== null ? custo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
                   </td>
                 </tr>
+                      );
+                    })}
+                </Fragment>
               );
             })}
-            {linhas.length === 0 && (
+            {tarefas.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.

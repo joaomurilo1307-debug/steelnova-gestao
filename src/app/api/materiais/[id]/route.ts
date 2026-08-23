@@ -8,6 +8,7 @@ const patchSchema = z.object({
   quantidadeRecebida: z.number().nonnegative().optional(),
   custoUnitario: z.number().nonnegative().optional(),
   fornecedor: z.string().optional(),
+  fornecidoPeloCliente: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

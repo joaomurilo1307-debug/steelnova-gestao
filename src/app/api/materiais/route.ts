@@ -14,6 +14,7 @@ const createMaterialSchema = z.object({
   fornecedor: z.string().optional(),
   custoUnitario: z.number().nonnegative().optional(),
   pesoUnitario: z.number().nonnegative().optional(),
+  fornecidoPeloCliente: z.boolean().optional(),
 });
 
 export async function GET(req: Request) {

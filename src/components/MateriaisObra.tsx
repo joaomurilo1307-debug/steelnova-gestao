@@ -11,6 +11,7 @@ type Material = {
   quantidadeRecebida: string;
   fornecedor: string | null;
   pesoUnitario: string | null;
+  fornecidoPeloCliente: boolean;
 };
 
 // Tipos de componente da estrutura metálica — para separar o material
@@ -81,6 +82,15 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
     if (res.ok) load();
   }
 
+  async function handleFornecidoPeloCliente(id: string, valor: boolean) {
+    const res = await fetch(`/api/materiais/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fornecidoPeloCliente: valor }),
+    });
+    if (res.ok) load();
+  }
+
   const pesoDe = (m: Material) => (m.pesoUnitario ? Number(m.pesoUnitario) * Number(m.quantidadePrevista) : 0);
 
   // Agrupa por tipo de componente (grupo), na ordem de COMPONENTES + extras
@@ -89,7 +99,10 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
   const grupos = ordem.filter((g) => gruposPresentes.includes(g));
   const pesoTotal = materiais.reduce((s, m) => s + pesoDe(m), 0);
   const saldoDe = (m: Material) => Number(m.quantidadePrevista) - Number(m.quantidadeRecebida);
-  const pendentes = materiais.filter((m) => saldoDe(m) > 0.001);
+  // "Compras necessárias" é só o que a SteelNova precisa comprar — material fornecido
+  // pelo cliente (ex.: HNSD) não entra, mesmo com saldo pendente de recebimento.
+  const pendentes = materiais.filter((m) => saldoDe(m) > 0.001 && !m.fornecidoPeloCliente);
+  const fornecidosPeloCliente = materiais.filter((m) => m.fornecidoPeloCliente);
 
   return (
     <div className="p-6">
@@ -182,6 +195,11 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
               <span className="text-lg">🛒</span>
               <b className="text-sm text-amber-900">Compras necessárias</b>
               <span className="text-xs text-amber-700">· {pendentes.length} {pendentes.length === 1 ? "item a comprar" : "itens a comprar"}</span>
+              {fornecidosPeloCliente.length > 0 && (
+                <span className="text-xs text-amber-700/70">
+                  · {fornecidosPeloCliente.length} fornecido{fornecidosPeloCliente.length > 1 ? "s" : ""} pelo cliente (não conta aqui)
+                </span>
+              )}
             </div>
             <div className="max-h-[40vh] overflow-auto">
               <table className="w-full text-sm">
@@ -242,17 +260,28 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                     <th className="px-4 py-2 font-medium">Previsto</th>
                     <th className="px-4 py-2 font-medium">Recebido</th>
                     <th className="px-4 py-2 font-medium">Peso total</th>
+                    <th className="px-4 py-2 font-medium" title="Marca que o material é fornecido pelo cliente, não é compra da SteelNova">
+                      Cliente fornece
+                    </th>
                     <th className="px-4 py-2 font-medium"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {itens.map((m) => (
-                    <tr key={m.id} className="border-t border-ink-800">
+                    <tr key={m.id} className={`border-t border-ink-800 ${m.fornecidoPeloCliente ? "opacity-60" : ""}`}>
                       <td className="px-4 py-2.5 text-fg">{m.nome}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{m.fornecedor ?? "—"}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{Number(m.quantidadePrevista)} {m.unidade}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{Number(m.quantidadeRecebida)} {m.unidade}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{m.pesoUnitario ? `${pesoDe(m).toFixed(1)} kg` : "—"}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={m.fornecidoPeloCliente}
+                          onChange={(e) => handleFornecidoPeloCliente(m.id, e.target.checked)}
+                          title="Fornecido pelo cliente"
+                        />
+                      </td>
                       <td className="px-4 py-2.5 text-right">
                         <button onClick={() => handleReceber(m.id, m.quantidadeRecebida)} className="text-xs text-brand hover:underline">Receber</button>
                         <button onClick={() => handleExcluir(m.id)} className="ml-3 text-xs text-neutral-400 hover:text-red-500">Excluir</button>
