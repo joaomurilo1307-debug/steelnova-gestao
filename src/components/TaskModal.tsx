@@ -59,27 +59,33 @@ export default function TaskModal({
     if (!form.titulo.trim()) return;
     setSaving(true);
 
-    const body = {
-      titulo: form.titulo,
-      descricao: form.descricao || undefined,
-      status: form.status,
-      responsavelId: form.responsavelId || null,
-      dataInicio: form.dataInicio || undefined,
-      duracaoDias: Number(form.duracaoDias) || 1,
-      percentConcluido: Number(form.percentConcluido) || 0,
-    };
-
     if (tarefa) {
       await fetch(`/api/tarefas/${tarefa.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          titulo: form.titulo,
+          descricao: form.descricao || undefined,
+          status: form.status,
+          responsavelId: form.responsavelId || null,
+          dataInicio: form.dataInicio || undefined,
+          duracaoDias: Number(form.duracaoDias) || 1,
+          percentConcluido: Number(form.percentConcluido) || 0,
+        }),
       });
     } else {
       await fetch("/api/tarefas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ obraId, ...body }),
+        body: JSON.stringify({
+          obraId,
+          titulo: form.titulo,
+          descricao: form.descricao || undefined,
+          status: form.status,
+          responsavelId: form.responsavelId || undefined,
+          dataInicio: form.dataInicio || undefined,
+          duracaoDias: Number(form.duracaoDias) || 1,
+        }),
       });
     }
 
