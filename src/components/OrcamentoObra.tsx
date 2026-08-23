@@ -231,20 +231,20 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="max-h-[72vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-3 py-3 font-medium">Serviço</th>
-              <th className="px-3 py-3 font-medium">Base</th>
-              <th className="px-3 py-3 font-medium">Un</th>
-              <th className="px-3 py-3 font-medium">Matéria-prima</th>
-              <th className="px-3 py-3 font-medium">Insumos</th>
-              <th className="px-3 py-3 font-medium">Mão de obra</th>
-              <th className="px-3 py-3 font-medium">Custo</th>
-              <th className="px-3 py-3 font-medium">BDI</th>
-              <th className="px-3 py-3 font-medium">Preço</th>
-              <th className="px-3 py-3 font-medium"></th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Serviço</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Base</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Un</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Matéria-prima</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Insumos</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Mão de obra</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Custo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">BDI</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Preço</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>

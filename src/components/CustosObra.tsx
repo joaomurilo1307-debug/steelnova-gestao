@@ -132,15 +132,15 @@ export default function CustosObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="max-h-[72vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-4 py-3 font-medium">Data</th>
-              <th className="px-4 py-3 font-medium">Categoria</th>
-              <th className="px-4 py-3 font-medium">Descrição</th>
-              <th className="px-4 py-3 font-medium">Previsto</th>
-              <th className="px-4 py-3 font-medium">Realizado</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Data</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Categoria</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Descrição</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Previsto</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Realizado</th>
             </tr>
           </thead>
           <tbody>

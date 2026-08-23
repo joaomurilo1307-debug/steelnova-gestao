@@ -241,16 +241,16 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </details>
       </form>
 
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-3 py-2 font-medium">Dia</th>
-              <th className="px-3 py-2 font-medium">Funcionário</th>
-              <th className="px-3 py-2 font-medium">Entrada</th>
-              <th className="px-3 py-2 font-medium">Saída</th>
-              <th className="px-3 py-2 font-medium">Horas</th>
-              <th className="px-3 py-2 font-medium"></th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Dia</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Funcionário</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Entrada</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Saída</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Horas</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium"></th>
             </tr>
           </thead>
           <tbody>
@@ -280,17 +280,17 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold text-fg">Resumo por funcionário — acerto</h2>
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-3 py-2 font-medium">Funcionário</th>
-              <th className="px-3 py-2 font-medium">Regime</th>
-              <th className="px-3 py-2 font-medium">Horas</th>
-              <th className="px-3 py-2 font-medium">Diárias</th>
-              <th className="px-3 py-2 font-medium">A pagar</th>
-              <th className="px-3 py-2 font-medium">Adiantado</th>
-              <th className="px-3 py-2 font-medium">Saldo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Funcionário</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Regime</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Horas</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Diárias</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">A pagar</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Adiantado</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Saldo</th>
             </tr>
           </thead>
           <tbody>
@@ -368,15 +368,15 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-3 py-2 font-medium">Pessoa</th>
-              <th className="px-3 py-2 font-medium">Item</th>
-              <th className="px-3 py-2 font-medium">Categoria</th>
-              <th className="px-3 py-2 font-medium">Ref.</th>
-              <th className="px-3 py-2 font-medium">Valor</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Pessoa</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Item</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Categoria</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Ref.</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Valor</th>
             </tr>
           </thead>
           <tbody>
