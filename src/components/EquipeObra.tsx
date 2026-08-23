@@ -4,19 +4,23 @@ import { useEffect, useState } from "react";
 
 type Membro = { id: string; funcao: string; user: { id: string; name: string } };
 type Usuario = { id: string; name: string; email: string };
+type Funcionario = { id: string; nome: string; cargo: string | null; regime: string };
 
 export default function EquipeObra({ obraId }: { obraId: string }) {
   const [membros, setMembros] = useState<Membro[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [form, setForm] = useState({ userId: "", funcao: "" });
 
   async function load() {
-    const [mRes, uRes] = await Promise.all([
+    const [mRes, uRes, fRes] = await Promise.all([
       fetch(`/api/obras/${obraId}`).then((r) => (r.ok ? r.json() : null)),
       fetch("/api/usuarios").then((r) => (r.ok ? r.json() : [])),
+      fetch("/api/funcionarios").then((r) => (r.ok ? r.json() : [])),
     ]);
     if (mRes?.membros) setMembros(mRes.membros);
     setUsuarios(uRes);
+    setFuncionarios(fRes);
   }
 
   useEffect(() => {
@@ -46,6 +50,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
 
   return (
     <div className="p-6">
+      <h2 className="mb-2 text-sm font-semibold text-fg">Sócios / responsáveis</h2>
       <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-end gap-2">
         <div>
           <label className="mb-1 block text-xs text-neutral-500">Pessoa</label>
@@ -91,6 +96,27 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
         {membros.length === 0 && (
           <p className="rounded-xl border border-dashed border-ink-800 p-8 text-center text-sm text-neutral-500">
             Nenhum membro vinculado ainda.
+          </p>
+        )}
+      </div>
+
+      <div className="mt-8 flex items-center justify-between">
+        <h2 className="text-sm font-semibold text-fg">Equipe de campo</h2>
+        <a href="../diarias" className="text-xs text-brand hover:underline">
+          Cadastrar / editar em Diárias →
+        </a>
+      </div>
+      <p className="mb-2 text-xs text-neutral-500">Soldadores, instaladores, ajudantes e demais — compartilhados entre obras.</p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        {funcionarios.map((f) => (
+          <div key={f.id} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+            <p className="text-sm font-medium text-fg">{f.nome}</p>
+            <p className="text-xs text-neutral-500">{f.cargo ?? "Sem cargo definido"} · {f.regime}</p>
+          </div>
+        ))}
+        {funcionarios.length === 0 && (
+          <p className="col-span-full rounded-xl border border-dashed border-ink-800 p-8 text-center text-sm text-neutral-500">
+            Nenhum funcionário de campo cadastrado ainda.
           </p>
         )}
       </div>

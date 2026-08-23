@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { formatBRL } from "@/lib/format";
 
-type Funcionario = { id: string; nome: string; regime: string; diariaPadrao: string | null; valorFixo: string | null };
+type Funcionario = { id: string; nome: string; cargo: string | null; regime: string; diariaPadrao: string | null; valorFixo: string | null };
+
+const CARGOS = ["Mestre de obra", "Encarregado", "Soldador", "Caldeireiro", "Instalador/Montador", "Pintor", "Ajudante", "Motorista", "Outro"];
 type Lancamento = {
   id: string;
   dia: string;
@@ -36,7 +38,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
   const [diariaPadrao, setDiariaPadrao] = useState(150);
   const [horasPorDiaria, setHorasPorDiaria] = useState(8);
 
-  const [novoFunc, setNovoFunc] = useState({ nome: "", regime: "Diaria", diariaPadrao: "", valorFixo: "" });
+  const [novoFunc, setNovoFunc] = useState({ nome: "", cargo: CARGOS[0], regime: "Diaria", diariaPadrao: "", valorFixo: "" });
   const [novoPonto, setNovoPonto] = useState({ funcionarioId: "", dia: "", entrada: "", saida: "" });
   const [novoDesembolso, setNovoDesembolso] = useState({
     pessoa: "",
@@ -76,13 +78,14 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         nome: novoFunc.nome,
+        cargo: novoFunc.cargo || undefined,
         regime: novoFunc.regime,
         diariaPadrao: novoFunc.diariaPadrao ? Number(novoFunc.diariaPadrao) : undefined,
         valorFixo: novoFunc.valorFixo ? Number(novoFunc.valorFixo) : undefined,
       }),
     });
     if (res.ok) {
-      setNovoFunc({ nome: "", regime: "Diaria", diariaPadrao: "", valorFixo: "" });
+      setNovoFunc({ nome: "", cargo: CARGOS[0], regime: "Diaria", diariaPadrao: "", valorFixo: "" });
       load();
     }
   }
@@ -175,7 +178,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <option value="">Funcionário...</option>
           {funcionarios.map((f) => (
             <option key={f.id} value={f.id}>
-              {f.nome}
+              {f.nome}{f.cargo ? ` — ${f.cargo}` : ""}
             </option>
           ))}
         </select>
@@ -209,6 +212,17 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
               onChange={(e) => setNovoFunc({ ...novoFunc, nome: e.target.value })}
               className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
             />
+            <select
+              value={novoFunc.cargo}
+              onChange={(e) => setNovoFunc({ ...novoFunc, cargo: e.target.value })}
+              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            >
+              {CARGOS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
             <select
               value={novoFunc.regime}
               onChange={(e) => setNovoFunc({ ...novoFunc, regime: e.target.value })}
@@ -285,6 +299,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <thead className="text-left text-neutral-600">
             <tr>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Funcionário</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Cargo</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Regime</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Horas</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Diárias</th>
@@ -297,6 +312,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
             {resumo.map((r) => (
               <tr key={r.funcionario.id} className="border-t border-ink-800">
                 <td className="px-3 py-2 text-fg">{r.funcionario.nome}</td>
+                <td className="px-3 py-2 text-neutral-600">{r.funcionario.cargo ?? "—"}</td>
                 <td className="px-3 py-2 text-neutral-600">{r.funcionario.regime}</td>
                 <td className="px-3 py-2 text-neutral-600">{r.horas.toFixed(2)}h</td>
                 <td className="px-3 py-2 text-neutral-600">{r.diarias.toFixed(2)}</td>
@@ -307,7 +323,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
             ))}
             {resumo.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-6 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-neutral-500">
                   Sem dados ainda.
                 </td>
               </tr>

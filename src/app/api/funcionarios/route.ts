@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 const createSchema = z.object({
   nome: z.string().min(1),
+  cargo: z.string().optional(),
   regime: z.enum(["Diaria", "Fixo"]).default("Diaria"),
   diariaPadrao: z.number().nonnegative().optional(),
   valorFixo: z.number().nonnegative().optional(),

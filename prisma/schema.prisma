@@ -45,6 +45,18 @@ enum PropostaStatus {
   CONVERTIDA
 }
 
+enum RdoClima {
+  SOL
+  NUBLADO
+  CHUVA
+  TEMPO_RUIM
+}
+
+enum RdoSituacao {
+  FINALIZADA
+  PARCIAL
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -144,21 +156,56 @@ model Tarefa {
 }
 
 model Rdo {
-  id           String   @id @default(cuid())
-  obraId       String
-  data         DateTime
-  clima        String
-  efetivo      Int
-  atividades   String
-  ocorrencias  String?
-  autorId      String
-  createdAt    DateTime @default(now())
+  id                 String      @id @default(cuid())
+  obraId             String
+  data               DateTime
+  clima              RdoClima    @default(SOL)
+  horarioInicio      String?
+  horarioTermino     String?
+  houveParalisacao   Boolean     @default(false)
+  horarioParalisacao String?
+  motivoParalisacao  String?
+  observacoes        String?
+  autorId            String
+  createdAt          DateTime    @default(now())
 
-  obra  Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
-  autor User     @relation(fields: [autorId], references: [id])
-  fotos RdoFoto[]
+  obra          Obra             @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  autor         User             @relation(fields: [autorId], references: [id])
+  fotos         RdoFoto[]
+  trabalhadores RdoTrabalhador[]
+  atividades    RdoAtividade[]
+  pendencias    RdoPendencia[]
 
   @@unique([obraId, data])
+}
+
+model RdoTrabalhador {
+  id      String @id @default(cuid())
+  rdoId   String
+  nome    String
+  funcao  String
+  entrada String?
+  saida   String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+}
+
+model RdoAtividade {
+  id        String      @id @default(cuid())
+  rdoId     String
+  descricao String
+  situacao  RdoSituacao @default(PARCIAL)
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+}
+
+model RdoPendencia {
+  id         String  @id @default(cuid())
+  rdoId      String
+  descricao  String
+  observacao String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
 }
 
 model RdoFoto {
@@ -223,6 +270,7 @@ model ServicoOrcamento {
 model Funcionario {
   id           String  @id @default(cuid())
   nome         String
+  cargo        String?
   regime       String  @default("Diaria")
   diariaPadrao Decimal? @db.Decimal(10, 2)
   valorFixo    Decimal? @db.Decimal(10, 2)

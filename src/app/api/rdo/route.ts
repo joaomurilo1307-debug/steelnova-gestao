@@ -4,13 +4,36 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const trabalhadorSchema = z.object({
+  nome: z.string().min(1),
+  funcao: z.string().min(1),
+  entrada: z.string().optional(),
+  saida: z.string().optional(),
+});
+
+const atividadeSchema = z.object({
+  descricao: z.string().min(1),
+  situacao: z.enum(["FINALIZADA", "PARCIAL"]).default("PARCIAL"),
+});
+
+const pendenciaSchema = z.object({
+  descricao: z.string().min(1),
+  observacao: z.string().optional(),
+});
+
 const createRdoSchema = z.object({
   obraId: z.string().min(1),
   data: z.string(),
-  clima: z.string().min(1),
-  efetivo: z.number().int().nonnegative(),
-  atividades: z.string().min(1),
-  ocorrencias: z.string().optional(),
+  clima: z.enum(["SOL", "NUBLADO", "CHUVA", "TEMPO_RUIM"]).default("SOL"),
+  horarioInicio: z.string().optional(),
+  horarioTermino: z.string().optional(),
+  houveParalisacao: z.boolean().default(false),
+  horarioParalisacao: z.string().optional(),
+  motivoParalisacao: z.string().optional(),
+  observacoes: z.string().optional(),
+  trabalhadores: z.array(trabalhadorSchema).default([]),
+  atividades: z.array(atividadeSchema).default([]),
+  pendencias: z.array(pendenciaSchema).default([]),
 });
 
 export async function GET(req: Request) {
@@ -23,7 +46,13 @@ export async function GET(req: Request) {
 
   const rdos = await prisma.rdo.findMany({
     where: { obraId },
-    include: { autor: { select: { name: true } } },
+    include: {
+      autor: { select: { name: true } },
+      trabalhadores: true,
+      atividades: true,
+      pendencias: true,
+      fotos: true,
+    },
     orderBy: { data: "desc" },
   });
 
@@ -53,11 +82,18 @@ export async function POST(req: Request) {
       obraId: parsed.data.obraId,
       data: new Date(parsed.data.data),
       clima: parsed.data.clima,
-      efetivo: parsed.data.efetivo,
-      atividades: parsed.data.atividades,
-      ocorrencias: parsed.data.ocorrencias,
+      horarioInicio: parsed.data.horarioInicio,
+      horarioTermino: parsed.data.horarioTermino,
+      houveParalisacao: parsed.data.houveParalisacao,
+      horarioParalisacao: parsed.data.horarioParalisacao,
+      motivoParalisacao: parsed.data.motivoParalisacao,
+      observacoes: parsed.data.observacoes,
       autorId: (session.user as any).id,
+      trabalhadores: { create: parsed.data.trabalhadores },
+      atividades: { create: parsed.data.atividades },
+      pendencias: { create: parsed.data.pendencias },
     },
+    include: { trabalhadores: true, atividades: true, pendencias: true },
   });
 
   return NextResponse.json(rdo, { status: 201 });

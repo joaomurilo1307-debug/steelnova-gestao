@@ -1,0 +1,27 @@
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const rdo = await prisma.rdo.findUnique({
+    where: { id: params.id },
+    include: { autor: { select: { name: true } }, trabalhadores: true, atividades: true, pendencias: true, fotos: true },
+  });
+  if (!rdo) return NextResponse.json({ error: "não encontrado" }, { status: 404 });
+  return NextResponse.json(rdo);
+}
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  const session = await getServerSession(authOptions);
+  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if ((session.user as any).role === "VISUALIZADOR") {
+    return NextResponse.json({ error: "sem permissão" }, { status: 403 });
+  }
+
+  await prisma.rdo.delete({ where: { id: params.id } });
+  return NextResponse.json({ ok: true });
+}
