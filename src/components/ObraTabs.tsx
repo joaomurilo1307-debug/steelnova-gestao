@@ -14,6 +14,7 @@ const TABS = [
   { seg: "materiais", label: "Materiais" },
   { seg: "equipe", label: "Equipe" },
   { seg: "arquivos", label: "Arquivos" },
+  { seg: "chat", label: "Chat" },
   { seg: "resultado", label: "Resultado" },
 ];
 

@@ -50,6 +50,7 @@ model User {
   rdos           Rdo[]
   arquivos       Arquivo[]
   raciAtribuicoes RaciAtribuicao[]
+  mensagens      ChatMensagem[]
 }
 
 model Obra {
@@ -75,6 +76,18 @@ model Obra {
   servicosOrcamento  ServicoOrcamento[]
   lancamentosPonto   LancamentoPonto[]
   desembolsos        Desembolso[]
+  mensagens          ChatMensagem[]
+}
+
+model ChatMensagem {
+  id        String   @id @default(cuid())
+  obraId    String
+  autorId   String
+  texto     String
+  createdAt DateTime @default(now())
+
+  obra  Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  autor User @relation(fields: [autorId], references: [id])
 }
 
 model ObraMembro {

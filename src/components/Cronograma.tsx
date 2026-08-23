@@ -48,6 +48,7 @@ export default function Cronograma({
   obraPrazoDias: number;
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
+  const [membros, setMembros] = useState<{ userId: string; nome: string }[]>([]);
   const [form, setForm] = useState({
     eap: "",
     fase: "",
@@ -57,14 +58,21 @@ export default function Cronograma({
     pessoas: "",
     horas: "",
     turno: "Dia",
-    responsavelNome: "",
+    responsavelId: "",
     observacoes: "",
   });
   const [showForm, setShowForm] = useState(false);
 
   async function load() {
-    const res = await fetch(`/api/tarefas?obraId=${obraId}`);
-    if (res.ok) setTarefas(await res.json());
+    const [tRes, oRes] = await Promise.all([
+      fetch(`/api/tarefas?obraId=${obraId}`),
+      fetch(`/api/obras/${obraId}`),
+    ]);
+    if (tRes.ok) setTarefas(await tRes.json());
+    if (oRes.ok) {
+      const obra = await oRes.json();
+      setMembros(obra.membros.map((m: any) => ({ userId: m.user.id, nome: m.user.name })));
+    }
   }
 
   useEffect(() => {
@@ -88,12 +96,12 @@ export default function Cronograma({
         pessoas: form.pessoas ? Number(form.pessoas) : undefined,
         horas: form.horas ? Number(form.horas) : undefined,
         turno: form.turno || undefined,
-        responsavelNome: form.responsavelNome || undefined,
+        responsavelId: form.responsavelId || undefined,
         observacoes: form.observacoes || undefined,
       }),
     });
     if (res.ok) {
-      setForm({ eap: "", fase: "", titulo: "", dataInicio: "", duracaoDias: "1", pessoas: "", horas: "", turno: "Dia", responsavelNome: "", observacoes: "" });
+      setForm({ eap: "", fase: "", titulo: "", dataInicio: "", duracaoDias: "1", pessoas: "", horas: "", turno: "Dia", responsavelId: "", observacoes: "" });
       load();
     }
   }
@@ -192,8 +200,15 @@ export default function Cronograma({
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Responsável / Equipe</label>
-            <input value={form.responsavelNome} onChange={(e) => setForm({ ...form, responsavelNome: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <label className="mb-1 block text-xs text-neutral-500">Responsável (equipe da obra)</label>
+            <select value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand">
+              <option value="">Sem responsável</option>
+              {membros.map((m) => (
+                <option key={m.userId} value={m.userId}>
+                  {m.nome}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="col-span-2">
             <label className="mb-1 block text-xs text-neutral-500">Observações</label>
