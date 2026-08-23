@@ -18,7 +18,19 @@ type Tarefa = {
   responsavelNome: string | null;
   observacoes: string | null;
   responsavel: { id: string; name: string } | null;
+  dataInicioReal: string | null;
+  dataFimReal: string | null;
 };
+
+function addDias(iso: string, dias: number) {
+  const d = new Date(iso.slice(0, 10) + "T00:00:00");
+  d.setDate(d.getDate() + dias);
+  return d;
+}
+
+function fmt(d: Date) {
+  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+}
 
 const STATUS_LABEL: Record<string, string> = {
   A_FAZER: "A fazer",
@@ -114,6 +126,15 @@ export default function Cronograma({
         percentConcluido: percent,
         status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER",
       }),
+    });
+    load();
+  }
+
+  async function handleRealDate(id: string, field: "dataInicioReal" | "dataFimReal", value: string) {
+    await fetch(`/api/tarefas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [field]: value || null }),
     });
     load();
   }
@@ -232,6 +253,10 @@ export default function Cronograma({
               <th className="px-3 py-3 font-medium">Horas</th>
               <th className="px-3 py-3 font-medium">HH</th>
               <th className="px-3 py-3 font-medium">Responsável</th>
+              <th className="px-3 py-3 font-medium">Início prev.</th>
+              <th className="px-3 py-3 font-medium">Término prev.</th>
+              <th className="px-3 py-3 font-medium">Início real</th>
+              <th className="px-3 py-3 font-medium">Término real</th>
               <th className="px-3 py-3 font-medium">Status</th>
               <th className="px-3 py-3 font-medium">% Concl.</th>
               <th className="px-3 py-3 font-medium"></th>
@@ -253,6 +278,28 @@ export default function Cronograma({
                   {t.pessoas && t.horas ? (t.pessoas * Number(t.horas)).toFixed(1) : "—"}
                 </td>
                 <td className="px-3 py-2.5 text-neutral-600">{t.responsavelNome ?? t.responsavel?.name ?? "—"}</td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-neutral-600">
+                  {t.dataInicio ? fmt(new Date(t.dataInicio)) : "—"}
+                </td>
+                <td className="px-3 py-2.5 whitespace-nowrap text-neutral-600">
+                  {t.dataInicio ? fmt(addDias(t.dataInicio, t.duracaoDias - 1)) : "—"}
+                </td>
+                <td className="px-3 py-2.5">
+                  <input
+                    type="date"
+                    defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
+                    onBlur={(e) => handleRealDate(t.id, "dataInicioReal", e.target.value)}
+                    className="w-32 rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
+                  />
+                </td>
+                <td className="px-3 py-2.5">
+                  <input
+                    type="date"
+                    defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
+                    onBlur={(e) => handleRealDate(t.id, "dataFimReal", e.target.value)}
+                    className="w-32 rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
+                  />
+                </td>
                 <td className="px-3 py-2.5">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] ?? ""}`}>
                     {STATUS_LABEL[t.status] ?? t.status}
@@ -277,7 +324,7 @@ export default function Cronograma({
             ))}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={15} className="px-4 py-8 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>

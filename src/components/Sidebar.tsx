@@ -70,12 +70,9 @@ export default function Sidebar() {
 
   return (
     <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-ink-800 bg-ink-950 px-3 py-5">
-      <div className="mb-8 flex items-center gap-2 px-2">
+      <div className="mb-8 flex items-center px-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-steelnova.png" alt="SteelNova" style={{ height: 32, width: 32 }} className="rounded" />
-        <div>
-          <p className="text-sm font-semibold text-fg">Obra SteelNova</p>
-        </div>
+        <img src="/logo-steelnova.png" alt="SteelNova Engenharia" style={{ height: 30, width: "auto" }} />
       </div>
 
       <div className="flex-1 overflow-y-auto">

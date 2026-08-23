@@ -8,6 +8,8 @@ type Tarefa = {
   dataInicio: string | null;
   duracaoDias: number;
   percentConcluido: number;
+  dataInicioReal?: string | null;
+  dataFimReal?: string | null;
 };
 
 const FASE_COLORS = [
@@ -58,7 +60,7 @@ export default function GanttChart({
   return (
     <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-sm font-semibold text-fg">Gantt</h2>
+        <h2 className="text-sm font-semibold text-fg">Gantt — Planejado x Real</h2>
         <div className="flex flex-wrap gap-3">
           {fases.map((fase) => (
             <span key={fase} className="flex items-center gap-1.5 text-xs text-neutral-600">
@@ -66,6 +68,10 @@ export default function GanttChart({
               {fase}
             </span>
           ))}
+          <span className="flex items-center gap-1.5 text-xs text-neutral-600">
+            <span className="h-1.5 w-3 rounded-sm bg-neutral-800" />
+            Real
+          </span>
         </div>
       </div>
 
@@ -90,12 +96,22 @@ export default function GanttChart({
             const inicio = t.dataInicio ? new Date(t.dataInicio) : inicioObra;
             const offset = Math.max(0, diffDias(inicioObra, inicio));
 
+            const realInicio = t.dataInicioReal ? new Date(t.dataInicioReal) : null;
+            const realOffset = realInicio ? Math.max(0, diffDias(inicioObra, realInicio)) : null;
+            const realFim = t.dataFimReal ? new Date(t.dataFimReal) : null;
+            const realDuracao =
+              realOffset !== null
+                ? realFim
+                  ? Math.max(1, diffDias(realInicio!, realFim) + 1)
+                  : 1
+                : null;
+
             return (
               <div key={t.id} className="flex items-center border-b border-ink-800/60 py-1.5">
                 <div className="w-56 shrink-0 truncate pr-2 text-xs text-fg" title={t.titulo}>
                   {t.titulo}
                 </div>
-                <div className="relative flex" style={{ height: 20 }}>
+                <div className="relative flex" style={{ height: 26 }}>
                   {diasArray.map((d) => (
                     <div key={d} style={{ width: diaLargura }} className="shrink-0 border-r border-ink-800/40" />
                   ))}
@@ -104,7 +120,7 @@ export default function GanttChart({
                       t.status === "FEITO" ? "opacity-100" : "opacity-70"
                     }`}
                     style={{ left: offset * diaLargura + 1, width: Math.max(t.duracaoDias * diaLargura - 2, 4) }}
-                    title={`${t.titulo} — ${t.percentConcluido}%`}
+                    title={`Previsto: ${t.titulo} — ${t.percentConcluido}%`}
                   >
                     {t.percentConcluido > 0 && (
                       <div
@@ -113,6 +129,13 @@ export default function GanttChart({
                       />
                     )}
                   </div>
+                  {realOffset !== null && (
+                    <div
+                      className="absolute bottom-0.5 h-1.5 rounded-sm bg-neutral-800"
+                      style={{ left: realOffset * diaLargura + 1, width: Math.max((realDuracao ?? 1) * diaLargura - 2, 4) }}
+                      title={`Real: ${t.dataInicioReal?.slice(0, 10) ?? ""} → ${t.dataFimReal?.slice(0, 10) ?? "em andamento"}`}
+                    />
+                  )}
                 </div>
               </div>
             );

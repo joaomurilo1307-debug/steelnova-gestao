@@ -32,8 +32,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm rounded-xl border border-ink-700 bg-ink-900 p-8">
         <div className="mb-6 flex flex-col items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-steelnova.png" alt="SteelNova" style={{ height: 56, width: 56 }} className="rounded" />
-          <h1 className="text-lg font-semibold text-fg">SteelNova Gestão</h1>
+          <img src="/logo-steelnova.png" alt="SteelNova Engenharia" style={{ height: 52, width: "auto" }} />
+          <h1 className="text-lg font-semibold text-fg">Gestão de Obras</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
