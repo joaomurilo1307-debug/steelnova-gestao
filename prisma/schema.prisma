@@ -1,0 +1,163 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  ENGENHEIRO
+  MESTRE_OBRA
+  VISUALIZADOR
+}
+
+enum ObraStatus {
+  PLANEJAMENTO
+  EM_ANDAMENTO
+  PAUSADA
+  CONCLUIDA
+}
+
+enum TarefaStatus {
+  A_FAZER
+  EM_ANDAMENTO
+  CONCLUIDA
+}
+
+enum RaciPapel {
+  R
+  A
+  C
+  I
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(VISUALIZADOR)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  obras          ObraMembro[]
+  tarefas        Tarefa[]         @relation("TarefaResponsavel")
+  rdos           Rdo[]
+  raciAtribuicoes RaciAtribuicao[]
+}
+
+model Obra {
+  id                String     @id @default(cuid())
+  nome              String
+  cliente           String
+  endereco          String?
+  valorContrato     Decimal    @db.Decimal(14, 2)
+  status            ObraStatus @default(PLANEJAMENTO)
+  dataInicio        DateTime
+  prazoPrevistoDias Int
+  progresso         Int        @default(0)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  membros ObraMembro[]
+  tarefas Tarefa[]
+  rdos    Rdo[]
+  custos  CustoLancamento[]
+}
+
+model ObraMembro {
+  id      String @id @default(cuid())
+  obraId  String
+  userId  String
+  funcao  String
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([obraId, userId])
+}
+
+model Tarefa {
+  id             String       @id @default(cuid())
+  obraId         String
+  titulo         String
+  descricao      String?
+  status         TarefaStatus @default(A_FAZER)
+  dataInicio     DateTime?
+  duracaoDias    Int          @default(1)
+  ordem          Int          @default(0)
+  responsavelId  String?
+  predecessoraId String?
+
+  obra         Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  responsavel  User?    @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
+  predecessora Tarefa?  @relation("TarefaPredecessora", fields: [predecessoraId], references: [id])
+  sucessoras   Tarefa[] @relation("TarefaPredecessora")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Rdo {
+  id           String   @id @default(cuid())
+  obraId       String
+  data         DateTime
+  clima        String
+  efetivo      Int
+  atividades   String
+  ocorrencias  String?
+  autorId      String
+  createdAt    DateTime @default(now())
+
+  obra  Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  autor User     @relation(fields: [autorId], references: [id])
+  fotos RdoFoto[]
+
+  @@unique([obraId, data])
+}
+
+model RdoFoto {
+  id      String @id @default(cuid())
+  rdoId   String
+  url     String
+  legenda String?
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+}
+
+model CustoLancamento {
+  id              String   @id @default(cuid())
+  obraId          String
+  categoria       String
+  descricao       String
+  valorPrevisto   Decimal  @db.Decimal(14, 2)
+  valorRealizado  Decimal? @db.Decimal(14, 2)
+  data            DateTime
+  createdAt       DateTime @default(now())
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+model Processo {
+  id     String @id @default(cuid())
+  nome   String
+  area   String
+
+  atribuicoes RaciAtribuicao[]
+}
+
+model RaciAtribuicao {
+  id         String    @id @default(cuid())
+  processoId String
+  userId     String
+  papel      RaciPapel
+
+  processo Processo @relation(fields: [processoId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([processoId, userId, papel])
+}
