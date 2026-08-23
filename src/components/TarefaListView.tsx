@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
 import Avatar from "@/components/Avatar";
 import { personColor } from "@/lib/personColor";
 
@@ -65,6 +66,58 @@ function fmt(d: Date) {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
+const DIACRITICOS = new RegExp(String.fromCharCode(91, 92, 117, 48, 51, 48, 48, 45, 92, 117, 48, 51, 54, 102, 93), "g");
+
+function normalizar(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(DIACRITICOS, "")
+    .toLowerCase()
+    .trim();
+}
+
+function acharColuna(headers: string[], candidatos: string[]) {
+  const normHeaders = headers.map(normalizar);
+  for (const cand of candidatos) {
+    const i = normHeaders.indexOf(normalizar(cand));
+    if (i >= 0) return headers[i];
+  }
+  return null;
+}
+
+function mapStatus(v: string | undefined): string {
+  const n = normalizar(v ?? "");
+  if (n.includes("feito") || n.includes("conclu")) return "FEITO";
+  if (n.includes("fazendo") || n.includes("andamento") || n.includes("progresso")) return "FAZENDO";
+  if (n.includes("bloque")) return "BLOQUEADO";
+  return "A_FAZER";
+}
+
+function mapPrioridade(v: string | undefined): string {
+  const n = normalizar(v ?? "");
+  if (n.includes("urgente")) return "URGENTE";
+  if (n.includes("alta")) return "ALTA";
+  if (n.includes("baixa")) return "BAIXA";
+  return "MEDIA";
+}
+
+function excelDataParaISO(v: any): string | undefined {
+  if (!v) return undefined;
+  if (v instanceof Date) return v.toISOString().slice(0, 10);
+  if (typeof v === "string") {
+    const s = v.trim();
+    const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (br) {
+      const [, d, m, y] = br;
+      const ano = y.length === 2 ? `20${y}` : y;
+      return `${ano}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+    }
+    const iso = s.match(/^\d{4}-\d{2}-\d{2}/);
+    if (iso) return iso[0];
+  }
+  return undefined;
+}
+
 export default function TarefaListView({ obraId, titulo = "Lista de atividades", compacto = false }: { obraId: string; titulo?: string; compacto?: boolean }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<Membro[]>([]);
@@ -75,6 +128,8 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
   const [novoBloco, setNovoBloco] = useState("");
   const [criandoBloco, setCriandoBloco] = useState(false);
   const [nomeNovoBloco, setNomeNovoBloco] = useState("");
+  const [importando, setImportando] = useState(false);
+  const [resultadoImport, setResultadoImport] = useState<string | null>(null);
 
   async function load() {
     const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
@@ -109,6 +164,84 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
     setNovoBloco(nomeNovoBloco.trim());
     setNomeNovoBloco("");
     setCriandoBloco(false);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setImportando(true);
+    setResultadoImport(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: true });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows: Record<string, any>[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+      if (rows.length === 0) {
+        setResultadoImport("Planilha vazia ou sem cabeçalho reconhecível.");
+        return;
+      }
+      const headers = Object.keys(rows[0]);
+      const colTitulo = acharColuna(headers, ["título", "titulo", "atividade", "tarefa"]);
+      const colFase = acharColuna(headers, ["fase", "bloco"]);
+      const colStatus = acharColuna(headers, ["status"]);
+      const colPrioridade = acharColuna(headers, ["prioridade"]);
+      const colInicio = acharColuna(headers, ["início", "inicio", "data", "data início", "data inicio"]);
+      const colResp = acharColuna(headers, ["responsável", "responsavel"]);
+      const colHorasEst = acharColuna(headers, ["horas estimadas", "horas est.", "horas est"]);
+      const colValorHora = acharColuna(headers, ["valor hora", "valor/hora", "valor hora (r$)"]);
+
+      if (!colTitulo) {
+        setResultadoImport('Não achei uma coluna de título ("Título", "Atividade" ou "Tarefa"). Confira o cabeçalho da planilha.');
+        return;
+      }
+
+      let ok = 0;
+      let falhas = 0;
+      for (const row of rows) {
+        const titulo = String(row[colTitulo] ?? "").trim();
+        if (!titulo) continue;
+        const respNome = colResp ? String(row[colResp] ?? "").trim() : "";
+        const membro = respNome ? membros.find((m) => normalizar(m.nome) === normalizar(respNome) || normalizar(m.nome).includes(normalizar(respNome))) : null;
+
+        const body: any = {
+          obraId,
+          titulo,
+          fase: colFase ? String(row[colFase] ?? "").trim() || novoBloco || undefined : novoBloco || undefined,
+          status: mapStatus(colStatus ? String(row[colStatus]) : undefined),
+          prioridade: mapPrioridade(colPrioridade ? String(row[colPrioridade]) : undefined),
+          dataInicio: colInicio ? excelDataParaISO(row[colInicio]) : undefined,
+          responsavelId: membro?.userId,
+          horasEstimadas: colHorasEst && row[colHorasEst] !== "" ? Number(row[colHorasEst]) : undefined,
+          valorHora: colValorHora && row[colValorHora] !== "" ? Number(row[colValorHora]) : undefined,
+        };
+        const res = await fetch("/api/tarefas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) ok++;
+        else falhas++;
+      }
+      setResultadoImport(`Importado: ${ok} ${ok === 1 ? "atividade" : "atividades"}${falhas > 0 ? `, ${falhas} falharam` : ""}.`);
+      load();
+    } catch (err: any) {
+      setResultadoImport("Erro ao ler a planilha: " + (err?.message ?? String(err)));
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  function handleDownloadTemplate() {
+    const exemplo = [
+      { Título: "Reunião de alinhamento", Fase: "Aquisição", Status: "A fazer", Prioridade: "Média", Início: "2026-09-01", Responsável: "", "Horas estimadas": 1, "Valor hora": "" },
+      { Título: "Orçar calhas", Fase: "Aquisição", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-02", Responsável: "", "Horas estimadas": 2, "Valor hora": "" },
+    ];
+    const sheet = XLSX.utils.json_to_sheet(exemplo);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, sheet, "Atividades");
+    XLSX.writeFile(wb, "modelo-importacao-atividades.xlsx");
   }
 
   async function patch(id: string, body: any) {
@@ -197,7 +330,16 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
             </button>
           </form>
         )}
+        <span className="mx-1 h-4 w-px bg-ink-700" />
+        <label className={`cursor-pointer text-xs text-brand hover:underline ${importando ? "pointer-events-none opacity-50" : ""}`}>
+          {importando ? "Importando..." : "📥 Importar Excel"}
+          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
+        </label>
+        <button type="button" onClick={handleDownloadTemplate} className="text-xs text-neutral-500 hover:underline">
+          Baixar modelo
+        </button>
       </div>
+      {resultadoImport && <p className="mb-3 text-xs text-neutral-600">{resultadoImport}</p>}
       <form onSubmit={handleAdd} className="mb-3 flex flex-wrap items-center gap-2">
         <input
           value={novoTitulo}
