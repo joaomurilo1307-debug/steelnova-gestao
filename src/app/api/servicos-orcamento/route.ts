@@ -4,16 +4,15 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const createMaterialSchema = z.object({
+const createSchema = z.object({
   obraId: z.string().min(1),
-  grupo: z.string().optional(),
   nome: z.string().min(1),
+  baseQtd: z.number().nonnegative(),
   unidade: z.string().min(1),
-  quantidadePrevista: z.number().nonnegative(),
-  quantidadeRecebida: z.number().nonnegative().optional(),
-  fornecedor: z.string().optional(),
-  custoUnitario: z.number().nonnegative().optional(),
-  pesoUnitario: z.number().nonnegative().optional(),
+  materiaPrima: z.number().nonnegative().optional(),
+  insumosManual: z.number().nonnegative().optional().nullable(),
+  maoDeObraManual: z.number().nonnegative().optional().nullable(),
+  bdiManual: z.number().nonnegative().optional().nullable(),
 });
 
 export async function GET(req: Request) {
@@ -24,8 +23,8 @@ export async function GET(req: Request) {
   const obraId = searchParams.get("obraId");
   if (!obraId) return NextResponse.json({ error: "obraId obrigatório" }, { status: 400 });
 
-  const materiais = await prisma.material.findMany({ where: { obraId }, orderBy: { nome: "asc" } });
-  return NextResponse.json(materiais);
+  const servicos = await prisma.servicoOrcamento.findMany({ where: { obraId }, orderBy: { ordem: "asc" } });
+  return NextResponse.json(servicos);
 }
 
 export async function POST(req: Request) {
@@ -36,9 +35,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const parsed = createMaterialSchema.safeParse(body);
+  const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const material = await prisma.material.create({ data: parsed.data });
-  return NextResponse.json(material, { status: 201 });
+  const count = await prisma.servicoOrcamento.count({ where: { obraId: parsed.data.obraId } });
+  const servico = await prisma.servicoOrcamento.create({ data: { ...parsed.data, ordem: count } });
+  return NextResponse.json(servico, { status: 201 });
 }

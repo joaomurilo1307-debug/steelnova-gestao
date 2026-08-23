@@ -8,6 +8,7 @@ import {
   IconEquipe,
   IconRelatorios,
   IconRaci,
+  IconCustos,
 } from "@/components/NavIcons";
 
 const OPERACAO = [
@@ -16,6 +17,7 @@ const OPERACAO = [
 ];
 
 const EMPRESA = [
+  { href: "/financas", label: "Finanças", icon: IconCustos },
   { href: "/equipe", label: "Equipe", icon: IconEquipe },
   { href: "/relatorios", label: "Relatórios", icon: IconRelatorios },
   { href: "/raci", label: "Matriz RACI", icon: IconRaci },

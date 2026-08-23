@@ -4,16 +4,18 @@ import { useEffect, useState } from "react";
 
 type Material = {
   id: string;
+  grupo: string | null;
   nome: string;
   unidade: string;
   quantidadePrevista: string;
   quantidadeRecebida: string;
   fornecedor: string | null;
+  pesoUnitario: string | null;
 };
 
 export default function MateriaisObra({ obraId }: { obraId: string }) {
   const [materiais, setMateriais] = useState<Material[]>([]);
-  const [form, setForm] = useState({ nome: "", unidade: "", quantidadePrevista: "", fornecedor: "" });
+  const [form, setForm] = useState({ grupo: "", nome: "", unidade: "", quantidadePrevista: "", fornecedor: "", pesoUnitario: "" });
 
   async function load() {
     const res = await fetch(`/api/materiais?obraId=${obraId}`);
@@ -33,14 +35,16 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         obraId,
+        grupo: form.grupo || undefined,
         nome: form.nome,
         unidade: form.unidade,
         quantidadePrevista: Number(form.quantidadePrevista),
         fornecedor: form.fornecedor || undefined,
+        pesoUnitario: form.pesoUnitario ? Number(form.pesoUnitario) : undefined,
       }),
     });
     if (res.ok) {
-      setForm({ nome: "", unidade: "", quantidadePrevista: "", fornecedor: "" });
+      setForm({ grupo: "", nome: "", unidade: "", quantidadePrevista: "", fornecedor: "", pesoUnitario: "" });
       load();
     }
   }
@@ -60,6 +64,15 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
   return (
     <div className="p-6">
       <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-end gap-2">
+        <div>
+          <label className="mb-1 block text-xs text-neutral-500">Grupo</label>
+          <input
+            placeholder="Galpão 1, Tesouras..."
+            value={form.grupo}
+            onChange={(e) => setForm({ ...form, grupo: e.target.value })}
+            className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          />
+        </div>
         <div>
           <label className="mb-1 block text-xs text-neutral-500">Material</label>
           <input
@@ -95,6 +108,16 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
           />
         </div>
+        <div>
+          <label className="mb-1 block text-xs text-neutral-500">Peso un. (kg)</label>
+          <input
+            type="number"
+            step="0.01"
+            value={form.pesoUnitario}
+            onChange={(e) => setForm({ ...form, pesoUnitario: e.target.value })}
+            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-white outline-none focus:border-brand"
+          />
+        </div>
         <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
           Adicionar
         </button>
@@ -104,16 +127,19 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
         <table className="w-full text-sm">
           <thead className="bg-ink-900 text-left text-neutral-400">
             <tr>
+              <th className="px-4 py-3 font-medium">Grupo</th>
               <th className="px-4 py-3 font-medium">Material</th>
               <th className="px-4 py-3 font-medium">Fornecedor</th>
               <th className="px-4 py-3 font-medium">Previsto</th>
               <th className="px-4 py-3 font-medium">Recebido</th>
+              <th className="px-4 py-3 font-medium">Peso total</th>
               <th className="px-4 py-3 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {materiais.map((m) => (
               <tr key={m.id} className="border-t border-ink-800">
+                <td className="px-4 py-3 text-neutral-400">{m.grupo ?? "—"}</td>
                 <td className="px-4 py-3 text-white">{m.nome}</td>
                 <td className="px-4 py-3 text-neutral-400">{m.fornecedor ?? "—"}</td>
                 <td className="px-4 py-3 text-neutral-400">
@@ -121,6 +147,9 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                 </td>
                 <td className="px-4 py-3 text-neutral-400">
                   {Number(m.quantidadeRecebida)} {m.unidade}
+                </td>
+                <td className="px-4 py-3 text-neutral-400">
+                  {m.pesoUnitario ? `${(Number(m.pesoUnitario) * Number(m.quantidadePrevista)).toFixed(1)} kg` : "—"}
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -134,7 +163,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             ))}
             {materiais.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
                   Nenhum material cadastrado ainda.
                 </td>
               </tr>

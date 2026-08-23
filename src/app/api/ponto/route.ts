@@ -4,16 +4,12 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const createMaterialSchema = z.object({
+const createSchema = z.object({
   obraId: z.string().min(1),
-  grupo: z.string().optional(),
-  nome: z.string().min(1),
-  unidade: z.string().min(1),
-  quantidadePrevista: z.number().nonnegative(),
-  quantidadeRecebida: z.number().nonnegative().optional(),
-  fornecedor: z.string().optional(),
-  custoUnitario: z.number().nonnegative().optional(),
-  pesoUnitario: z.number().nonnegative().optional(),
+  funcionarioId: z.string().min(1),
+  dia: z.string(),
+  entrada: z.string().regex(/^\d{2}:\d{2}$/),
+  saida: z.string().regex(/^\d{2}:\d{2}$/),
 });
 
 export async function GET(req: Request) {
@@ -24,8 +20,12 @@ export async function GET(req: Request) {
   const obraId = searchParams.get("obraId");
   if (!obraId) return NextResponse.json({ error: "obraId obrigatório" }, { status: 400 });
 
-  const materiais = await prisma.material.findMany({ where: { obraId }, orderBy: { nome: "asc" } });
-  return NextResponse.json(materiais);
+  const lancamentos = await prisma.lancamentoPonto.findMany({
+    where: { obraId },
+    include: { funcionario: true },
+    orderBy: { dia: "desc" },
+  });
+  return NextResponse.json(lancamentos);
 }
 
 export async function POST(req: Request) {
@@ -36,9 +36,18 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const parsed = createMaterialSchema.safeParse(body);
+  const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const material = await prisma.material.create({ data: parsed.data });
-  return NextResponse.json(material, { status: 201 });
+  const lancamento = await prisma.lancamentoPonto.create({
+    data: {
+      obraId: parsed.data.obraId,
+      funcionarioId: parsed.data.funcionarioId,
+      dia: new Date(parsed.data.dia),
+      entrada: parsed.data.entrada,
+      saida: parsed.data.saida,
+    },
+  });
+
+  return NextResponse.json(lancamento, { status: 201 });
 }

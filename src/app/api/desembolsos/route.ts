@@ -4,16 +4,14 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-const createMaterialSchema = z.object({
+const createSchema = z.object({
   obraId: z.string().min(1),
-  grupo: z.string().optional(),
-  nome: z.string().min(1),
-  unidade: z.string().min(1),
-  quantidadePrevista: z.number().nonnegative(),
-  quantidadeRecebida: z.number().nonnegative().optional(),
-  fornecedor: z.string().optional(),
-  custoUnitario: z.number().nonnegative().optional(),
-  pesoUnitario: z.number().nonnegative().optional(),
+  pessoa: z.string().min(1),
+  item: z.string().min(1),
+  categoria: z.string().min(1),
+  valor: z.number().nonnegative(),
+  data: z.string().optional(),
+  funcionarioRefId: z.string().optional().nullable(),
 });
 
 export async function GET(req: Request) {
@@ -24,8 +22,12 @@ export async function GET(req: Request) {
   const obraId = searchParams.get("obraId");
   if (!obraId) return NextResponse.json({ error: "obraId obrigatório" }, { status: 400 });
 
-  const materiais = await prisma.material.findMany({ where: { obraId }, orderBy: { nome: "asc" } });
-  return NextResponse.json(materiais);
+  const desembolsos = await prisma.desembolso.findMany({
+    where: { obraId },
+    include: { funcionarioRef: true },
+    orderBy: { data: "desc" },
+  });
+  return NextResponse.json(desembolsos);
 }
 
 export async function POST(req: Request) {
@@ -36,9 +38,20 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const parsed = createMaterialSchema.safeParse(body);
+  const parsed = createSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  const material = await prisma.material.create({ data: parsed.data });
-  return NextResponse.json(material, { status: 201 });
+  const desembolso = await prisma.desembolso.create({
+    data: {
+      obraId: parsed.data.obraId,
+      pessoa: parsed.data.pessoa,
+      item: parsed.data.item,
+      categoria: parsed.data.categoria,
+      valor: parsed.data.valor,
+      data: parsed.data.data ? new Date(parsed.data.data) : undefined,
+      funcionarioRefId: parsed.data.funcionarioRefId ?? undefined,
+    },
+  });
+
+  return NextResponse.json(desembolso, { status: 201 });
 }

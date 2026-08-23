@@ -65,12 +65,16 @@ model Obra {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  membros   ObraMembro[]
-  tarefas   Tarefa[]
-  rdos      Rdo[]
-  custos    CustoLancamento[]
-  materiais Material[]
-  arquivos  Arquivo[]
+  membros            ObraMembro[]
+  tarefas            Tarefa[]
+  rdos               Rdo[]
+  custos             CustoLancamento[]
+  materiais          Material[]
+  arquivos           Arquivo[]
+  parametrosOrcamento ParametrosOrcamento?
+  servicosOrcamento  ServicoOrcamento[]
+  lancamentosPonto   LancamentoPonto[]
+  desembolsos        Desembolso[]
 }
 
 model ObraMembro {
@@ -86,16 +90,21 @@ model ObraMembro {
 }
 
 model Tarefa {
-  id             String       @id @default(cuid())
-  obraId         String
-  titulo         String
-  descricao      String?
-  status         TarefaStatus @default(A_FAZER)
-  dataInicio     DateTime?
-  duracaoDias    Int          @default(1)
-  ordem          Int          @default(0)
-  responsavelId  String?
-  predecessoraId String?
+  id                String       @id @default(cuid())
+  obraId            String
+  eap               String?
+  fase              String?
+  titulo            String
+  descricao         String?
+  status            TarefaStatus @default(A_FAZER)
+  dataInicio        DateTime?
+  duracaoDias       Int          @default(1)
+  percentConcluido  Int          @default(0)
+  dataInicioReal    DateTime?
+  dataFimReal       DateTime?
+  ordem             Int          @default(0)
+  responsavelId     String?
+  predecessoraId    String?
 
   obra         Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
   responsavel  User?    @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
@@ -136,16 +145,100 @@ model RdoFoto {
 model Material {
   id                   String   @id @default(cuid())
   obraId               String
+  grupo                String?
   nome                 String
   unidade              String
   quantidadePrevista   Decimal  @db.Decimal(14, 2)
   quantidadeRecebida   Decimal  @default(0) @db.Decimal(14, 2)
   fornecedor           String?
   custoUnitario        Decimal? @db.Decimal(14, 2)
+  pesoUnitario         Decimal? @db.Decimal(12, 3)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+model ParametrosOrcamento {
+  id                 String  @id @default(cuid())
+  obraId             String  @unique
+  maoDeObraPorKg     Decimal @default(0) @db.Decimal(10, 2)
+  insumosPorKg       Decimal @default(0) @db.Decimal(10, 2)
+  bdiPercent         Decimal @default(0.30) @db.Decimal(6, 4)
+  instalacaoPorM2    Decimal @default(0) @db.Decimal(10, 2)
+  valorAlvo          Decimal? @db.Decimal(14, 2)
+  diariaPadrao       Decimal @default(150) @db.Decimal(10, 2)
+  horasPorDiaria     Decimal @default(8) @db.Decimal(4, 1)
+  encarregadoFixo    Decimal @default(0) @db.Decimal(10, 2)
+  alimentacaoPorDia  Decimal @default(0) @db.Decimal(10, 2)
+  impostoPercent     Decimal @default(0.06) @db.Decimal(6, 4)
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+model ServicoOrcamento {
+  id              String  @id @default(cuid())
+  obraId          String
+  nome            String
+  baseQtd         Decimal @db.Decimal(12, 3)
+  unidade         String
+  materiaPrima    Decimal @default(0) @db.Decimal(12, 2)
+  insumosManual   Decimal? @db.Decimal(12, 2)
+  maoDeObraManual Decimal? @db.Decimal(12, 2)
+  bdiManual       Decimal? @db.Decimal(12, 2)
+  ordem           Int     @default(0)
+  createdAt       DateTime @default(now())
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+model Funcionario {
+  id           String  @id @default(cuid())
+  nome         String
+  regime       String  @default("Diaria")
+  diariaPadrao Decimal? @db.Decimal(10, 2)
+  valorFixo    Decimal? @db.Decimal(10, 2)
+  active       Boolean @default(true)
+
+  lancamentos    LancamentoPonto[]
+  desembolsosRef Desembolso[] @relation("DesembolsoFuncionario")
+}
+
+model LancamentoPonto {
+  id            String   @id @default(cuid())
+  obraId        String
+  funcionarioId String
+  dia           DateTime
+  entrada       String
+  saida         String
+  createdAt     DateTime @default(now())
+
+  obra        Obra        @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  funcionario Funcionario @relation(fields: [funcionarioId], references: [id])
+}
+
+model Desembolso {
+  id                String    @id @default(cuid())
+  obraId            String
+  pessoa            String
+  item              String
+  categoria         String
+  valor             Decimal   @db.Decimal(10, 2)
+  data              DateTime?
+  funcionarioRefId  String?
+
+  obra           Obra         @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  funcionarioRef Funcionario? @relation("DesembolsoFuncionario", fields: [funcionarioRefId], references: [id])
+}
+
+model LancamentoFinanceiro {
+  id        String   @id @default(cuid())
+  tipo      String
+  descricao String
+  pessoa    String?
+  valor     Decimal  @db.Decimal(12, 2)
+  data      DateTime
+  createdAt DateTime @default(now())
 }
 
 enum ArquivoCategoria {

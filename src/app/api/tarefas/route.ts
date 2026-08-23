@@ -6,6 +6,8 @@ import { prisma } from "@/lib/prisma";
 
 const createTarefaSchema = z.object({
   obraId: z.string().min(1),
+  eap: z.string().optional(),
+  fase: z.string().optional(),
   titulo: z.string().min(1),
   descricao: z.string().optional(),
   status: z.enum(["A_FAZER", "FAZENDO", "BLOQUEADO", "FEITO"]).optional(),
@@ -48,6 +50,8 @@ export async function POST(req: Request) {
   const tarefa = await prisma.tarefa.create({
     data: {
       obraId: parsed.data.obraId,
+      eap: parsed.data.eap,
+      fase: parsed.data.fase,
       titulo: parsed.data.titulo,
       descricao: parsed.data.descricao,
       status: parsed.data.status ?? "A_FAZER",

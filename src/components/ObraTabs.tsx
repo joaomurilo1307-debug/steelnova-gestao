@@ -5,13 +5,16 @@ import { usePathname } from "next/navigation";
 
 const TABS = [
   { seg: "", label: "Visão geral" },
+  { seg: "orcamento", label: "Orçamento" },
   { seg: "kanban", label: "Kanban" },
   { seg: "cronograma", label: "Cronograma" },
   { seg: "rdo", label: "RDO" },
+  { seg: "diarias", label: "Diárias" },
   { seg: "custos", label: "Custos" },
   { seg: "materiais", label: "Materiais" },
   { seg: "equipe", label: "Equipe" },
   { seg: "arquivos", label: "Arquivos" },
+  { seg: "resultado", label: "Resultado" },
 ];
 
 export default function ObraTabs({ obraId }: { obraId: string }) {

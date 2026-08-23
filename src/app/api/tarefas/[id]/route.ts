@@ -6,10 +6,15 @@ import { prisma } from "@/lib/prisma";
 
 const patchSchema = z.object({
   status: z.enum(["A_FAZER", "FAZENDO", "BLOQUEADO", "FEITO"]).optional(),
+  eap: z.string().nullable().optional(),
+  fase: z.string().nullable().optional(),
   titulo: z.string().min(1).optional(),
   descricao: z.string().optional(),
   dataInicio: z.string().optional(),
   duracaoDias: z.number().int().positive().optional(),
+  percentConcluido: z.number().int().min(0).max(100).optional(),
+  dataInicioReal: z.string().nullable().optional(),
+  dataFimReal: z.string().nullable().optional(),
   responsavelId: z.string().nullable().optional(),
   predecessoraId: z.string().nullable().optional(),
   ordem: z.number().int().optional(),
@@ -28,6 +33,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 
   const data: any = { ...parsed.data };
   if (data.dataInicio) data.dataInicio = new Date(data.dataInicio);
+  if (data.dataInicioReal) data.dataInicioReal = new Date(data.dataInicioReal);
+  if (data.dataFimReal) data.dataFimReal = new Date(data.dataFimReal);
 
   const tarefa = await prisma.tarefa.update({ where: { id: params.id }, data });
   return NextResponse.json(tarefa);
