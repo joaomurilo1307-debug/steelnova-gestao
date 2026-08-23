@@ -88,6 +88,8 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
   const ordem = [...COMPONENTES, ...gruposPresentes.filter((g) => !COMPONENTES.includes(g))];
   const grupos = ordem.filter((g) => gruposPresentes.includes(g));
   const pesoTotal = materiais.reduce((s, m) => s + pesoDe(m), 0);
+  const saldoDe = (m: Material) => Number(m.quantidadePrevista) - Number(m.quantidadeRecebida);
+  const pendentes = materiais.filter((m) => saldoDe(m) > 0.001);
 
   return (
     <div className="p-6">
@@ -171,6 +173,45 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             <div className="text-xl font-bold text-brand">{pesoTotal.toFixed(1)} kg</div>
           </div>
         </div>
+      )}
+
+      {materiais.length > 0 && (
+        pendentes.length > 0 ? (
+          <div className="mb-5 overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 shadow-sm">
+            <div className="flex items-center gap-2 border-b border-amber-200 px-4 py-2.5">
+              <span className="text-lg">🛒</span>
+              <b className="text-sm text-amber-900">Compras necessárias</b>
+              <span className="text-xs text-amber-700">· {pendentes.length} {pendentes.length === 1 ? "item a comprar" : "itens a comprar"}</span>
+            </div>
+            <div className="max-h-[40vh] overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-amber-800/70">
+                  <tr>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Componente</th>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Material</th>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Fornecedor</th>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 text-right font-medium">Falta comprar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendentes.map((m) => (
+                    <tr key={m.id} className="border-t border-amber-100">
+                      <td className="px-4 py-2 text-neutral-600">{m.grupo || "Outros"}</td>
+                      <td className="px-4 py-2 font-medium text-fg">{m.nome}</td>
+                      <td className="px-4 py-2 text-neutral-600">{m.fornecedor ?? "—"}</td>
+                      <td className="px-4 py-2 text-right font-semibold text-amber-700">{saldoDe(m).toLocaleString("pt-BR")} {m.unidade}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-5 flex items-center gap-2 rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+            <span className="text-lg">✅</span>
+            <b>Tudo recebido</b> — nenhuma compra pendente nesta obra.
+          </div>
+        )
       )}
 
       {grupos.length === 0 && (
