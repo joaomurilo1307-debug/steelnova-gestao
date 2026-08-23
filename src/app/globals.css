@@ -5,4 +5,6 @@
 body {
   background-color: #f6f3ee;
   color: #211c16;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
