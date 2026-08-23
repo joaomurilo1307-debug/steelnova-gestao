@@ -46,7 +46,7 @@ export default async function ObraVisaoGeralPage({ params }: { params: { id: str
             </div>
             <div className="flex justify-between">
               <dt className="text-neutral-500">Início</dt>
-              <dd className="text-white">{obra.dataInicio.toLocaleDateString("pt-BR")}</dd>
+              <dd className="text-white">{obra.dataInicio.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</dd>
             </div>
             <div className="flex justify-between">
               <dt className="text-neutral-500">Prazo previsto</dt>

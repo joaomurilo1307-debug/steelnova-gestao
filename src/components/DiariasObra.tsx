@@ -256,7 +256,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <tbody>
             {lancamentos.map((l) => (
               <tr key={l.id} className="border-t border-ink-800">
-                <td className="px-3 py-2 text-neutral-400">{new Date(l.dia).toLocaleDateString("pt-BR")}</td>
+                <td className="px-3 py-2 text-neutral-400">{new Date(l.dia).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
                 <td className="px-3 py-2 text-white">{l.funcionario.nome}</td>
                 <td className="px-3 py-2 text-neutral-400">{l.entrada}</td>
                 <td className="px-3 py-2 text-neutral-400">{l.saida}</td>

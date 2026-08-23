@@ -164,7 +164,7 @@ export default function Cronograma({
                   <td className="px-4 py-3 text-white">{t.titulo}</td>
                   <td className="px-4 py-3 text-neutral-400">{STATUS_LABEL[t.status] ?? t.status}</td>
                   <td className="px-4 py-3 text-neutral-400">
-                    {t.dataInicio ? new Date(t.dataInicio).toLocaleDateString("pt-BR") : "—"}
+                    {t.dataInicio ? new Date(t.dataInicio).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
                   </td>
                   <td className="px-4 py-3 text-neutral-400">{t.duracaoDias}d</td>
                   <td className="px-4 py-3">

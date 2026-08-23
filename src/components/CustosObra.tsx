@@ -146,7 +146,7 @@ export default function CustosObra({ obraId }: { obraId: string }) {
           <tbody>
             {custos.map((c) => (
               <tr key={c.id} className="border-t border-ink-800">
-                <td className="px-4 py-3 text-neutral-400">{new Date(c.data).toLocaleDateString("pt-BR")}</td>
+                <td className="px-4 py-3 text-neutral-400">{new Date(c.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
                 <td className="px-4 py-3 text-neutral-400">{c.categoria}</td>
                 <td className="px-4 py-3 text-white">{c.descricao}</td>
                 <td className="px-4 py-3 text-neutral-400">{formatBRL(Number(c.valorPrevisto))}</td>

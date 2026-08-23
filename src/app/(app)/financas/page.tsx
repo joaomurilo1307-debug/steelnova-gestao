@@ -140,7 +140,7 @@ export default function FinancasPage() {
             <tbody>
               {lancamentos.map((l) => (
                 <tr key={l.id} className="border-t border-ink-800">
-                  <td className="px-4 py-3 text-neutral-400">{new Date(l.data).toLocaleDateString("pt-BR")}</td>
+                  <td className="px-4 py-3 text-neutral-400">{new Date(l.data).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
                   <td className="px-4 py-3 text-neutral-400">{l.tipo}</td>
                   <td className="px-4 py-3 text-white">{l.descricao}</td>
                   <td className="px-4 py-3 text-neutral-400">{l.pessoa ?? "—"}</td>

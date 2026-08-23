@@ -30,7 +30,7 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
           {rdos.map((rdo) => (
             <div key={rdo.id} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
               <div className="mb-2 flex items-center justify-between">
-                <p className="font-medium text-white">{rdo.data.toLocaleDateString("pt-BR")}</p>
+                <p className="font-medium text-white">{rdo.data.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</p>
                 <span className="text-xs text-neutral-500">
                   {rdo.clima} · {rdo.efetivo} pessoas · registrado por {rdo.autor.name}
                 </span>
