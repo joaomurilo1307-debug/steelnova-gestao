@@ -241,25 +241,25 @@ export default function Cronograma({
         </form>
       )}
 
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 max-h-[72vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
-          <thead className="bg-ink-900 text-left text-neutral-600">
+          <thead className="text-left text-neutral-600">
             <tr>
-              <th className="px-3 py-3 font-medium">EAP</th>
-              <th className="px-3 py-3 font-medium">Fase</th>
-              <th className="px-3 py-3 font-medium">Atividade</th>
-              <th className="px-3 py-3 font-medium">Turno</th>
-              <th className="px-3 py-3 font-medium">Pessoas</th>
-              <th className="px-3 py-3 font-medium">Horas</th>
-              <th className="px-3 py-3 font-medium">HH</th>
-              <th className="px-3 py-3 font-medium">Responsável</th>
-              <th className="px-3 py-3 font-medium">Início prev.</th>
-              <th className="px-3 py-3 font-medium">Término prev.</th>
-              <th className="px-3 py-3 font-medium">Início real</th>
-              <th className="px-3 py-3 font-medium">Término real</th>
-              <th className="px-3 py-3 font-medium">Status</th>
-              <th className="px-3 py-3 font-medium">% Concl.</th>
-              <th className="px-3 py-3 font-medium"></th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">EAP</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Fase</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Atividade</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Turno</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Pessoas</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Horas</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">HH</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Responsável</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Início prev.</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Término prev.</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Início real</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Término real</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Status</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">% Concl.</th>
+              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800"></th>
             </tr>
           </thead>
           <tbody>
