@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import GanttChart from "@/components/GanttChart";
+import { useMemo, useState, useEffect } from "react";
+import Avatar from "@/components/Avatar";
+import { personColor } from "@/lib/personColor";
 
 type Tarefa = {
   id: string;
@@ -17,37 +18,35 @@ type Tarefa = {
   turno: string | null;
   responsavelNome: string | null;
   observacoes: string | null;
-  responsavel: { id: string; name: string } | null;
+  responsavel: { id: string; name: string; avatarUrl: string | null } | null;
+  responsavelId: string | null;
+  predecessoraId: string | null;
   dataInicioReal: string | null;
   dataFimReal: string | null;
 };
 
-function addDias(iso: string, dias: number) {
-  const d = new Date(iso.slice(0, 10) + "T00:00:00");
-  d.setDate(d.getDate() + dias);
-  return d;
+const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
+
+const ZOOM_PRESETS = { compacto: 14, medio: 24, largo: 38 } as const;
+const NOME_PRESETS = { estreita: 170, larga: 300 } as const;
+
+function toDate(iso: string) {
+  return new Date(iso.slice(0, 10) + "T00:00:00");
 }
-
-function fmt(d: Date) {
-  return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
+function addDias(d: Date, dias: number) {
+  const n = new Date(d);
+  n.setDate(n.getDate() + dias);
+  return n;
 }
-
-const STATUS_LABEL: Record<string, string> = {
-  A_FAZER: "A fazer",
-  FAZENDO: "Fazendo",
-  BLOQUEADO: "Bloqueado",
-  FEITO: "Feito",
-};
-
-const STATUS_BADGE: Record<string, string> = {
-  A_FAZER: "bg-neutral-200 text-neutral-700",
-  FAZENDO: "bg-blue-100 text-blue-700",
-  BLOQUEADO: "bg-rose-100 text-rose-700",
-  FEITO: "bg-emerald-100 text-emerald-700",
-};
-
 function diffDias(a: Date, b: Date) {
-  return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.round((b.getTime() - a.getTime()) / 86400000);
+}
+function fmt(d: Date) {
+  return d.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" });
+}
+function fim(t: Tarefa) {
+  if (!t.dataInicio) return null;
+  return addDias(toDate(t.dataInicio), t.duracaoDias - 1);
 }
 
 export default function Cronograma({
@@ -60,7 +59,10 @@ export default function Cronograma({
   obraPrazoDias: number;
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
-  const [membros, setMembros] = useState<{ userId: string; nome: string }[]>([]);
+  const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
+  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("medio");
+  const [nomeWidth, setNomeWidth] = useState<keyof typeof NOME_PRESETS>("estreita");
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     eap: "",
     fase: "",
@@ -73,17 +75,13 @@ export default function Cronograma({
     responsavelId: "",
     observacoes: "",
   });
-  const [showForm, setShowForm] = useState(false);
 
   async function load() {
-    const [tRes, oRes] = await Promise.all([
-      fetch(`/api/tarefas?obraId=${obraId}`),
-      fetch(`/api/obras/${obraId}`),
-    ]);
+    const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
     if (tRes.ok) setTarefas(await tRes.json());
     if (oRes.ok) {
       const obra = await oRes.json();
-      setMembros(obra.membros.map((m: any) => ({ userId: m.user.id, nome: m.user.name })));
+      setMembros(obra.membros.map((m: any) => ({ userId: m.user.id, nome: m.user.name, avatarUrl: m.user.avatarUrl ?? null })));
     }
   }
 
@@ -91,6 +89,15 @@ export default function Cronograma({
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obraId]);
+
+  async function patch(id: string, body: any) {
+    await fetch(`/api/tarefas/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    load();
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -118,27 +125,6 @@ export default function Cronograma({
     }
   }
 
-  async function handlePercent(id: string, percent: number) {
-    await fetch(`/api/tarefas/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        percentConcluido: percent,
-        status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER",
-      }),
-    });
-    load();
-  }
-
-  async function handleRealDate(id: string, field: "dataInicioReal" | "dataFimReal", value: string) {
-    await fetch(`/api/tarefas/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [field]: value || null }),
-    });
-    load();
-  }
-
   async function handleDelete(id: string) {
     if (!confirm("Remover essa atividade?")) return;
     const res = await fetch(`/api/tarefas/${id}`, { method: "DELETE" });
@@ -147,18 +133,89 @@ export default function Cronograma({
 
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
 
-  // pico real = maior soma de "pessoas" entre tarefas com período sobreposto (dia a dia)
-  const inicioObraCalc = new Date(obraInicio);
+  const inicioObraCalc = new Date(obraInicio.slice(0, 10) + "T00:00:00");
   let totalPessoasPico = 0;
   for (let dia = 0; dia < obraPrazoDias + 5; dia++) {
     const pessoasNoDia = tarefas.reduce((s, t) => {
       if (!t.pessoas || !t.dataInicio) return s;
-      const offset = Math.max(0, diffDias(inicioObraCalc, new Date(t.dataInicio)));
+      const offset = Math.max(0, diffDias(inicioObraCalc, toDate(t.dataInicio)));
       const ativo = dia >= offset && dia < offset + t.duracaoDias;
       return ativo ? s + t.pessoas : s;
     }, 0);
     totalPessoasPico = Math.max(totalPessoasPico, pessoasNoDia);
   }
+
+  const fases = useMemo(() => Array.from(new Set(tarefas.map((t) => t.fase ?? "Geral"))), [tarefas]);
+  const faseColor = (fase: string | null) => FASE_COLORS[fases.indexOf(fase ?? "Geral") % FASE_COLORS.length];
+
+  // folga = min(início da sucessora - fim desta tarefa) entre as tarefas que a têm como predecessora
+  // "folga até a próxima tarefa dependente" — não é CPM de projeto inteiro, é folga local da cadeia declarada
+  const folgaMap = useMemo(() => {
+    const map = new Map<string, number | null>();
+    for (const t of tarefas) {
+      const tFim = fim(t);
+      if (!tFim) {
+        map.set(t.id, null);
+        continue;
+      }
+      const sucessoras = tarefas.filter((x) => x.predecessoraId === t.id && x.dataInicio);
+      if (sucessoras.length === 0) {
+        map.set(t.id, null);
+        continue;
+      }
+      const folga = Math.min(...sucessoras.map((s) => diffDias(tFim, toDate(s.dataInicio!))));
+      map.set(t.id, folga);
+    }
+    return map;
+  }, [tarefas]);
+
+  const tarefasCriticas = tarefas.filter((t) => (folgaMap.get(t.id) ?? 1) <= 0).length;
+
+  // grade de dias
+  const dayWidth = ZOOM_PRESETS[zoom];
+  const nomeW = NOME_PRESETS[nomeWidth];
+  const maxOffsetFim = tarefas.reduce((max, t) => {
+    if (!t.dataInicio) return max;
+    const offset = Math.max(0, diffDias(inicioObraCalc, toDate(t.dataInicio)));
+    return Math.max(max, offset + t.duracaoDias);
+  }, obraPrazoDias);
+  const totalDias = Math.max(maxOffsetFim, obraPrazoDias, 1) + 3;
+  const dias = Array.from({ length: totalDias }, (_, i) => addDias(inicioObraCalc, i));
+  const hojeOffset = diffDias(inicioObraCalc, new Date(new Date().toDateString()));
+
+  const meses: { label: string; largura: number }[] = [];
+  for (const d of dias) {
+    const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", "");
+    const last = meses[meses.length - 1];
+    if (last && last.label === label) last.largura += dayWidth;
+    else meses.push({ label, largura: dayWidth });
+  }
+
+  // colunas fixas (sticky) — larguras e offsets acumulados
+  const COLS = [
+    { key: "eap", label: "EAP", w: 44 },
+    { key: "titulo", label: "Atividade", w: nomeW },
+    { key: "dur", label: "Dur.", w: 44 },
+    { key: "inicioPrev", label: "Início prev.", w: 84 },
+    { key: "fimPrev", label: "Término prev.", w: 84 },
+    { key: "inicioReal", label: "Início real", w: 118 },
+    { key: "fimReal", label: "Término real", w: 118 },
+    { key: "pct", label: "%", w: 56 },
+    { key: "folga", label: "Folga", w: 54 },
+    { key: "resp", label: "Responsável", w: 150 },
+    { key: "pred", label: "Predec.", w: 150 },
+    { key: "remover", label: "", w: 60 },
+  ];
+  let acc = 0;
+  const offsets = COLS.map((c) => {
+    const o = acc;
+    acc += c.w;
+    return o;
+  });
+  const totalStickyW = acc;
+
+  const stickyTh = "sticky z-30 border-b border-r border-ink-800 bg-ink-900 px-2 py-2 text-xs font-medium text-neutral-600";
+  const stickyTd = "sticky z-10 border-r border-ink-800 bg-ink-900 px-2 py-1.5 text-xs";
 
   return (
     <div className="p-6">
@@ -175,6 +232,11 @@ export default function Cronograma({
           <span className="text-neutral-500">Pico de equipe: </span>
           <span className="font-medium text-fg">{totalPessoasPico} pessoas</span>
         </div>
+        {tarefasCriticas > 0 && (
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+            ⚠ {tarefasCriticas} tarefa{tarefasCriticas > 1 ? "s" : ""} crítica{tarefasCriticas > 1 ? "s" : ""}
+          </div>
+        )}
         <button
           onClick={() => setShowForm((v) => !v)}
           className="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
@@ -241,90 +303,227 @@ export default function Cronograma({
         </form>
       )}
 
-      <div className="mb-6 max-h-[72vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
-        <table className="w-full text-sm">
-          <thead className="text-left text-neutral-600">
-            <tr>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">EAP</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Fase</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Atividade</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Turno</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Pessoas</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Horas</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">HH</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Responsável</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Início prev.</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Término prev.</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Início real</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Término real</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">Status</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800">% Concl.</th>
-              <th className="sticky top-0 z-20 bg-ink-900 px-3 py-3 font-medium border-b border-ink-800"></th>
+      <div className="mb-2 flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-neutral-500">Zoom:</span>
+        <div className="flex overflow-hidden rounded-lg border border-ink-700">
+          {(Object.keys(ZOOM_PRESETS) as (keyof typeof ZOOM_PRESETS)[]).map((z) => (
+            <button
+              key={z}
+              onClick={() => setZoom(z)}
+              className={`px-2.5 py-1 capitalize ${zoom === z ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
+            >
+              {z}
+            </button>
+          ))}
+        </div>
+        <span className="ml-2 text-neutral-500">Nome:</span>
+        <div className="flex overflow-hidden rounded-lg border border-ink-700">
+          {(Object.keys(NOME_PRESETS) as (keyof typeof NOME_PRESETS)[]).map((n) => (
+            <button
+              key={n}
+              onClick={() => setNomeWidth(n)}
+              className={`px-2.5 py-1 capitalize ${nomeWidth === n ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-3 max-h-[75vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+        <table className="border-collapse text-sm" style={{ minWidth: totalStickyW + totalDias * dayWidth }}>
+          <thead>
+            <tr style={{ height: 28 }}>
+              <th
+                className="sticky left-0 top-0 z-40 border-b border-r border-ink-800 bg-ink-900"
+                style={{ width: totalStickyW, minWidth: totalStickyW, height: 28 }}
+                colSpan={COLS.length}
+              />
+              {meses.map((m, i) => (
+                <th
+                  key={i}
+                  className="sticky top-0 z-20 whitespace-nowrap border-b border-r border-ink-800 bg-ink-900 px-2 text-xs font-medium capitalize text-neutral-500"
+                  style={{ width: m.largura, minWidth: m.largura, height: 28 }}
+                >
+                  {m.label}
+                </th>
+              ))}
+            </tr>
+            <tr style={{ height: 30 }}>
+              {COLS.map((c, i) => (
+                <th key={c.key} className={stickyTh} style={{ top: 28, left: offsets[i], width: c.w, minWidth: c.w, height: 30 }}>
+                  {c.label}
+                </th>
+              ))}
+              {dias.map((d, i) => (
+                <th
+                  key={i}
+                  className={`sticky z-20 border-b border-ink-800 bg-ink-900 text-center text-[10px] font-normal text-neutral-500 ${
+                    diffDias(inicioObraCalc, d) === hojeOffset ? "bg-brand/10 font-bold text-brand" : ""
+                  }`}
+                  style={{ top: 28, width: dayWidth, minWidth: dayWidth, height: 30 }}
+                >
+                  {d.getDate()}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {tarefas.map((t) => (
-              <tr key={t.id} className="border-t border-ink-800">
-                <td className="px-3 py-2.5 text-neutral-600">{t.eap ?? "—"}</td>
-                <td className="px-3 py-2.5 text-neutral-600">{t.fase ?? "—"}</td>
-                <td className="px-3 py-2.5 text-fg">
-                  {t.titulo}
-                  {t.observacoes && <p className="text-xs text-neutral-500">{t.observacoes}</p>}
-                </td>
-                <td className="px-3 py-2.5 text-neutral-600">{t.turno ?? "—"}</td>
-                <td className="px-3 py-2.5 text-neutral-600">{t.pessoas ?? "—"}</td>
-                <td className="px-3 py-2.5 text-neutral-600">{t.horas ?? "—"}</td>
-                <td className="px-3 py-2.5 font-medium text-fg">
-                  {t.pessoas && t.horas ? (t.pessoas * Number(t.horas)).toFixed(1) : "—"}
-                </td>
-                <td className="px-3 py-2.5 text-neutral-600">{t.responsavelNome ?? t.responsavel?.name ?? "—"}</td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-neutral-600">
-                  {t.dataInicio ? fmt(new Date(t.dataInicio)) : "—"}
-                </td>
-                <td className="px-3 py-2.5 whitespace-nowrap text-neutral-600">
-                  {t.dataInicio ? fmt(addDias(t.dataInicio, t.duracaoDias - 1)) : "—"}
-                </td>
-                <td className="px-3 py-2.5">
-                  <input
-                    type="date"
-                    defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
-                    onBlur={(e) => handleRealDate(t.id, "dataInicioReal", e.target.value)}
-                    className="w-32 rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
-                  />
-                </td>
-                <td className="px-3 py-2.5">
-                  <input
-                    type="date"
-                    defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
-                    onBlur={(e) => handleRealDate(t.id, "dataFimReal", e.target.value)}
-                    className="w-32 rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
-                  />
-                </td>
-                <td className="px-3 py-2.5">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] ?? ""}`}>
-                    {STATUS_LABEL[t.status] ?? t.status}
-                  </span>
-                </td>
-                <td className="px-3 py-2.5">
-                  <input
-                    type="number"
-                    min={0}
-                    max={100}
-                    defaultValue={t.percentConcluido}
-                    onBlur={(e) => handlePercent(t.id, Number(e.target.value))}
-                    className="w-16 rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
-                  />
-                </td>
-                <td className="px-3 py-2.5">
-                  <button onClick={() => handleDelete(t.id)} className="text-xs text-red-600 hover:underline">
-                    Remover
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {tarefas.map((t) => {
+              const inicio = t.dataInicio ? toDate(t.dataInicio) : null;
+              const offset = inicio ? Math.max(0, diffDias(inicioObraCalc, inicio)) : 0;
+              const folga = folgaMap.get(t.id);
+              const critica = folga !== null && folga !== undefined && folga <= 0;
+              const cor = faseColor(t.fase);
+
+              const realInicio = t.dataInicioReal ? toDate(t.dataInicioReal) : null;
+              const realOffset = realInicio ? Math.max(0, diffDias(inicioObraCalc, realInicio)) : null;
+              const realFimD = t.dataFimReal ? toDate(t.dataFimReal) : null;
+              const realDur = realOffset !== null ? (realFimD ? diffDias(realInicio!, realFimD) + 1 : 1) : null;
+
+              return (
+                <tr key={t.id} className={critica ? "bg-rose-50/40" : ""}>
+                  <td className={stickyTd} style={{ left: offsets[0], width: COLS[0].w }}>
+                    {t.eap ?? "—"}
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[1], width: COLS[1].w }}>
+                    <div className="flex items-center gap-1.5">
+                      {critica && <span className="h-full w-1 shrink-0 self-stretch rounded-full bg-rose-500" />}
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-fg" title={t.titulo}>
+                          {t.titulo}
+                        </p>
+                        <p className="truncate text-[10px] text-neutral-500">
+                          {[t.fase, t.turno, t.pessoas && `${t.pessoas}p`, t.horas && `${t.horas}h`].filter(Boolean).join(" · ") || "—"}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[2], width: COLS[2].w }}>
+                    {t.duracaoDias}
+                  </td>
+                  <td className={`${stickyTd} whitespace-nowrap`} style={{ left: offsets[3], width: COLS[3].w }}>
+                    {inicio ? fmt(inicio) : "—"}
+                  </td>
+                  <td className={`${stickyTd} whitespace-nowrap`} style={{ left: offsets[4], width: COLS[4].w }}>
+                    {fim(t) ? fmt(fim(t)!) : "—"}
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[5], width: COLS[5].w }}>
+                    <input
+                      type="date"
+                      defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
+                      onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
+                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                    />
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[6], width: COLS[6].w }}>
+                    <input
+                      type="date"
+                      defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
+                      onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
+                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                    />
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[7], width: COLS[7].w }}>
+                    <input
+                      type="number"
+                      min={0}
+                      max={100}
+                      defaultValue={t.percentConcluido}
+                      onBlur={(e) => {
+                        const percent = Number(e.target.value);
+                        patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
+                      }}
+                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                    />
+                  </td>
+                  <td className={`${stickyTd} ${critica ? "font-semibold text-rose-600" : "text-neutral-500"}`} style={{ left: offsets[8], width: COLS[8].w }}>
+                    {folga !== null && folga !== undefined ? `${folga}d` : "—"}
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[9], width: COLS[9].w }}>
+                    <div className="flex items-center gap-1">
+                      {t.responsavel && (
+                        <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />
+                      )}
+                      <select
+                        value={t.responsavelId ?? ""}
+                        onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}
+                        className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                      >
+                        <option value="">—</option>
+                        {membros.map((m) => (
+                          <option key={m.userId} value={m.userId}>
+                            {m.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[10], width: COLS[10].w }}>
+                    <select
+                      value={t.predecessoraId ?? ""}
+                      onChange={(e) => patch(t.id, { predecessoraId: e.target.value || null })}
+                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                    >
+                      <option value="">—</option>
+                      {tarefas
+                        .filter((x) => x.id !== t.id)
+                        .map((x) => (
+                          <option key={x.id} value={x.id}>
+                            {x.eap ? `${x.eap} · ` : ""}
+                            {x.titulo}
+                          </option>
+                        ))}
+                    </select>
+                  </td>
+                  <td className={stickyTd} style={{ left: offsets[11], width: COLS[11].w }}>
+                    <button onClick={() => handleDelete(t.id)} className="text-[11px] text-red-600 hover:underline">
+                      Remover
+                    </button>
+                  </td>
+
+                  {dias.map((d, i) => {
+                    const dOffset = diffDias(inicioObraCalc, d);
+                    const emBarra = inicio && dOffset >= offset && dOffset < offset + t.duracaoDias;
+                    const inicioBarra = emBarra && dOffset === offset;
+                    return (
+                      <td
+                        key={i}
+                        className={`relative border-b border-ink-800/40 ${dOffset === hojeOffset ? "bg-brand/5" : ""}`}
+                        style={{ width: dayWidth, minWidth: dayWidth, height: 34 }}
+                      >
+                        {inicioBarra && (
+                          <div
+                            className="absolute top-1 h-3 rounded-sm"
+                            style={{
+                              left: 1,
+                              width: t.duracaoDias * dayWidth - 2,
+                              backgroundColor: critica ? "#e11d48" : cor,
+                              opacity: t.status === "FEITO" ? 1 : 0.75,
+                            }}
+                            title={`${t.titulo} — ${t.percentConcluido}%`}
+                          >
+                            {t.percentConcluido > 0 && (
+                              <div className="h-full rounded-sm bg-black/25" style={{ width: `${Math.min(t.percentConcluido, 100)}%` }} />
+                            )}
+                          </div>
+                        )}
+                        {realOffset !== null && dOffset === realOffset && (
+                          <div
+                            className="absolute bottom-1 h-1 rounded-sm bg-neutral-800"
+                            style={{ left: 1, width: (realDur ?? 1) * dayWidth - 2 }}
+                            title={`Real: ${t.dataInicioReal?.slice(0, 10)} → ${t.dataFimReal?.slice(0, 10) ?? "em andamento"}`}
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={15} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={COLS.length + totalDias} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>
@@ -333,7 +532,23 @@ export default function Cronograma({
         </table>
       </div>
 
-      <GanttChart tarefas={tarefas} obraInicio={obraInicio} obraPrazoDias={obraPrazoDias} />
+      <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500">
+        {fases.map((f) => (
+          <span key={f} className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: faseColor(f) }} />
+            {f}
+          </span>
+        ))}
+        <span className="flex items-center gap-1.5">
+          <span className="h-1.5 w-3 rounded-sm bg-neutral-800" /> Real
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-rose-500" /> Crítica (folga ≤ 0)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-3 w-0.5 bg-brand" /> Hoje
+        </span>
+      </div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Avatar from "@/components/Avatar";
+import { personColor } from "@/lib/personColor";
 
 type Tarefa = {
   id: string;
@@ -186,7 +187,9 @@ export default function TarefaListView({ obraId }: { obraId: string }) {
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
-                      {t.responsavel && <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} size={20} />}
+                      {t.responsavel && (
+                        <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={20} />
+                      )}
                       <select
                         value={t.responsavelId ?? ""}
                         onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}

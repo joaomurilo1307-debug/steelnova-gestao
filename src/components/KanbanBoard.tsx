@@ -12,6 +12,7 @@ import {
 } from "@dnd-kit/core";
 import TaskModal from "@/components/TaskModal";
 import Avatar from "@/components/Avatar";
+import { personColor } from "@/lib/personColor";
 
 type Tarefa = {
   id: string;
@@ -80,7 +81,13 @@ function TaskCard({ tarefa, accent, onClick }: { tarefa: Tarefa; accent: string;
 
       <div className="mt-2 flex items-center justify-between">
         {tarefa.responsavel ? (
-          <Avatar name={tarefa.responsavel.name} photoUrl={tarefa.responsavel.avatarUrl} size={24} className="text-[9px]" />
+          <Avatar
+            name={tarefa.responsavel.name}
+            photoUrl={tarefa.responsavel.avatarUrl}
+            color={personColor(tarefa.responsavel.id)}
+            size={24}
+            className="text-[9px]"
+          />
         ) : (
           <span className="text-[10px] text-neutral-400">sem responsável</span>
         )}

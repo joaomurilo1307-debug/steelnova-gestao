@@ -7,11 +7,13 @@ function initials(name: string) {
 export default function Avatar({
   name,
   photoUrl,
+  color,
   size = 24,
   className = "",
 }: {
   name: string;
   photoUrl?: string | null;
+  color?: string;
   size?: number;
   className?: string;
 }) {
@@ -23,15 +25,15 @@ export default function Avatar({
         alt={name}
         title={name}
         className={`inline-block shrink-0 rounded-full object-cover ${className}`}
-        style={{ width: size, height: size }}
+        style={{ width: size, height: size, boxShadow: color ? `0 0 0 2px ${color}` : undefined }}
       />
     );
   }
   return (
     <span
       title={name}
-      className={`inline-flex shrink-0 items-center justify-center rounded-full bg-brand font-semibold text-white ${className}`}
-      style={{ width: size, height: size, fontSize: size * 0.4 }}
+      className={`inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${className}`}
+      style={{ width: size, height: size, fontSize: size * 0.4, backgroundColor: color ?? "#E8802B" }}
     >
       {initials(name || "?")}
     </span>
