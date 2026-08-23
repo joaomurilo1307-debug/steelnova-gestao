@@ -62,10 +62,12 @@ function fmt(d: Date) {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
-export default function TarefaListView({ obraId }: { obraId: string }) {
+export default function TarefaListView({ obraId, titulo = "Lista de atividades", compacto = false }: { obraId: string; titulo?: string; compacto?: boolean }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<Membro[]>([]);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [novoTitulo, setNovoTitulo] = useState("");
+  const [novaData, setNovaData] = useState("");
 
   async function load() {
     const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
@@ -80,6 +82,19 @@ export default function TarefaListView({ obraId }: { obraId: string }) {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obraId]);
+
+  async function handleAdd(e: React.FormEvent) {
+    e.preventDefault();
+    if (!novoTitulo.trim()) return;
+    await fetch("/api/tarefas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ obraId, titulo: novoTitulo, dataInicio: novaData || undefined }),
+    });
+    setNovoTitulo("");
+    setNovaData("");
+    load();
+  }
 
   async function patch(id: string, body: any) {
     await fetch(`/api/tarefas/${id}`, {
@@ -112,8 +127,21 @@ export default function TarefaListView({ obraId }: { obraId: string }) {
   const inputCls = "rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand";
 
   return (
-    <div className="p-6">
-      <div className="max-h-[75vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+    <div className={compacto ? "" : "p-6"}>
+      {compacto && <h2 className="mb-2 text-sm font-semibold text-fg">{titulo}</h2>}
+      <form onSubmit={handleAdd} className="mb-3 flex flex-wrap items-center gap-2">
+        <input
+          value={novoTitulo}
+          onChange={(e) => setNovoTitulo(e.target.value)}
+          placeholder="Nova atividade (reunião, fazer orçamento, orçar calhas...)"
+          className={`${inputCls} min-w-[260px] flex-1`}
+        />
+        <input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} className={inputCls} />
+        <button type="submit" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark">
+          + Adicionar
+        </button>
+      </form>
+      <div className={`${compacto ? "max-h-[40vh]" : "max-h-[75vh]"} overflow-auto rounded-xl border border-ink-800 bg-ink-900`}>
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>

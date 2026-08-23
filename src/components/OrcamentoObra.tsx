@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatBRL } from "@/lib/format";
+import TarefaListView from "@/components/TarefaListView";
 
 type Parametros = {
   maoDeObraPorKg: number;
@@ -306,6 +307,13 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           )}
         </p>
       )}
+
+      <div className="mt-8 border-t border-ink-800 pt-6">
+        <p className="mb-3 text-xs text-neutral-500">
+          Atividades ligadas ao planejamento e preparação do orçamento — reunião, levantamento, orçar calhas, etc. Mesma lista da aba Lista.
+        </p>
+        <TarefaListView obraId={obraId} titulo="Atividades do orçamento" compacto />
+      </div>
     </div>
   );
 }
