@@ -110,6 +110,16 @@ export function IconCalendario(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconPropostas(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M6 3h9l4 4v14H6z" strokeLinejoin="round" />
+      <path d="M14 3v4h4" strokeLinejoin="round" />
+      <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function IconRaci(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>

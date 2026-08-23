@@ -36,6 +36,15 @@ enum RaciPapel {
   I
 }
 
+enum PropostaStatus {
+  RASCUNHO
+  ENVIADA
+  EM_NEGOCIACAO
+  APROVADA
+  RECUSADA
+  CONVERTIDA
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -51,6 +60,7 @@ model User {
   arquivos       Arquivo[]
   raciAtribuicoes RaciAtribuicao[]
   mensagens      ChatMensagem[]
+  propostas      Proposta[]
 }
 
 model Obra {
@@ -303,6 +313,25 @@ model Processo {
   area   String
 
   atribuicoes RaciAtribuicao[]
+}
+
+model Proposta {
+  id            String         @id @default(cuid())
+  cliente       String
+  contato       String?
+  segmento      String?
+  escopo        String
+  valor         Decimal?       @db.Decimal(14, 2)
+  status        PropostaStatus @default(RASCUNHO)
+  dataEnvio     DateTime?
+  validade      DateTime?
+  observacoes   String?
+  motivoPerda   String?
+  responsavelId String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  responsavel User? @relation(fields: [responsavelId], references: [id])
 }
 
 model RaciAtribuicao {

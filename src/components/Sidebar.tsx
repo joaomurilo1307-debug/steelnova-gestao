@@ -12,6 +12,7 @@ import {
   IconRelatorios,
   IconRaci,
   IconCustos,
+  IconPropostas,
 } from "@/components/NavIcons";
 
 const OPERACAO = [
@@ -21,6 +22,8 @@ const OPERACAO = [
   { href: "/tarefas", label: "Tarefas (todas)", icon: IconTarefas },
   { href: "/calendario", label: "Calendário", icon: IconCalendario },
 ];
+
+const COMERCIAL = [{ href: "/propostas", label: "Propostas", icon: IconPropostas }];
 
 const EMPRESA = [
   { href: "/financas", label: "Finanças", icon: IconCustos },
@@ -77,6 +80,7 @@ export default function Sidebar() {
 
       <div className="flex-1 overflow-y-auto">
         <NavGroup title="Operação" items={OPERACAO} pathname={pathname} />
+        <NavGroup title="Comercial" items={COMERCIAL} pathname={pathname} />
         <NavGroup title="Empresa" items={EMPRESA} pathname={pathname} />
       </div>
 
