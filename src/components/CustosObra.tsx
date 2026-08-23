@@ -12,7 +12,7 @@ type Custo = {
   data: string;
 };
 
-const CATEGORIAS = ["Material", "Mão de obra", "Equipamento", "Terceiros", "Administrativo", "Outros"];
+const CATEGORIAS = ["Material", "Insumos", "Mão de obra", "Equipamento", "Terceiros", "Administrativo", "Outros"];
 
 export default function CustosObra({ obraId }: { obraId: string }) {
   const [custos, setCustos] = useState<Custo[]>([]);
