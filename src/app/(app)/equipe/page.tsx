@@ -21,6 +21,26 @@ export default function EquipePage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", role: "ENGENHEIRO" });
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<{ email: string; password: string } | null>(null);
+  const [resetId, setResetId] = useState<string | null>(null);
+  const [resetValue, setResetValue] = useState("");
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+
+  async function handleReset(id: string) {
+    if (resetValue.length < 8) {
+      setResetMsg("A senha precisa ter pelo menos 8 caracteres.");
+      return;
+    }
+    const res = await fetch(`/api/usuarios/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: resetValue }),
+    });
+    setResetMsg(res.ok ? "Senha atualizada." : "Não foi possível atualizar a senha.");
+    if (res.ok) {
+      setResetId(null);
+      setResetValue("");
+    }
+  }
 
   async function load() {
     const res = await fetch("/api/usuarios");
@@ -113,6 +133,8 @@ export default function EquipePage() {
           </details>
         )}
 
+        {resetMsg && <p className="mb-3 text-sm text-neutral-600">{resetMsg}</p>}
+
         <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
           <table className="w-full text-sm">
             <thead className="bg-ink-900 text-left text-neutral-600">
@@ -120,6 +142,7 @@ export default function EquipePage() {
                 <th className="px-4 py-3 font-medium">Nome</th>
                 <th className="px-4 py-3 font-medium">E-mail</th>
                 <th className="px-4 py-3 font-medium">Perfil</th>
+                {isAdmin && <th className="px-4 py-3 font-medium"></th>}
               </tr>
             </thead>
             <tbody>
@@ -128,6 +151,47 @@ export default function EquipePage() {
                   <td className="px-4 py-3 text-fg">{u.name}</td>
                   <td className="px-4 py-3 text-neutral-600">{u.email}</td>
                   <td className="px-4 py-3 text-neutral-600">{ROLE_LABEL[u.role] ?? u.role}</td>
+                  {isAdmin && (
+                    <td className="px-4 py-3">
+                      {resetId === u.id ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            value={resetValue}
+                            onChange={(e) => setResetValue(e.target.value)}
+                            placeholder="Nova senha (mín. 8)"
+                            className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand"
+                          />
+                          <button
+                            onClick={() => handleReset(u.id)}
+                            className="rounded-lg bg-brand px-2 py-1 text-xs font-medium text-white hover:bg-brand-dark"
+                          >
+                            Salvar
+                          </button>
+                          <button
+                            onClick={() => {
+                              setResetId(null);
+                              setResetValue("");
+                            }}
+                            className="text-xs text-neutral-500 hover:underline"
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setResetId(u.id);
+                            setResetValue("");
+                            setResetMsg(null);
+                          }}
+                          className="text-xs text-brand hover:underline"
+                        >
+                          Redefinir senha
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
