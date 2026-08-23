@@ -60,7 +60,7 @@ export default function Cronograma({
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
-  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("medio");
+  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("compacto");
   const [nomeWidth, setNomeWidth] = useState<keyof typeof NOME_PRESETS>("estreita");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -134,15 +134,18 @@ export default function Cronograma({
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
 
   const inicioObraCalc = new Date(obraInicio.slice(0, 10) + "T00:00:00");
+  // pico de equipe = maior HH num único dia ÷ 8h — funciona tanto pra várias tarefas
+  // curtas de UMA equipe no mesmo dia (soma ingênua de "pessoas" contaria dobrado)
+  // quanto pra equipes de fato paralelas em tarefas diferentes no mesmo dia.
   let totalPessoasPico = 0;
   for (let dia = 0; dia < obraPrazoDias + 5; dia++) {
-    const pessoasNoDia = tarefas.reduce((s, t) => {
-      if (!t.pessoas || !t.dataInicio) return s;
+    const hhNoDia = tarefas.reduce((s, t) => {
+      if (!t.pessoas || !t.horas || !t.dataInicio) return s;
       const offset = Math.max(0, diffDias(inicioObraCalc, toDate(t.dataInicio)));
       const ativo = dia >= offset && dia < offset + t.duracaoDias;
-      return ativo ? s + t.pessoas : s;
+      return ativo ? s + t.pessoas * Number(t.horas) : s;
     }, 0);
-    totalPessoasPico = Math.max(totalPessoasPico, pessoasNoDia);
+    totalPessoasPico = Math.max(totalPessoasPico, Math.round(hhNoDia / 8));
   }
 
   const fases = useMemo(() => Array.from(new Set(tarefas.map((t) => t.fase ?? "Geral"))), [tarefas]);
@@ -193,18 +196,18 @@ export default function Cronograma({
 
   // colunas fixas (sticky) — larguras e offsets acumulados
   const COLS = [
-    { key: "eap", label: "EAP", w: 44 },
+    { key: "eap", label: "EAP", w: 36 },
     { key: "titulo", label: "Atividade", w: nomeW },
-    { key: "dur", label: "Dur.", w: 44 },
-    { key: "inicioPrev", label: "Início prev.", w: 84 },
-    { key: "fimPrev", label: "Término prev.", w: 84 },
-    { key: "inicioReal", label: "Início real", w: 118 },
-    { key: "fimReal", label: "Término real", w: 118 },
-    { key: "pct", label: "%", w: 56 },
-    { key: "folga", label: "Folga", w: 54 },
-    { key: "resp", label: "Responsável", w: 150 },
-    { key: "pred", label: "Predec.", w: 150 },
-    { key: "remover", label: "", w: 60 },
+    { key: "dur", label: "Dur.", w: 36 },
+    { key: "inicioPrev", label: "Início prev.", w: 74 },
+    { key: "fimPrev", label: "Término prev.", w: 74 },
+    { key: "inicioReal", label: "Início real", w: 96 },
+    { key: "fimReal", label: "Término real", w: 96 },
+    { key: "pct", label: "%", w: 46 },
+    { key: "folga", label: "Folga", w: 44 },
+    { key: "resp", label: "Responsável", w: 120 },
+    { key: "pred", label: "Predec.", w: 120 },
+    { key: "remover", label: "", w: 46 },
   ];
   let acc = 0;
   const offsets = COLS.map((c) => {
@@ -390,29 +393,81 @@ export default function Cronograma({
               const realFimD = t.dataFimReal ? toDate(t.dataFimReal) : null;
               const realDur = realOffset !== null ? (realFimD ? diffDias(realInicio!, realFimD) + 1 : 1) : null;
 
+              const microInput =
+                "w-full min-w-0 rounded border-0 bg-transparent px-0.5 py-0 text-[10px] text-neutral-500 outline-none focus:bg-ink-800 focus:text-fg focus:ring-1 focus:ring-brand";
+
               return (
                 <tr key={t.id} className={critica ? "bg-rose-50/40" : ""}>
                   <td className={stickyTd} style={{ left: offsets[0], width: COLS[0].w }}>
-                    {t.eap ?? "—"}
+                    <input
+                      defaultValue={t.eap ?? ""}
+                      onBlur={(e) => patch(t.id, { eap: e.target.value || null })}
+                      className="w-full rounded border-0 bg-transparent px-0.5 py-0 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                    />
                   </td>
                   <td className={stickyTd} style={{ left: offsets[1], width: COLS[1].w }}>
                     <div className="flex items-center gap-1.5">
                       {critica && <span className="h-full w-1 shrink-0 self-stretch rounded-full bg-rose-500" />}
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-fg" title={t.titulo}>
-                          {t.titulo}
-                        </p>
-                        <p className="truncate text-[10px] text-neutral-500">
-                          {[t.fase, t.turno, t.pessoas && `${t.pessoas}p`, t.horas && `${t.horas}h`].filter(Boolean).join(" · ") || "—"}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <input
+                          defaultValue={t.titulo}
+                          onBlur={(e) => e.target.value.trim() && patch(t.id, { titulo: e.target.value })}
+                          className="w-full truncate rounded border-0 bg-transparent px-0.5 py-0 text-xs font-medium text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            defaultValue={t.fase ?? ""}
+                            placeholder="fase"
+                            onBlur={(e) => patch(t.id, { fase: e.target.value || null })}
+                            className={`${microInput} w-12`}
+                          />
+                          <select
+                            defaultValue={t.turno ?? "Dia"}
+                            onChange={(e) => patch(t.id, { turno: e.target.value })}
+                            className={`${microInput} w-10`}
+                          >
+                            <option>Dia</option>
+                            <option>Noite</option>
+                          </select>
+                          <input
+                            type="number"
+                            min={0}
+                            defaultValue={t.pessoas ?? ""}
+                            placeholder="p"
+                            onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
+                            className={`${microInput} w-6`}
+                            title="Pessoas"
+                          />
+                          <input
+                            type="number"
+                            step="0.5"
+                            min={0}
+                            defaultValue={t.horas ?? ""}
+                            placeholder="h"
+                            onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
+                            className={`${microInput} w-7`}
+                            title="Horas"
+                          />
+                        </div>
                       </div>
                     </div>
                   </td>
                   <td className={stickyTd} style={{ left: offsets[2], width: COLS[2].w }}>
-                    {t.duracaoDias}
+                    <input
+                      type="number"
+                      min={1}
+                      defaultValue={t.duracaoDias}
+                      onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 1 })}
+                      className="w-full rounded border-0 bg-transparent px-0.5 py-0 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                    />
                   </td>
-                  <td className={`${stickyTd} whitespace-nowrap`} style={{ left: offsets[3], width: COLS[3].w }}>
-                    {inicio ? fmt(inicio) : "—"}
+                  <td className={stickyTd} style={{ left: offsets[3], width: COLS[3].w }}>
+                    <input
+                      type="date"
+                      defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
+                      onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
+                      className="w-full rounded border-0 bg-transparent px-0.5 py-0 text-[10px] text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                    />
                   </td>
                   <td className={`${stickyTd} whitespace-nowrap`} style={{ left: offsets[4], width: COLS[4].w }}>
                     {fim(t) ? fmt(fim(t)!) : "—"}
