@@ -331,7 +331,7 @@ export default function Cronograma({
       </div>
 
       <div className="mb-3 max-h-[75vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
-        <table className="border-collapse text-sm" style={{ minWidth: totalStickyW + totalDias * dayWidth }}>
+        <table className="text-sm" style={{ minWidth: totalStickyW + totalDias * dayWidth, borderCollapse: "separate", borderSpacing: 0 }}>
           <thead>
             <tr style={{ height: 28 }}>
               <th
