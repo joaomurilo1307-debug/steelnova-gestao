@@ -349,11 +349,13 @@ export default function Cronograma({
         >
           <thead>
             <tr style={{ height: 28 }}>
-              <th
-                className="sticky left-0 top-0 z-40 border-b border-r border-ink-800 bg-ink-900"
-                style={{ width: totalStickyW, minWidth: totalStickyW, height: 28 }}
-                colSpan={COLS.length}
-              />
+              {COLS.map((c, i) => (
+                <th
+                  key={`spacer-${c.key}`}
+                  className={`sticky top-0 z-40 border-b border-ink-800 bg-ink-900 ${i === COLS.length - 1 ? "border-r" : ""}`}
+                  style={{ left: offsets[i], width: c.w, minWidth: c.w, height: 28 }}
+                />
+              ))}
               {meses.map((m, i) => (
                 <th
                   key={i}
