@@ -34,6 +34,10 @@ const STATUS_BADGE: Record<string, string> = {
   FEITO: "bg-emerald-100 text-emerald-700",
 };
 
+function diffDias(a: Date, b: Date) {
+  return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 export default function Cronograma({
   obraId,
   obraInicio,
@@ -113,7 +117,19 @@ export default function Cronograma({
   }
 
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
-  const totalPessoasPico = tarefas.reduce((s, t) => Math.max(s, t.pessoas ?? 0), 0);
+
+  // pico real = maior soma de "pessoas" entre tarefas com período sobreposto (dia a dia)
+  const inicioObraCalc = new Date(obraInicio);
+  let totalPessoasPico = 0;
+  for (let dia = 0; dia < obraPrazoDias + 5; dia++) {
+    const pessoasNoDia = tarefas.reduce((s, t) => {
+      if (!t.pessoas || !t.dataInicio) return s;
+      const offset = Math.max(0, diffDias(inicioObraCalc, new Date(t.dataInicio)));
+      const ativo = dia >= offset && dia < offset + t.duracaoDias;
+      return ativo ? s + t.pessoas : s;
+    }, 0);
+    totalPessoasPico = Math.max(totalPessoasPico, pessoasNoDia);
+  }
 
   return (
     <div className="p-6">
