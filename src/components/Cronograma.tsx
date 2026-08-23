@@ -28,7 +28,7 @@ type Tarefa = {
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
 
 const ZOOM_PRESETS = { compacto: 18, medio: 26, largo: 40 } as const;
-const NOME_PRESETS = { estreita: 170, larga: 300 } as const;
+const NOME_PRESETS = { estreita: 260, larga: 440 } as const;
 
 function toDate(iso: string) {
   return new Date(iso.slice(0, 10) + "T00:00:00");
@@ -61,7 +61,7 @@ export default function Cronograma({
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("compacto");
-  const [nomeWidth, setNomeWidth] = useState<keyof typeof NOME_PRESETS>("estreita");
+  const [nomeWidth, setNomeWidth] = useState<keyof typeof NOME_PRESETS>("larga");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     eap: "",
@@ -221,8 +221,8 @@ export default function Cronograma({
   });
   const totalStickyW = acc;
 
-  const stickyTh = "sticky z-30 border-b border-r border-ink-800 bg-ink-900 px-2 py-2 text-xs font-medium text-neutral-600";
-  const stickyTd = "sticky z-10 border-r border-ink-800 bg-ink-900 px-2 py-1.5 text-xs";
+  const stickyTh = "sticky z-30 border-b border-r border-ink-800 bg-ink-900 px-2.5 py-2 text-xs font-medium text-neutral-600";
+  const stickyTd = "sticky z-10 border-r border-ink-800 bg-ink-900 px-2.5 py-2 text-xs";
 
   return (
     <div className="p-6">
@@ -556,7 +556,7 @@ export default function Cronograma({
                         className={`relative border-b border-ink-800/40 ${d.getDate() === 1 ? "border-l-2 border-l-ink-700" : ""} ${
                           dOffset === hojeOffset ? "bg-brand/5" : ""
                         }`}
-                        style={{ width: dayWidth, minWidth: dayWidth, height: 34 }}
+                        style={{ width: dayWidth, minWidth: dayWidth, height: 40 }}
                       >
                         {inicioBarra && (
                           <div

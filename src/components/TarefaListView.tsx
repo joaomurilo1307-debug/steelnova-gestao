@@ -352,7 +352,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
           + Adicionar {novoBloco && <span className="font-normal opacity-80">em &quot;{novoBloco}&quot;</span>}
         </button>
       </form>
-      <div className={`${compacto ? "max-h-[40vh]" : "max-h-[75vh]"} overflow-auto rounded-xl border border-ink-800 bg-ink-900`}>
+      <div className={`${compacto ? "max-h-[55vh]" : "max-h-[75vh]"} overflow-auto rounded-xl border border-ink-800 bg-ink-900`}>
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
@@ -402,7 +402,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
 
                       return (
                 <tr key={t.id} className="border-t border-ink-800">
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 20 }}>
                       <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: PRIORIDADE_BORDA[t.prioridade] }} />
                       {temFilhas && (
@@ -423,7 +423,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       <span className="text-fg">{t.titulo}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <select
                       value={t.status}
                       onChange={(e) => patch(t.id, { status: e.target.value })}
@@ -436,7 +436,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       ))}
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <select
                       value={t.prioridade}
                       onChange={(e) => patch(t.id, { prioridade: e.target.value })}
@@ -449,7 +449,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       ))}
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5">
                       {t.responsavel && (
                         <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={20} />
@@ -468,7 +468,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       </select>
                     </div>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
                       type="date"
                       defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
@@ -486,7 +486,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       "—"
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <select
                       value={t.tarefaMaeId ?? ""}
                       onChange={(e) => patch(t.id, { tarefaMaeId: e.target.value || null })}
@@ -502,7 +502,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                         ))}
                     </select>
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
                       type="number"
                       step="0.5"
@@ -512,7 +512,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       className={`${inputCls} w-20`}
                     />
                   </td>
-                  <td className="px-3 py-2">
+                  <td className="px-3 py-2.5">
                     <input
                       type="number"
                       step="0.01"
