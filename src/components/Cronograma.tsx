@@ -183,12 +183,12 @@ export default function Cronograma({
   const dias = Array.from({ length: totalDias }, (_, i) => addDias(inicioObraCalc, i));
   const hojeOffset = diffDias(inicioObraCalc, new Date(new Date().toDateString()));
 
-  const meses: { label: string; largura: number }[] = [];
+  const meses: { label: string; dias: number }[] = [];
   for (const d of dias) {
     const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", "");
     const last = meses[meses.length - 1];
-    if (last && last.label === label) last.largura += dayWidth;
-    else meses.push({ label, largura: dayWidth });
+    if (last && last.label === label) last.dias += 1;
+    else meses.push({ label, dias: 1 });
   }
 
   // colunas fixas (sticky) — larguras e offsets acumulados
@@ -331,7 +331,15 @@ export default function Cronograma({
       </div>
 
       <div className="mb-3 max-h-[75vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
-        <table className="text-sm" style={{ minWidth: totalStickyW + totalDias * dayWidth, borderCollapse: "separate", borderSpacing: 0 }}>
+        <table
+          className="text-sm"
+          style={{
+            width: totalStickyW + totalDias * dayWidth,
+            tableLayout: "fixed",
+            borderCollapse: "separate",
+            borderSpacing: 0,
+          }}
+        >
           <thead>
             <tr style={{ height: 28 }}>
               <th
@@ -342,8 +350,9 @@ export default function Cronograma({
               {meses.map((m, i) => (
                 <th
                   key={i}
+                  colSpan={m.dias}
                   className="sticky top-0 z-20 whitespace-nowrap border-b border-r border-ink-800 bg-ink-900 px-2 text-xs font-medium capitalize text-neutral-500"
-                  style={{ width: m.largura, minWidth: m.largura, height: 28 }}
+                  style={{ height: 28 }}
                 >
                   {m.label}
                 </th>
