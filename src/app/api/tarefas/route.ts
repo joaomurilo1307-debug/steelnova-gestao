@@ -23,11 +23,13 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const obraId = searchParams.get("obraId");
-  if (!obraId) return NextResponse.json({ error: "obraId obrigatório" }, { status: 400 });
 
   const tarefas = await prisma.tarefa.findMany({
-    where: { obraId },
-    include: { responsavel: { select: { id: true, name: true } } },
+    where: obraId ? { obraId } : undefined,
+    include: {
+      responsavel: { select: { id: true, name: true } },
+      obra: { select: { id: true, nome: true } },
+    },
     orderBy: [{ ordem: "asc" }, { createdAt: "asc" }],
   });
 

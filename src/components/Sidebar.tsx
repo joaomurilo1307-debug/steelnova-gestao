@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  IconInicio,
   IconPainel,
   IconObras,
+  IconTarefas,
+  IconCalendario,
   IconEquipe,
   IconRelatorios,
   IconRaci,
@@ -12,8 +15,11 @@ import {
 } from "@/components/NavIcons";
 
 const OPERACAO = [
+  { href: "/inicio", label: "Início", icon: IconInicio },
   { href: "/painel", label: "Painel", icon: IconPainel },
   { href: "/obras", label: "Obras", icon: IconObras },
+  { href: "/tarefas", label: "Tarefas (todas)", icon: IconTarefas },
+  { href: "/calendario", label: "Calendário", icon: IconCalendario },
 ];
 
 const EMPRESA = [

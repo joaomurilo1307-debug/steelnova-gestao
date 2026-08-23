@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "SteelNova | Gestão de Obras",
     short_name: "SteelNova Obras",
     description: "Gestão de obras, planejamento, custos e equipe da SteelNova Engenharia.",
-    start_url: "/painel",
+    start_url: "/inicio",
     scope: "/",
     display: "standalone",
     background_color: "#0B0D10",
