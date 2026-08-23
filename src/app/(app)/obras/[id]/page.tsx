@@ -1,11 +1,10 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import TopBar from "@/components/TopBar";
-import { formatBRL, obraStatusLabel } from "@/lib/format";
+import { formatBRL } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-export default async function ObraDetalhePage({ params }: { params: { id: string } }) {
+export default async function ObraVisaoGeralPage({ params }: { params: { id: string } }) {
   const obra = await prisma.obra.findUnique({
     where: { id: params.id },
     include: { custos: true, membros: { include: { user: true } } },
@@ -18,13 +17,7 @@ export default async function ObraDetalhePage({ params }: { params: { id: string
 
   return (
     <div>
-      <TopBar title={obra.nome} subtitle={obra.cliente} />
-
       <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
-          <p className="text-xs uppercase text-neutral-500">Status</p>
-          <p className="mt-2 text-xl font-semibold text-white">{obraStatusLabel(obra.status)}</p>
-        </div>
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Contrato</p>
           <p className="mt-2 text-xl font-semibold text-white">{formatBRL(Number(obra.valorContrato))}</p>
@@ -36,6 +29,10 @@ export default async function ObraDetalhePage({ params }: { params: { id: string
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <p className="text-xs uppercase text-neutral-500">Custo realizado</p>
           <p className="mt-2 text-xl font-semibold text-white">{formatBRL(custoReal)}</p>
+        </div>
+        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <p className="text-xs uppercase text-neutral-500">Progresso</p>
+          <p className="mt-2 text-xl font-semibold text-white">{obra.progresso}%</p>
         </div>
       </div>
 
@@ -55,17 +52,13 @@ export default async function ObraDetalhePage({ params }: { params: { id: string
               <dt className="text-neutral-500">Prazo previsto</dt>
               <dd className="text-white">{obra.prazoPrevistoDias} dias</dd>
             </div>
-            <div className="flex justify-between">
-              <dt className="text-neutral-500">Progresso</dt>
-              <dd className="text-white">{obra.progresso}%</dd>
-            </div>
           </dl>
         </div>
 
         <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
           <h2 className="mb-3 text-sm font-semibold text-white">Equipe da obra</h2>
           {obra.membros.length === 0 ? (
-            <p className="text-sm text-neutral-500">Nenhum membro vinculado ainda.</p>
+            <p className="text-sm text-neutral-500">Nenhum membro vinculado ainda — veja a aba Equipe.</p>
           ) : (
             <ul className="flex flex-col gap-2 text-sm">
               {obra.membros.map((m) => (

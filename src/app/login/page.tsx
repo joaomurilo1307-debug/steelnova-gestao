@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -32,7 +31,8 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
       <div className="w-full max-w-sm rounded-xl border border-ink-700 bg-ink-900 p-8">
         <div className="mb-6 flex flex-col items-center gap-3">
-          <Image src="/logo-steelnova.png" alt="SteelNova" width={56} height={56} className="rounded" />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-steelnova.png" alt="SteelNova" style={{ height: 56, width: 56 }} className="rounded" />
           <h1 className="text-lg font-semibold text-white">SteelNova Gestão</h1>
         </div>
 

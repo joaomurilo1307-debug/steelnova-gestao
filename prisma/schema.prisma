@@ -24,8 +24,9 @@ enum ObraStatus {
 
 enum TarefaStatus {
   A_FAZER
-  EM_ANDAMENTO
-  CONCLUIDA
+  FAZENDO
+  BLOQUEADO
+  FEITO
 }
 
 enum RaciPapel {
@@ -47,6 +48,7 @@ model User {
   obras          ObraMembro[]
   tarefas        Tarefa[]         @relation("TarefaResponsavel")
   rdos           Rdo[]
+  arquivos       Arquivo[]
   raciAtribuicoes RaciAtribuicao[]
 }
 
@@ -63,10 +65,12 @@ model Obra {
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
-  membros ObraMembro[]
-  tarefas Tarefa[]
-  rdos    Rdo[]
-  custos  CustoLancamento[]
+  membros   ObraMembro[]
+  tarefas   Tarefa[]
+  rdos      Rdo[]
+  custos    CustoLancamento[]
+  materiais Material[]
+  arquivos  Arquivo[]
 }
 
 model ObraMembro {
@@ -127,6 +131,43 @@ model RdoFoto {
   legenda String?
 
   rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+}
+
+model Material {
+  id                   String   @id @default(cuid())
+  obraId               String
+  nome                 String
+  unidade              String
+  quantidadePrevista   Decimal  @db.Decimal(14, 2)
+  quantidadeRecebida   Decimal  @default(0) @db.Decimal(14, 2)
+  fornecedor           String?
+  custoUnitario        Decimal? @db.Decimal(14, 2)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+}
+
+enum ArquivoCategoria {
+  NOTA_FISCAL
+  PLANILHA_HORARIOS
+  PROJETO
+  FOTO
+  OUTRO
+}
+
+model Arquivo {
+  id           String           @id @default(cuid())
+  obraId       String
+  nome         String
+  categoria    ArquivoCategoria @default(OUTRO)
+  url          String
+  tamanho      Int
+  uploadadoPorId String
+  createdAt    DateTime         @default(now())
+
+  obra         Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  uploadadoPor User @relation(fields: [uploadadoPorId], references: [id])
 }
 
 model CustoLancamento {
