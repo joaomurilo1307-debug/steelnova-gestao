@@ -845,6 +845,8 @@ export default function Cronograma({
                       const isCritica = !!result?.isCritical && !cpm.hasCycle;
                       const cor = faseColor(t.fase);
                       const marco = t.dataInicio !== null && t.duracaoDias === 0;
+                      const tFim = fim(t);
+                      const isAtrasada = !marco && !!tFim && tFim < new Date(new Date().toDateString()) && t.percentConcluido < 100;
                       const isDragging = drag?.tarefaId === t.id;
                       let widthPx = 0;
                       let startOff = offset;
@@ -857,9 +859,13 @@ export default function Cronograma({
                       return (
                         <div key={t.id} className="flex border-b border-ink-800/50" style={{ height: ROW_H }}>
                           <div style={{ width: LABEL_W, minWidth: LABEL_W, paddingLeft: 10 + depth * 14 }} className="sticky left-0 z-10 flex shrink-0 items-center gap-1 truncate border-r border-ink-800 bg-ink-900 px-1 text-[10px]" title={t.titulo}>
-                            {isCritica && <span className="h-2.5 w-1 shrink-0 rounded-full bg-rose-500" />}
+                            {isAtrasada ? (
+                              <span className="shrink-0 rounded bg-amber-500 px-1 text-[8px] font-bold text-white">ATRASADA</span>
+                            ) : isCritica ? (
+                              <span className="h-2.5 w-1 shrink-0 rounded-full bg-rose-500" />
+                            ) : null}
                             <span className="shrink-0 font-mono text-neutral-400">{numero}</span>
-                            <span className="truncate text-fg">{t.titulo}</span>
+                            <span className={`truncate ${isAtrasada ? "font-semibold text-amber-700" : "text-fg"}`}>{t.titulo}</span>
                           </div>
                           <div className="relative shrink-0" style={{ width: totalDias * dayWidth, height: ROW_H }}>
                             {dias.map((d, i) => (
@@ -868,13 +874,16 @@ export default function Cronograma({
                             {inicio && !marco && (
                               <div
                                 onPointerDown={(e) => handleBarPointerDown(e, t, "mover")}
-                                className={`group/bar absolute top-[7px] h-[18px] cursor-grab overflow-hidden rounded-md border shadow-sm active:cursor-grabbing ${
-                                  isCritica ? "border-rose-400 bg-rose-50" : ""
+                                className={`group/bar absolute top-[6px] h-[20px] cursor-grab overflow-hidden rounded-md border-2 shadow active:cursor-grabbing ${
+                                  isAtrasada ? "border-amber-500 bg-amber-100" : isCritica ? "border-rose-500 bg-rose-50" : ""
                                 } ${isDragging ? "shadow-lg ring-2 ring-brand/40" : ""}`}
-                                style={{ left: startOff * dayWidth, width: widthPx, ...(isCritica ? {} : { backgroundColor: `${cor}26`, borderColor: `${cor}80` }) }}
-                                title={`${t.titulo} — ${t.percentConcluido}%${result && !cpm.hasCycle ? (isCritica ? " — crítica" : ` — folga ${result.float}d`) : ""}`}
+                                style={{ left: startOff * dayWidth, width: widthPx, ...(isAtrasada || isCritica ? {} : { backgroundColor: `${cor}33`, borderColor: cor }) }}
+                                title={`${t.titulo} — ${t.percentConcluido}%${isAtrasada ? " — ATRASADA" : result && !cpm.hasCycle ? (isCritica ? " — crítica" : ` — folga ${result.float}d`) : ""}`}
                               >
-                                <div className="pointer-events-none h-full" style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isCritica ? "#fb7185" : cor }} />
+                                <div
+                                  className="pointer-events-none h-full"
+                                  style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isAtrasada ? "#f59e0b" : isCritica ? "#fb7185" : cor }}
+                                />
                                 <div onPointerDown={(e) => handleBarPointerDown(e, t, "redimensionar")} className="absolute -right-1 top-0 h-full w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100">
                                   <div className="mx-auto h-full w-1 rounded-full bg-neutral-500/60" />
                                 </div>
@@ -906,7 +915,7 @@ export default function Cronograma({
           <div className="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-neutral-500">
             {fases.map((f) => (
               <span key={f} className="flex items-center gap-1.5">
-                <span className="h-2.5 w-3.5 rounded border border-ink-700" style={{ backgroundColor: `${faseColor(f)}26` }} />
+                <span className="h-2.5 w-3.5 rounded border-2" style={{ backgroundColor: `${faseColor(f)}33`, borderColor: faseColor(f) }} />
                 {f}
               </span>
             ))}
@@ -914,7 +923,10 @@ export default function Cronograma({
               <span className="h-1 w-4 rounded-full bg-neutral-700" /> Real
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2.5 w-3.5 rounded border border-rose-400 bg-rose-50" /> Crítica
+              <span className="h-2.5 w-3.5 rounded border-2 border-rose-500 bg-rose-50" /> Crítica
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-3.5 rounded border-2 border-amber-500 bg-amber-100" /> Atrasada
             </span>
             <span className="flex items-center gap-1.5">
               <span className="h-3 w-3 rotate-45 bg-brand" /> Marco
