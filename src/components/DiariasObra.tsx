@@ -255,7 +255,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </details>
       </form>
 
-      <div className="mb-6 max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
@@ -294,7 +294,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold text-fg">Resumo por funcionário — acerto</h2>
-      <div className="mb-6 max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
@@ -384,7 +384,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="max-h-[60vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>

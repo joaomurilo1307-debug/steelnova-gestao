@@ -132,7 +132,7 @@ export default function CustosObra({ obraId }: { obraId: string }) {
         </button>
       </form>
 
-      <div className="max-h-[72vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>

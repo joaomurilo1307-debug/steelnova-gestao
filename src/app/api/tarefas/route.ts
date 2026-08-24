@@ -13,7 +13,7 @@ const createTarefaSchema = z.object({
   status: z.enum(["A_FAZER", "FAZENDO", "BLOQUEADO", "FEITO"]).optional(),
   prioridade: z.enum(["BAIXA", "MEDIA", "ALTA", "URGENTE"]).optional(),
   dataInicio: z.string().optional(),
-  duracaoDias: z.number().int().positive().optional(),
+  duracaoDias: z.number().int().nonnegative().optional(),
   pessoas: z.number().int().nonnegative().optional(),
   horas: z.number().nonnegative().optional(),
   turno: z.string().optional(),

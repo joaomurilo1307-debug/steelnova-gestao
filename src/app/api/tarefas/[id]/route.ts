@@ -12,7 +12,7 @@ const patchSchema = z.object({
   titulo: z.string().min(1).optional(),
   descricao: z.string().optional(),
   dataInicio: z.string().optional(),
-  duracaoDias: z.number().int().positive().optional(),
+  duracaoDias: z.number().int().nonnegative().optional(),
   percentConcluido: z.number().int().min(0).max(100).optional(),
   dataInicioReal: z.string().nullable().optional(),
   dataFimReal: z.string().nullable().optional(),

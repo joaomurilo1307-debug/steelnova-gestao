@@ -26,9 +26,9 @@ type Tarefa = {
 };
 
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
-
-const ZOOM_PRESETS = { compacto: 18, medio: 26, largo: 40 } as const;
-const NOME_PRESETS = { estreita: 260, larga: 440 } as const;
+const ZOOM_PRESETS = { compacto: 20, medio: 30, largo: 44 } as const;
+const LABEL_W = 240;
+const ROW_H = 34;
 
 function toDate(iso: string) {
   return new Date(iso.slice(0, 10) + "T00:00:00");
@@ -46,7 +46,7 @@ function fmt(d: Date) {
 }
 function fim(t: Tarefa) {
   if (!t.dataInicio) return null;
-  return addDias(toDate(t.dataInicio), t.duracaoDias - 1);
+  return addDias(toDate(t.dataInicio), Math.max(t.duracaoDias, 1) - 1);
 }
 
 export default function Cronograma({
@@ -60,8 +60,7 @@ export default function Cronograma({
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
-  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("compacto");
-  const [nomeWidth, setNomeWidth] = useState<keyof typeof NOME_PRESETS>("larga");
+  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("medio");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     eap: "",
@@ -135,14 +134,13 @@ export default function Cronograma({
 
   const inicioObraCalc = new Date(obraInicio.slice(0, 10) + "T00:00:00");
   // pico de equipe = maior HH num único dia ÷ 8h — funciona tanto pra várias tarefas
-  // curtas de UMA equipe no mesmo dia (soma ingênua de "pessoas" contaria dobrado)
-  // quanto pra equipes de fato paralelas em tarefas diferentes no mesmo dia.
+  // curtas de UMA equipe no mesmo dia quanto pra equipes de fato paralelas.
   let totalPessoasPico = 0;
   for (let dia = 0; dia < obraPrazoDias + 5; dia++) {
     const hhNoDia = tarefas.reduce((s, t) => {
       if (!t.pessoas || !t.horas || !t.dataInicio) return s;
       const offset = Math.max(0, diffDias(inicioObraCalc, toDate(t.dataInicio)));
-      const ativo = dia >= offset && dia < offset + t.duracaoDias;
+      const ativo = dia >= offset && dia < offset + Math.max(t.duracaoDias, 1);
       return ativo ? s + t.pessoas * Number(t.horas) : s;
     }, 0);
     totalPessoasPico = Math.max(totalPessoasPico, Math.round(hhNoDia / 8));
@@ -174,17 +172,16 @@ export default function Cronograma({
 
   const tarefasCriticas = tarefas.filter((t) => (folgaMap.get(t.id) ?? 1) <= 0).length;
 
-  // grade de dias
   const dayWidth = ZOOM_PRESETS[zoom];
-  const nomeW = NOME_PRESETS[nomeWidth];
   const maxOffsetFim = tarefas.reduce((max, t) => {
     if (!t.dataInicio) return max;
     const offset = Math.max(0, diffDias(inicioObraCalc, toDate(t.dataInicio)));
-    return Math.max(max, offset + t.duracaoDias);
+    return Math.max(max, offset + Math.max(t.duracaoDias, 1));
   }, obraPrazoDias);
   const totalDias = Math.max(maxOffsetFim, obraPrazoDias, 1) + 3;
   const dias = Array.from({ length: totalDias }, (_, i) => addDias(inicioObraCalc, i));
   const hojeOffset = diffDias(inicioObraCalc, new Date(new Date().toDateString()));
+  const gridWidth = totalDias * dayWidth;
 
   const meses: { label: string; dias: number }[] = [];
   for (const d of dias) {
@@ -194,35 +191,8 @@ export default function Cronograma({
     else meses.push({ label, dias: 1 });
   }
 
-  // colunas fixas (sticky) — larguras e offsets acumulados
-  const COLS = [
-    { key: "eap", label: "EAP", w: 36 },
-    { key: "titulo", label: "Atividade", w: nomeW },
-    { key: "fase", label: "Fase", w: 76 },
-    { key: "turno", label: "Turno", w: 50 },
-    { key: "pessoas", label: "Pes.", w: 38 },
-    { key: "horas", label: "Hs", w: 38 },
-    { key: "dur", label: "Dur.", w: 38 },
-    { key: "inicioPrev", label: "Início prev.", w: 76 },
-    { key: "fimPrev", label: "Término prev.", w: 76 },
-    { key: "inicioReal", label: "Início real", w: 96 },
-    { key: "fimReal", label: "Término real", w: 96 },
-    { key: "pct", label: "%", w: 46 },
-    { key: "folga", label: "Folga", w: 44 },
-    { key: "resp", label: "Responsável", w: 120 },
-    { key: "pred", label: "Predec.", w: 120 },
-    { key: "remover", label: "", w: 46 },
-  ];
-  let acc = 0;
-  const offsets = COLS.map((c) => {
-    const o = acc;
-    acc += c.w;
-    return o;
-  });
-  const totalStickyW = acc;
-
-  const stickyTh = "sticky z-30 border-b border-r border-ink-800 bg-ink-900 px-2.5 py-2 text-xs font-medium text-neutral-600";
-  const stickyTd = "sticky z-10 border-r border-ink-800 bg-ink-900 px-2.5 py-2 text-xs";
+  const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand";
+  const cellInputCls = "w-full rounded border-0 bg-transparent px-1 py-1 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
 
   return (
     <div className="p-6">
@@ -256,42 +226,42 @@ export default function Cronograma({
         <form onSubmit={handleAdd} className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-ink-800 bg-ink-900 p-4 sm:grid-cols-4 lg:grid-cols-6">
           <div>
             <label className="mb-1 block text-xs text-neutral-500">EAP</label>
-            <input value={form.eap} onChange={(e) => setForm({ ...form, eap: e.target.value })} placeholder="1.0" className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input value={form.eap} onChange={(e) => setForm({ ...form, eap: e.target.value })} placeholder="1.0" className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Fase</label>
-            <input value={form.fase} onChange={(e) => setForm({ ...form, fase: e.target.value })} placeholder="Fabricação" className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input value={form.fase} onChange={(e) => setForm({ ...form, fase: e.target.value })} placeholder="Fabricação" className={inputCls} />
           </div>
           <div className="col-span-2">
             <label className="mb-1 block text-xs text-neutral-500">Atividade</label>
-            <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Início</label>
-            <input type="date" value={form.dataInicio} onChange={(e) => setForm({ ...form, dataInicio: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input type="date" value={form.dataInicio} onChange={(e) => setForm({ ...form, dataInicio: e.target.value })} className={inputCls} />
           </div>
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Duração (dias)</label>
-            <input type="number" min={1} value={form.duracaoDias} onChange={(e) => setForm({ ...form, duracaoDias: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <label className="mb-1 block text-xs text-neutral-500">Duração (dias, 0 = marco)</label>
+            <input type="number" min={0} value={form.duracaoDias} onChange={(e) => setForm({ ...form, duracaoDias: e.target.value })} className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Pessoas</label>
-            <input type="number" min={0} value={form.pessoas} onChange={(e) => setForm({ ...form, pessoas: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input type="number" min={0} value={form.pessoas} onChange={(e) => setForm({ ...form, pessoas: e.target.value })} className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Horas</label>
-            <input type="number" step="0.5" min={0} value={form.horas} onChange={(e) => setForm({ ...form, horas: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input type="number" step="0.5" min={0} value={form.horas} onChange={(e) => setForm({ ...form, horas: e.target.value })} className={inputCls} />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Turno</label>
-            <select value={form.turno} onChange={(e) => setForm({ ...form, turno: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand">
+            <select value={form.turno} onChange={(e) => setForm({ ...form, turno: e.target.value })} className={inputCls}>
               <option>Dia</option>
               <option>Noite</option>
             </select>
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Responsável (equipe da obra)</label>
-            <select value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand">
+            <select value={form.responsavelId} onChange={(e) => setForm({ ...form, responsavelId: e.target.value })} className={inputCls}>
               <option value="">Sem responsável</option>
               {membros.map((m) => (
                 <option key={m.userId} value={m.userId}>
@@ -302,7 +272,7 @@ export default function Cronograma({
           </div>
           <div className="col-span-2">
             <label className="mb-1 block text-xs text-neutral-500">Observações</label>
-            <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+            <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className={inputCls} />
           </div>
           <button type="submit" className="col-span-2 self-end rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark sm:col-span-1">
             Adicionar
@@ -310,187 +280,112 @@ export default function Cronograma({
         </form>
       )}
 
-      <div className="mb-2 flex flex-wrap items-center gap-3 text-xs">
-        <span className="text-neutral-500">Zoom:</span>
-        <div className="flex overflow-hidden rounded-lg border border-ink-700">
-          {(Object.keys(ZOOM_PRESETS) as (keyof typeof ZOOM_PRESETS)[]).map((z) => (
-            <button
-              key={z}
-              onClick={() => setZoom(z)}
-              className={`px-2.5 py-1 capitalize ${zoom === z ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
-            >
-              {z}
-            </button>
-          ))}
-        </div>
-        <span className="ml-2 text-neutral-500">Nome:</span>
-        <div className="flex overflow-hidden rounded-lg border border-ink-700">
-          {(Object.keys(NOME_PRESETS) as (keyof typeof NOME_PRESETS)[]).map((n) => (
-            <button
-              key={n}
-              onClick={() => setNomeWidth(n)}
-              className={`px-2.5 py-1 capitalize ${nomeWidth === n ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="mb-3 max-h-[75vh] overflow-auto rounded-xl border border-ink-800 bg-ink-900">
-        <table
-          className="text-sm"
-          style={{
-            width: totalStickyW + totalDias * dayWidth,
-            tableLayout: "fixed",
-            borderCollapse: "separate",
-            borderSpacing: 0,
-          }}
-        >
-          <thead>
-            <tr style={{ height: 28 }}>
-              {COLS.map((c, i) => (
-                <th
-                  key={`spacer-${c.key}`}
-                  className={`sticky top-0 z-40 border-b border-ink-800 bg-ink-900 ${i === COLS.length - 1 ? "border-r" : ""}`}
-                  style={{ left: offsets[i], width: c.w, minWidth: c.w, height: 28 }}
-                />
-              ))}
-              {meses.map((m, i) => (
-                <th
-                  key={i}
-                  colSpan={m.dias}
-                  className="sticky top-0 z-20 whitespace-nowrap border-b border-r border-ink-800 bg-ink-900 px-2 text-xs font-medium capitalize text-neutral-500"
-                  style={{ height: 28 }}
-                >
-                  {m.label}
-                </th>
-              ))}
-            </tr>
-            <tr style={{ height: 30 }}>
-              {COLS.map((c, i) => (
-                <th key={c.key} className={stickyTh} style={{ top: 28, left: offsets[i], width: c.w, minWidth: c.w, height: 30 }}>
-                  {c.label}
-                </th>
-              ))}
-              {dias.map((d, i) => (
-                <th
-                  key={i}
-                  className={`sticky z-20 border-b border-ink-800 bg-ink-900 text-center text-[10px] font-normal text-neutral-500 ${
-                    d.getDate() === 1 ? "border-l-2 border-l-ink-700" : ""
-                  } ${diffDias(inicioObraCalc, d) === hojeOffset ? "bg-brand/10 font-bold text-brand" : ""}`}
-                  style={{ top: 28, width: dayWidth, minWidth: dayWidth, height: 30 }}
-                >
-                  {d.getDate()}
-                </th>
-              ))}
+      {/* TABELA DE EDIÇÃO — tabela simples, rolagem normal, sem truques de layout */}
+      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 z-10 bg-ink-900 text-left text-neutral-600">
+            <tr>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">EAP</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Atividade</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Fase</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Turno</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Pes.</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Horas</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Dur.</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Início prev.</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Término prev.</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Início real</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Término real</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">%</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Folga</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Responsável</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Predecessora</th>
+              <th className="border-b border-ink-800 px-3 py-2.5 font-medium"></th>
             </tr>
           </thead>
           <tbody>
             {tarefas.map((t) => {
-              const inicio = t.dataInicio ? toDate(t.dataInicio) : null;
-              const offset = inicio ? Math.max(0, diffDias(inicioObraCalc, inicio)) : 0;
               const folga = folgaMap.get(t.id);
               const critica = folga !== null && folga !== undefined && folga <= 0;
-              const cor = faseColor(t.fase);
-
-              const realInicio = t.dataInicioReal ? toDate(t.dataInicioReal) : null;
-              const realOffset = realInicio ? Math.max(0, diffDias(inicioObraCalc, realInicio)) : null;
-              const realFimD = t.dataFimReal ? toDate(t.dataFimReal) : null;
-              const realDur = realOffset !== null ? (realFimD ? diffDias(realInicio!, realFimD) + 1 : 1) : null;
-
               return (
-                <tr key={t.id} className={critica ? "bg-rose-50/40" : ""}>
-                  <td className={stickyTd} style={{ left: offsets[0], width: COLS[0].w }}>
-                    <input
-                      defaultValue={t.eap ?? ""}
-                      onBlur={(e) => patch(t.id, { eap: e.target.value || null })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
-                    />
+                <tr key={t.id} className={`border-b border-ink-800/60 ${critica ? "bg-rose-50/40" : ""}`}>
+                  <td className="px-3 py-2">
+                    <input defaultValue={t.eap ?? ""} onBlur={(e) => patch(t.id, { eap: e.target.value || null })} className={`${cellInputCls} w-14`} />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[1], width: COLS[1].w }}>
+                  <td className="px-3 py-2">
                     <div className="flex items-center gap-1.5">
-                      {critica && <span className="h-full w-1 shrink-0 self-stretch rounded-full bg-rose-500" />}
+                      {critica && <span className="h-4 w-1 shrink-0 rounded-full bg-rose-500" />}
                       <input
                         defaultValue={t.titulo}
                         onBlur={(e) => e.target.value.trim() && patch(t.id, { titulo: e.target.value })}
-                        className="w-full min-w-0 flex-1 truncate rounded border-0 bg-transparent px-0.5 py-0.5 text-xs font-medium text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                        className={`${cellInputCls} min-w-[220px] font-medium`}
                       />
                     </div>
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[2], width: COLS[2].w }}>
-                    <input
-                      defaultValue={t.fase ?? ""}
-                      onBlur={(e) => patch(t.id, { fase: e.target.value || null })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0.5 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
-                    />
+                  <td className="px-3 py-2">
+                    <input defaultValue={t.fase ?? ""} onBlur={(e) => patch(t.id, { fase: e.target.value || null })} className={`${cellInputCls} w-28`} />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[3], width: COLS[3].w }}>
-                    <select
-                      defaultValue={t.turno ?? "Dia"}
-                      onChange={(e) => patch(t.id, { turno: e.target.value })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0.5 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
-                    >
+                  <td className="px-3 py-2">
+                    <select defaultValue={t.turno ?? "Dia"} onChange={(e) => patch(t.id, { turno: e.target.value })} className={`${cellInputCls} w-20`}>
                       <option>Dia</option>
                       <option>Noite</option>
                     </select>
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[4], width: COLS[4].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="number"
                       min={0}
                       defaultValue={t.pessoas ?? ""}
                       onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0.5 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                      className={`${cellInputCls} w-14`}
                     />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[5], width: COLS[5].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="number"
                       step="0.5"
                       min={0}
                       defaultValue={t.horas ?? ""}
                       onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0.5 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                      className={`${cellInputCls} w-16`}
                     />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[6], width: COLS[6].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="number"
-                      min={1}
+                      min={0}
                       defaultValue={t.duracaoDias}
-                      onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 1 })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0.5 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                      onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 0 })}
+                      className={`${cellInputCls} w-14`}
+                      title="0 = marco"
                     />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[7], width: COLS[7].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="date"
                       defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
                       onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
-                      className="w-full rounded border-0 bg-transparent px-0.5 py-0 text-[10px] text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand"
+                      className={`${cellInputCls} w-36`}
                     />
                   </td>
-                  <td className={`${stickyTd} whitespace-nowrap`} style={{ left: offsets[8], width: COLS[8].w }}>
-                    {fim(t) ? fmt(fim(t)!) : "—"}
-                  </td>
-                  <td className={stickyTd} style={{ left: offsets[9], width: COLS[9].w }}>
+                  <td className="whitespace-nowrap px-3 py-2 text-neutral-600">{fim(t) ? fmt(fim(t)!) : "—"}</td>
+                  <td className="px-3 py-2">
                     <input
                       type="date"
                       defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
                       onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
-                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                      className={`${cellInputCls} w-36`}
                     />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[10], width: COLS[10].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="date"
                       defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
                       onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
-                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                      className={`${cellInputCls} w-36`}
                     />
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[11], width: COLS[11].w }}>
+                  <td className="px-3 py-2">
                     <input
                       type="number"
                       min={0}
@@ -500,21 +395,21 @@ export default function Cronograma({
                         const percent = Number(e.target.value);
                         patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
                       }}
-                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                      className={`${cellInputCls} w-14`}
                     />
                   </td>
-                  <td className={`${stickyTd} ${critica ? "font-semibold text-rose-600" : "text-neutral-500"}`} style={{ left: offsets[12], width: COLS[12].w }}>
+                  <td className={`px-3 py-2 ${critica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
                     {folga !== null && folga !== undefined ? `${folga}d` : "—"}
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[13], width: COLS[13].w }}>
-                    <div className="flex items-center gap-1">
+                  <td className="px-3 py-2">
+                    <div className="flex items-center gap-1.5">
                       {t.responsavel && (
                         <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />
                       )}
                       <select
                         value={t.responsavelId ?? ""}
                         onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}
-                        className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                        className={`${cellInputCls} w-32`}
                       >
                         <option value="">—</option>
                         {membros.map((m) => (
@@ -525,11 +420,11 @@ export default function Cronograma({
                       </select>
                     </div>
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[14], width: COLS[14].w }}>
+                  <td className="px-3 py-2">
                     <select
                       value={t.predecessoraId ?? ""}
                       onChange={(e) => patch(t.id, { predecessoraId: e.target.value || null })}
-                      className="w-full rounded border border-ink-700 bg-ink-800 px-1 py-0.5 text-[11px] text-fg outline-none focus:border-brand"
+                      className={`${cellInputCls} w-40`}
                     >
                       <option value="">—</option>
                       {tarefas
@@ -542,56 +437,17 @@ export default function Cronograma({
                         ))}
                     </select>
                   </td>
-                  <td className={stickyTd} style={{ left: offsets[15], width: COLS[15].w }}>
-                    <button onClick={() => handleDelete(t.id)} className="text-[11px] text-red-600 hover:underline">
+                  <td className="px-3 py-2">
+                    <button onClick={() => handleDelete(t.id)} className="text-xs text-red-600 hover:underline">
                       Remover
                     </button>
                   </td>
-
-                  {dias.map((d, i) => {
-                    const dOffset = diffDias(inicioObraCalc, d);
-                    const emBarra = inicio && dOffset >= offset && dOffset < offset + t.duracaoDias;
-                    const inicioBarra = emBarra && dOffset === offset;
-                    return (
-                      <td
-                        key={i}
-                        className={`relative border-b border-ink-800/40 ${d.getDate() === 1 ? "border-l-2 border-l-ink-700" : ""} ${
-                          dOffset === hojeOffset ? "bg-brand/5" : ""
-                        }`}
-                        style={{ width: dayWidth, minWidth: dayWidth, height: 40 }}
-                      >
-                        {inicioBarra && (
-                          <div
-                            className="absolute top-1 h-3 rounded-sm"
-                            style={{
-                              left: 1,
-                              width: t.duracaoDias * dayWidth - 2,
-                              backgroundColor: critica ? "#e11d48" : cor,
-                              opacity: t.status === "FEITO" ? 1 : 0.75,
-                            }}
-                            title={`${t.titulo} — ${t.percentConcluido}%`}
-                          >
-                            {t.percentConcluido > 0 && (
-                              <div className="h-full rounded-sm bg-black/25" style={{ width: `${Math.min(t.percentConcluido, 100)}%` }} />
-                            )}
-                          </div>
-                        )}
-                        {realOffset !== null && dOffset === realOffset && (
-                          <div
-                            className="absolute bottom-1 h-1 rounded-sm bg-neutral-800"
-                            style={{ left: 1, width: (realDur ?? 1) * dayWidth - 2 }}
-                            title={`Real: ${t.dataInicioReal?.slice(0, 10)} → ${t.dataFimReal?.slice(0, 10) ?? "em andamento"}`}
-                          />
-                        )}
-                      </td>
-                    );
-                  })}
                 </tr>
               );
             })}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={COLS.length + totalDias} className="px-4 py-10 text-center text-neutral-500">
+                <td colSpan={16} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>
@@ -600,23 +456,160 @@ export default function Cronograma({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500">
-        {fases.map((f) => (
-          <span key={f} className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: faseColor(f) }} />
-            {f}
-          </span>
-        ))}
-        <span className="flex items-center gap-1.5">
-          <span className="h-1.5 w-3 rounded-sm bg-neutral-800" /> Real
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-rose-500" /> Crítica (folga ≤ 0)
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-3 w-0.5 bg-brand" /> Hoje
-        </span>
-      </div>
+      {/* GANTT VISUAL — divs com flexbox, só a coluna de titulo é sticky (1 elemento, nao 16) */}
+      {tarefas.length > 0 && (
+        <>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-fg">Gantt</h2>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-neutral-500">Zoom:</span>
+              <div className="flex overflow-hidden rounded-lg border border-ink-700">
+                {(Object.keys(ZOOM_PRESETS) as (keyof typeof ZOOM_PRESETS)[]).map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => setZoom(z)}
+                    className={`px-2.5 py-1 capitalize ${zoom === z ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
+                  >
+                    {z}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mb-3 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+            <div style={{ width: LABEL_W + gridWidth, position: "relative" }}>
+              {/* linha "Hoje" atravessando todas as linhas */}
+              {hojeOffset >= 0 && hojeOffset < totalDias && (
+                <div
+                  className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 bg-brand"
+                  style={{ left: LABEL_W + hojeOffset * dayWidth }}
+                />
+              )}
+
+              {/* cabeçalho: mês + dia */}
+              <div className="sticky top-0 z-20 bg-ink-900">
+                <div className="flex border-b border-ink-800">
+                  <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900" />
+                  {meses.map((m, i) => (
+                    <div
+                      key={i}
+                      style={{ width: m.dias * dayWidth, minWidth: m.dias * dayWidth }}
+                      className="shrink-0 truncate border-r border-ink-800 px-2 py-1 text-xs font-medium capitalize text-neutral-500"
+                    >
+                      {m.label}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex border-b border-ink-800">
+                  <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900 px-2 py-1 text-xs font-medium text-neutral-600">
+                    Atividade
+                  </div>
+                  {dias.map((d, i) => (
+                    <div
+                      key={i}
+                      style={{ width: dayWidth, minWidth: dayWidth }}
+                      className={`shrink-0 border-r text-center text-[10px] text-neutral-500 ${
+                        d.getDate() === 1 ? "border-l-2 border-l-ink-700" : "border-ink-800/40"
+                      } ${diffDias(inicioObraCalc, d) === hojeOffset ? "font-bold text-brand" : ""}`}
+                    >
+                      {d.getDate()}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* linhas */}
+              {tarefas.map((t) => {
+                const inicio = t.dataInicio ? toDate(t.dataInicio) : null;
+                const offset = inicio ? Math.max(0, diffDias(inicioObraCalc, inicio)) : 0;
+                const folga = folgaMap.get(t.id);
+                const critica = folga !== null && folga !== undefined && folga <= 0;
+                const cor = faseColor(t.fase);
+                const marco = t.duracaoDias === 0;
+
+                const realInicio = t.dataInicioReal ? toDate(t.dataInicioReal) : null;
+                const realOffset = realInicio ? Math.max(0, diffDias(inicioObraCalc, realInicio)) : null;
+                const realFimD = t.dataFimReal ? toDate(t.dataFimReal) : null;
+                const realDur = realOffset !== null ? (realFimD ? diffDias(realInicio!, realFimD) + 1 : 1) : null;
+
+                return (
+                  <div key={t.id} className="flex border-b border-ink-800/50" style={{ height: ROW_H }}>
+                    <div
+                      style={{ width: LABEL_W, minWidth: LABEL_W }}
+                      className="sticky left-0 z-10 flex shrink-0 items-center gap-1.5 truncate border-r border-ink-800 bg-ink-900 px-2 text-xs"
+                      title={t.titulo}
+                    >
+                      {critica && <span className="h-4 w-1 shrink-0 rounded-full bg-rose-500" />}
+                      <span className="truncate text-fg">{t.titulo}</span>
+                    </div>
+                    <div className="relative flex" style={{ width: gridWidth }}>
+                      {dias.map((d, i) => (
+                        <div
+                          key={i}
+                          style={{ width: dayWidth, minWidth: dayWidth }}
+                          className={`shrink-0 border-r ${d.getDate() === 1 ? "border-l-2 border-l-ink-700" : "border-ink-800/30"}`}
+                        />
+                      ))}
+                      {inicio && !marco && (
+                        <div
+                          className="absolute top-2 h-3.5 rounded-sm"
+                          style={{
+                            left: offset * dayWidth + 1,
+                            width: Math.max(t.duracaoDias * dayWidth - 2, 4),
+                            backgroundColor: critica ? "#e11d48" : cor,
+                            opacity: t.status === "FEITO" ? 1 : 0.75,
+                          }}
+                          title={`${t.titulo} — ${t.percentConcluido}%`}
+                        >
+                          {t.percentConcluido > 0 && (
+                            <div className="h-full rounded-sm bg-black/25" style={{ width: `${Math.min(t.percentConcluido, 100)}%` }} />
+                          )}
+                        </div>
+                      )}
+                      {inicio && marco && (
+                        <div
+                          className="absolute top-1.5 h-4 w-4 rotate-45"
+                          style={{ left: offset * dayWidth - 7, backgroundColor: critica ? "#e11d48" : cor }}
+                          title={`Marco: ${t.titulo}`}
+                        />
+                      )}
+                      {realOffset !== null && (
+                        <div
+                          className="absolute bottom-1 h-1.5 rounded-sm bg-neutral-800"
+                          style={{ left: realOffset * dayWidth + 1, width: Math.max((realDur ?? 1) * dayWidth - 2, 4) }}
+                          title={`Real: ${t.dataInicioReal?.slice(0, 10)} → ${t.dataFimReal?.slice(0, 10) ?? "em andamento"}`}
+                        />
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 text-xs text-neutral-500">
+            {fases.map((f) => (
+              <span key={f} className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: faseColor(f) }} />
+                {f}
+              </span>
+            ))}
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-3 rounded-sm bg-neutral-800" /> Real
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-rose-500" /> Crítica (folga ≤ 0)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2.5 w-2.5 rotate-45 bg-neutral-500" /> Marco (duração 0)
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-3 w-0.5 bg-brand" /> Hoje
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
 }

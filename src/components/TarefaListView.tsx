@@ -18,6 +18,7 @@ type Tarefa = {
   tarefaMaeId: string | null;
   horasEstimadas: string | null;
   valorHora: string | null;
+  ordem: number;
 };
 
 const SEM_BLOCO = "Sem bloco";
@@ -130,6 +131,10 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
   const [nomeNovoBloco, setNomeNovoBloco] = useState("");
   const [importando, setImportando] = useState(false);
   const [resultadoImport, setResultadoImport] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [subtarefaAbertaId, setSubtarefaAbertaId] = useState<string | null>(null);
+  const [novaSubtarefaTitulo, setNovaSubtarefaTitulo] = useState("");
 
   async function load() {
     const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
@@ -253,6 +258,55 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
     load();
   }
 
+  // só permite arrastar dentro do mesmo grupo de irmãs: mesma tarefa-mãe
+  // (ou, se ambas forem raiz, mesmo bloco) — evita reparentar/trocar de bloco sem querer
+  function mesmoGrupo(a: Tarefa, b: Tarefa) {
+    if (a.tarefaMaeId !== b.tarefaMaeId) return false;
+    if (a.tarefaMaeId) return true;
+    return (a.fase?.trim() || SEM_BLOCO) === (b.fase?.trim() || SEM_BLOCO);
+  }
+
+  async function handleDrop(targetId: string) {
+    const fromId = draggingId;
+    setDraggingId(null);
+    setDragOverId(null);
+    if (!fromId || fromId === targetId) return;
+    const dragged = tarefas.find((t) => t.id === fromId);
+    const target = tarefas.find((t) => t.id === targetId);
+    if (!dragged || !target || !mesmoGrupo(dragged, target)) return;
+
+    const lista = [...tarefas];
+    const fromIdx = lista.findIndex((t) => t.id === fromId);
+    const toIdx = lista.findIndex((t) => t.id === targetId);
+    const [movido] = lista.splice(fromIdx, 1);
+    lista.splice(toIdx, 0, movido);
+
+    setTarefas(lista);
+    const alteradas = lista.filter((t, i) => t.ordem !== i);
+    await Promise.all(
+      alteradas.map((t) =>
+        fetch(`/api/tarefas/${t.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ordem: lista.indexOf(t) }),
+        })
+      )
+    );
+    load();
+  }
+
+  async function handleAddSubtarefa(pai: Tarefa) {
+    if (!novaSubtarefaTitulo.trim()) return;
+    await fetch("/api/tarefas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ obraId, titulo: novaSubtarefaTitulo.trim(), fase: pai.fase ?? undefined, tarefaMaeId: pai.id }),
+    });
+    setNovaSubtarefaTitulo("");
+    setSubtarefaAbertaId(null);
+    load();
+  }
+
   // blocos existentes (fase das tarefas raiz), na ordem de primeira aparição
   const blocos = useMemo(() => {
     const set = new Set<string>();
@@ -352,10 +406,11 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
           + Adicionar {novoBloco && <span className="font-normal opacity-80">em &quot;{novoBloco}&quot;</span>}
         </button>
       </form>
-      <div className={`${compacto ? "max-h-[55vh]" : "max-h-[75vh]"} overflow-auto rounded-xl border border-ink-800 bg-ink-900`}>
+      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
+              <th className="sticky top-0 z-20 w-8 border-b border-ink-800 bg-ink-900 px-1 py-2.5"></th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Título</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Status</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Prioridade</th>
@@ -375,7 +430,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
               return (
                 <Fragment key={bloco}>
                   <tr className="border-t border-ink-800 bg-ink-800/60">
-                    <td colSpan={10} className="px-3 py-1.5">
+                    <td colSpan={11} className="px-3 py-1.5">
                       <button
                         onClick={() =>
                           setBlocosColapsados((c) => {
@@ -400,8 +455,36 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       const temFilhas = tarefas.some((x) => x.tarefaMaeId === t.id);
                       const custo = t.horasEstimadas && t.valorHora ? Number(t.horasEstimadas) * Number(t.valorHora) : null;
 
+                      const podeReceberDrop = draggingId && draggingId !== t.id && mesmoGrupo(tarefas.find((x) => x.id === draggingId)!, t);
+
                       return (
-                <tr key={t.id} className="border-t border-ink-800">
+                <Fragment key={t.id}>
+                <tr
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggingId(t.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragEnd={() => {
+                    setDraggingId(null);
+                    setDragOverId(null);
+                  }}
+                  onDragOver={(e) => {
+                    if (!podeReceberDrop) return;
+                    e.preventDefault();
+                    if (dragOverId !== t.id) setDragOverId(t.id);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    handleDrop(t.id);
+                  }}
+                  className={`group border-t border-ink-800 ${draggingId === t.id ? "opacity-40" : ""} ${
+                    dragOverId === t.id && podeReceberDrop ? "border-t-2 border-t-brand" : ""
+                  }`}
+                >
+                  <td className="cursor-grab px-1 py-2.5 text-center text-neutral-400 active:cursor-grabbing" title="Arrastar para reordenar">
+                    ⠿
+                  </td>
                   <td className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 20 }}>
                       <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: PRIORIDADE_BORDA[t.prioridade] }} />
@@ -421,6 +504,16 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                       )}
                       {depth > 0 && <span className="text-neutral-500">↳</span>}
                       <span className="text-fg">{t.titulo}</span>
+                      <button
+                        onClick={() => {
+                          setSubtarefaAbertaId(subtarefaAbertaId === t.id ? null : t.id);
+                          setNovaSubtarefaTitulo("");
+                        }}
+                        className="ml-1 shrink-0 text-xs text-brand opacity-0 hover:underline group-hover:opacity-100"
+                        title="Adicionar subtarefa"
+                      >
+                        + subtarefa
+                      </button>
                     </div>
                   </td>
                   <td className="px-3 py-2.5">
@@ -526,6 +619,37 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                     {custo !== null ? custo.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—"}
                   </td>
                 </tr>
+                {subtarefaAbertaId === t.id && (
+                  <tr className="border-t border-dashed border-ink-800 bg-ink-800/30">
+                    <td></td>
+                    <td colSpan={10} className="px-3 py-1.5" style={{ paddingLeft: (depth + 1) * 20 + 12 }}>
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleAddSubtarefa(t);
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <span className="text-neutral-500">↳</span>
+                        <input
+                          autoFocus
+                          value={novaSubtarefaTitulo}
+                          onChange={(e) => setNovaSubtarefaTitulo(e.target.value)}
+                          onKeyDown={(e) => e.key === "Escape" && setSubtarefaAbertaId(null)}
+                          placeholder={`Nova subtarefa de "${t.titulo}"`}
+                          className={`${inputCls} min-w-[240px] flex-1`}
+                        />
+                        <button type="submit" className="rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-dark">
+                          Adicionar
+                        </button>
+                        <button type="button" onClick={() => setSubtarefaAbertaId(null)} className="text-xs text-neutral-500 hover:underline">
+                          Cancelar
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
                       );
                     })}
                 </Fragment>
@@ -533,7 +657,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
             })}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-neutral-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>

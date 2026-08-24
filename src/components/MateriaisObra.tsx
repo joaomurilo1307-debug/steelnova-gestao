@@ -201,7 +201,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                 </span>
               )}
             </div>
-            <div className="max-h-[40vh] overflow-auto">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="text-left text-amber-800/70">
                   <tr>
