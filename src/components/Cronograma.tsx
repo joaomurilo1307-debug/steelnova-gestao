@@ -850,15 +850,19 @@ export default function Cronograma({
                         {t.dataInicio && !marco && (
                           <div
                             onPointerDown={(e) => handleBarPointerDown(e, t, "mover")}
-                            className={`group/bar absolute top-[7px] h-[18px] cursor-grab rounded-md border shadow-sm active:cursor-grabbing ${
-                              isCritica ? "border-rose-400 bg-rose-50" : "border-ink-700 bg-black/[0.04]"
+                            className={`group/bar absolute top-[7px] h-[18px] cursor-grab overflow-hidden rounded-md border shadow-sm active:cursor-grabbing ${
+                              isCritica ? "border-rose-400 bg-rose-50" : ""
                             } ${isDragging ? "shadow-lg ring-2 ring-brand/40" : ""}`}
-                            style={{ left: startOff * dayWidth, width: widthPx }}
+                            style={{
+                              left: startOff * dayWidth,
+                              width: widthPx,
+                              ...(isCritica ? {} : { backgroundColor: `${cor}26`, borderColor: `${cor}80` }),
+                            }}
                             title={`${t.titulo} — ${fmt(toDate(t.dataInicio))} a ${fim(t) ? fmt(fim(t)!) : ""} — ${t.percentConcluido}%${
                               result && !cpm.hasCycle ? (isCritica ? " — crítica" : ` — folga ${result.float}d`) : ""
                             }`}
                           >
-                            <div className={`pointer-events-none h-full rounded-[5px] ${isCritica ? "bg-rose-400" : ""}`} style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isCritica ? undefined : cor, opacity: isCritica ? 1 : 0.85 }} />
+                            <div className={`pointer-events-none h-full ${isCritica ? "bg-rose-400" : ""}`} style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isCritica ? undefined : cor }} />
                             <div
                               onPointerDown={(e) => handleBarPointerDown(e, t, "redimensionar")}
                               title="Arraste pra mudar a duração"
