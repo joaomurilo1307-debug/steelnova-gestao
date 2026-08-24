@@ -30,6 +30,28 @@ const ZOOM_PRESETS = { compacto: 14, medio: 22, largo: 34 } as const;
 const LABEL_W = 240;
 const ROW_H = 34;
 
+type ColKey = "fase" | "turno" | "pessoas" | "horas" | "tempoGasto" | "duracao" | "inicioPrev" | "terminoPrev" | "inicioReal" | "terminoReal" | "percent" | "folga" | "responsavel" | "predecessora";
+
+// Atividade e Remover são fixas; o resto é opcional — igual ao "⚙ Colunas" do consominas.
+// Por padrão fica só o essencial (previsto, %, folga, responsável, predecessora, tempo gasto);
+// fase/turno/pessoas/horas soltos e as datas reais ficam escondidos até quem usa ligar.
+const COLUNAS_OPCIONAIS: { key: ColKey; label: string; default: boolean }[] = [
+  { key: "fase", label: "Fase", default: false },
+  { key: "turno", label: "Turno", default: false },
+  { key: "pessoas", label: "Pessoas", default: false },
+  { key: "horas", label: "Horas", default: false },
+  { key: "tempoGasto", label: "Tempo gasto (HH)", default: true },
+  { key: "duracao", label: "Duração", default: true },
+  { key: "inicioPrev", label: "Início prev.", default: true },
+  { key: "terminoPrev", label: "Término prev.", default: true },
+  { key: "inicioReal", label: "Início real", default: false },
+  { key: "terminoReal", label: "Término real", default: false },
+  { key: "percent", label: "%", default: true },
+  { key: "folga", label: "Folga", default: true },
+  { key: "responsavel", label: "Responsável", default: true },
+  { key: "predecessora", label: "Predecessora", default: true },
+];
+
 function toDate(iso: string) {
   return new Date(iso.slice(0, 10) + "T00:00:00");
 }
@@ -62,6 +84,10 @@ export default function Cronograma({
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("compacto");
   const [showForm, setShowForm] = useState(false);
+  const [showColunas, setShowColunas] = useState(false);
+  const [colVisiveis, setColVisiveis] = useState<Set<ColKey>>(
+    () => new Set(COLUNAS_OPCIONAIS.filter((c) => c.default).map((c) => c.key))
+  );
   const ganttScrollRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     eap: "",
@@ -129,6 +155,14 @@ export default function Cronograma({
     if (!confirm("Remover essa atividade?")) return;
     const res = await fetch(`/api/tarefas/${id}`, { method: "DELETE" });
     if (res.ok) load();
+  }
+
+  function toggleColuna(key: ColKey) {
+    setColVisiveis((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      return next;
+    });
   }
 
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
@@ -203,7 +237,10 @@ export default function Cronograma({
   }, [tarefas.length > 0, zoom]);
 
   const inputCls = "w-full pill-field px-3 py-1.5 text-sm";
-  const cellInputCls = "w-full rounded border-0 bg-transparent px-1 py-1 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
+  // SEM w-full aqui: toda chamada já define sua própria largura (w-10, w-28, w-36...) e, no Tailwind,
+  // .w-full vence .w-28 na cascata (aparece depois na folha gerada) mesmo com w-28 escrito por último no
+  // className — combinar os dois fazia todo campo desta tabela ignorar sua largura pretendida.
+  const cellInputCls = "rounded border-0 bg-transparent px-1 py-1 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
 
   return (
     <div className="p-8">
@@ -288,25 +325,47 @@ export default function Cronograma({
         </form>
       )}
 
+      <div className="mb-2 flex justify-end">
+        <div className="relative">
+          <button onClick={() => setShowColunas((v) => !v)} className="btn-ghost px-3 py-1.5 text-xs">
+            ⚙ Colunas
+          </button>
+          {showColunas && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setShowColunas(false)} />
+              <div className="card absolute right-0 z-40 mt-1 w-56 p-2">
+                {COLUNAS_OPCIONAIS.map((c) => (
+                  <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-fg hover:bg-black/5">
+                    <input type="checkbox" checked={colVisiveis.has(c.key)} onChange={() => toggleColuna(c.key)} className="accent-brand" />
+                    {c.label}
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* TABELA DE EDIÇÃO — tabela simples, rolagem normal, sem truques de layout */}
       <div className="mb-6 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-ink-900 text-left text-neutral-600">
             <tr>
               <th className="sticky left-0 z-20 border-b border-r border-ink-800 bg-ink-900 th-label">Atividade</th>
-              <th className="th-label border-b border-ink-800">Fase</th>
-              <th className="th-label border-b border-ink-800">Turno</th>
-              <th className="th-label border-b border-ink-800">Pes.</th>
-              <th className="th-label border-b border-ink-800">Horas</th>
-              <th className="th-label border-b border-ink-800">Dur.</th>
-              <th className="th-label border-b border-ink-800">Início prev.</th>
-              <th className="th-label border-b border-ink-800">Término prev.</th>
-              <th className="th-label border-b border-ink-800">Início real</th>
-              <th className="th-label border-b border-ink-800">Término real</th>
-              <th className="th-label border-b border-ink-800">%</th>
-              <th className="th-label border-b border-ink-800">Folga</th>
-              <th className="th-label border-b border-ink-800">Responsável</th>
-              <th className="th-label border-b border-ink-800">Predecessora</th>
+              {colVisiveis.has("fase") && <th className="th-label border-b border-ink-800">Fase</th>}
+              {colVisiveis.has("turno") && <th className="th-label border-b border-ink-800">Turno</th>}
+              {colVisiveis.has("pessoas") && <th className="th-label border-b border-ink-800">Pes.</th>}
+              {colVisiveis.has("horas") && <th className="th-label border-b border-ink-800">Horas</th>}
+              {colVisiveis.has("tempoGasto") && <th className="th-label border-b border-ink-800">Tempo gasto</th>}
+              {colVisiveis.has("duracao") && <th className="th-label border-b border-ink-800">Dur.</th>}
+              {colVisiveis.has("inicioPrev") && <th className="th-label border-b border-ink-800">Início prev.</th>}
+              {colVisiveis.has("terminoPrev") && <th className="th-label border-b border-ink-800">Término prev.</th>}
+              {colVisiveis.has("inicioReal") && <th className="th-label border-b border-ink-800">Início real</th>}
+              {colVisiveis.has("terminoReal") && <th className="th-label border-b border-ink-800">Término real</th>}
+              {colVisiveis.has("percent") && <th className="th-label border-b border-ink-800">%</th>}
+              {colVisiveis.has("folga") && <th className="th-label border-b border-ink-800">Folga</th>}
+              {colVisiveis.has("responsavel") && <th className="th-label border-b border-ink-800">Responsável</th>}
+              {colVisiveis.has("predecessora") && <th className="th-label border-b border-ink-800">Predecessora</th>}
               <th className="th-label border-b border-ink-800"></th>
             </tr>
           </thead>
@@ -314,6 +373,7 @@ export default function Cronograma({
             {tarefas.map((t) => {
               const folga = folgaMap.get(t.id);
               const critica = folga !== null && folga !== undefined && folga <= 0;
+              const tempoGasto = t.pessoas && t.horas ? t.pessoas * Number(t.horas) : null;
               return (
                 <tr key={t.id} className={`border-b border-ink-800/60 ${critica ? "bg-rose-50/40" : ""}`}>
                   <td className={`sticky left-0 z-10 border-r border-ink-800 px-3 py-2 ${critica ? "bg-rose-50" : "bg-ink-900"}`}>
@@ -328,125 +388,154 @@ export default function Cronograma({
                       <input
                         defaultValue={t.titulo}
                         onBlur={(e) => e.target.value.trim() && patch(t.id, { titulo: e.target.value })}
-                        className={`${cellInputCls} min-w-[190px] font-medium`}
+                        className={`${cellInputCls} min-w-0 flex-1 font-medium`}
                       />
                     </div>
                   </td>
-                  <td className="px-3 py-2">
-                    <input defaultValue={t.fase ?? ""} onBlur={(e) => patch(t.id, { fase: e.target.value || null })} className={`${cellInputCls} w-28`} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <select defaultValue={t.turno ?? "Dia"} onChange={(e) => patch(t.id, { turno: e.target.value })} className={`${cellInputCls} w-20`}>
-                      <option>Dia</option>
-                      <option>Noite</option>
-                    </select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      defaultValue={t.pessoas ?? ""}
-                      onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
-                      className={`${cellInputCls} w-14`}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min={0}
-                      defaultValue={t.horas ?? ""}
-                      onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
-                      className={`${cellInputCls} w-16`}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      defaultValue={t.duracaoDias}
-                      onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 0 })}
-                      className={`${cellInputCls} w-14`}
-                      title="0 = marco"
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
-                      onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
-                      className={`${cellInputCls} w-36`}
-                    />
-                  </td>
-                  <td className="whitespace-nowrap px-3 py-2 text-neutral-600">{fim(t) ? fmt(fim(t)!) : "—"}</td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
-                      onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
-                      className={`${cellInputCls} w-36`}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="date"
-                      defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
-                      onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
-                      className={`${cellInputCls} w-36`}
-                    />
-                  </td>
-                  <td className="px-3 py-2">
-                    <input
-                      type="number"
-                      min={0}
-                      max={100}
-                      defaultValue={t.percentConcluido}
-                      onBlur={(e) => {
-                        const percent = Number(e.target.value);
-                        patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
-                      }}
-                      className={`${cellInputCls} w-14`}
-                    />
-                  </td>
-                  <td className={`px-3 py-2 ${critica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
-                    {folga !== null && folga !== undefined ? `${folga}d` : "—"}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      {t.responsavel && (
-                        <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />
-                      )}
+                  {colVisiveis.has("fase") && (
+                    <td className="px-3 py-2">
+                      <input defaultValue={t.fase ?? ""} onBlur={(e) => patch(t.id, { fase: e.target.value || null })} className={`${cellInputCls} w-28`} />
+                    </td>
+                  )}
+                  {colVisiveis.has("turno") && (
+                    <td className="px-3 py-2">
+                      <select defaultValue={t.turno ?? "Dia"} onChange={(e) => patch(t.id, { turno: e.target.value })} className={`${cellInputCls} w-20`}>
+                        <option>Dia</option>
+                        <option>Noite</option>
+                      </select>
+                    </td>
+                  )}
+                  {colVisiveis.has("pessoas") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={t.pessoas ?? ""}
+                        onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
+                        className={`${cellInputCls} w-14`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("horas") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min={0}
+                        defaultValue={t.horas ?? ""}
+                        onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
+                        className={`${cellInputCls} w-16`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("tempoGasto") && (
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-600">{tempoGasto !== null ? `${tempoGasto.toFixed(0)}h` : "—"}</td>
+                  )}
+                  {colVisiveis.has("duracao") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        defaultValue={t.duracaoDias}
+                        onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 0 })}
+                        className={`${cellInputCls} w-14`}
+                        title="0 = marco"
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("inicioPrev") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="date"
+                        defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
+                        onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
+                        className={`${cellInputCls} w-36`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("terminoPrev") && (
+                    <td className="whitespace-nowrap px-3 py-2 text-neutral-600">{fim(t) ? fmt(fim(t)!) : "—"}</td>
+                  )}
+                  {colVisiveis.has("inicioReal") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="date"
+                        defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
+                        onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
+                        className={`${cellInputCls} w-36`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("terminoReal") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="date"
+                        defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
+                        onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
+                        className={`${cellInputCls} w-36`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("percent") && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="number"
+                        min={0}
+                        max={100}
+                        defaultValue={t.percentConcluido}
+                        onBlur={(e) => {
+                          const percent = Number(e.target.value);
+                          patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
+                        }}
+                        className={`${cellInputCls} w-14`}
+                      />
+                    </td>
+                  )}
+                  {colVisiveis.has("folga") && (
+                    <td className={`px-3 py-2 ${critica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
+                      {folga !== null && folga !== undefined ? `${folga}d` : "—"}
+                    </td>
+                  )}
+                  {colVisiveis.has("responsavel") && (
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5">
+                        {t.responsavel && (
+                          <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />
+                        )}
+                        <select
+                          value={t.responsavelId ?? ""}
+                          onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}
+                          className={`${cellInputCls} w-32`}
+                        >
+                          <option value="">—</option>
+                          {membros.map((m) => (
+                            <option key={m.userId} value={m.userId}>
+                              {m.nome}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </td>
+                  )}
+                  {colVisiveis.has("predecessora") && (
+                    <td className="px-3 py-2">
                       <select
-                        value={t.responsavelId ?? ""}
-                        onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}
-                        className={`${cellInputCls} w-32`}
+                        value={t.predecessoraId ?? ""}
+                        onChange={(e) => patch(t.id, { predecessoraId: e.target.value || null })}
+                        className={`${cellInputCls} w-40`}
                       >
                         <option value="">—</option>
-                        {membros.map((m) => (
-                          <option key={m.userId} value={m.userId}>
-                            {m.nome}
-                          </option>
-                        ))}
+                        {tarefas
+                          .filter((x) => x.id !== t.id)
+                          .map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.eap ? `${x.eap} · ` : ""}
+                              {x.titulo}
+                            </option>
+                          ))}
                       </select>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2">
-                    <select
-                      value={t.predecessoraId ?? ""}
-                      onChange={(e) => patch(t.id, { predecessoraId: e.target.value || null })}
-                      className={`${cellInputCls} w-40`}
-                    >
-                      <option value="">—</option>
-                      {tarefas
-                        .filter((x) => x.id !== t.id)
-                        .map((x) => (
-                          <option key={x.id} value={x.id}>
-                            {x.eap ? `${x.eap} · ` : ""}
-                            {x.titulo}
-                          </option>
-                        ))}
-                    </select>
-                  </td>
+                    </td>
+                  )}
                   <td className="px-3 py-2">
                     <button onClick={() => handleDelete(t.id)} className="text-xs text-red-600 hover:underline">
                       Remover
@@ -457,7 +546,7 @@ export default function Cronograma({
             })}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={15} className="px-4 py-10 text-center text-neutral-500">
+                <td colSpan={colVisiveis.size + 2} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>
