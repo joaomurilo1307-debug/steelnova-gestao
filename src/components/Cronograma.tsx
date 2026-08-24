@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Avatar from "@/components/Avatar";
 import { personColor } from "@/lib/personColor";
 import { computeCPM, type DependencyType } from "@/lib/cpm";
-import { buildWbsHierarchy } from "@/lib/wbs";
 
 type Dependencia = {
   id: string;
@@ -34,37 +33,13 @@ type Tarefa = {
   dependenciasComoSucessora: Dependencia[];
 };
 
+const SEM_BLOCO = "Sem bloco";
 const DEP_TYPE_LABEL: Record<DependencyType, string> = { FS: "Término → Início", SS: "Início → Início", FF: "Término → Término", SF: "Início → Término" };
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
-// Medi o consominas ao vivo: linha=36px, fonte=11px, tabela sticky mais larga que a área visível
-// mesmo lá (o Gantt deles TAMBÉM só aparece depois de rolar um pouco). A diferença real que achei
-// foi a barra de rolagem: eles deixam sempre visível (grossa, custom), aqui usava a do sistema
-// (que em muita configuração de SO/navegador fica invisível até rolar — parece "quebrado" sem ser).
-// Reduzi mais um pouco (33px/10px) e cortei mais colunas do padrão pra sobrar mais Gantt à vista.
 const ZOOM_LEVELS = { compacto: 16, medio: 24, largo: 38 } as const;
-const NAME_WIDTHS = { estreita: 180, larga: 280 } as const;
+const LABEL_W = 220;
 const ROW_H = 32;
 const MONTH_ROW_H = 18;
-const WBS_W = 34;
-
-type ColKey = "fase" | "turno" | "pessoas" | "horas" | "tempoGasto" | "dur" | "start" | "end" | "realStart" | "realEnd" | "pct" | "float" | "assignee" | "pred";
-const COLUNAS: { key: ColKey; label: string; width: number; default: boolean }[] = [
-  { key: "fase", label: "Fase", width: 84, default: false },
-  { key: "turno", label: "Turno", width: 56, default: false },
-  { key: "pessoas", label: "Pes.", width: 40, default: false },
-  { key: "horas", label: "Horas", width: 48, default: false },
-  { key: "tempoGasto", label: "Tempo gasto", width: 76, default: false },
-  { key: "dur", label: "Dur.", width: 48, default: true },
-  { key: "start", label: "Início prev.", width: 84, default: true },
-  { key: "end", label: "Término prev.", width: 80, default: true },
-  { key: "realStart", label: "Início real", width: 76, default: false },
-  { key: "realEnd", label: "Término real", width: 76, default: false },
-  { key: "pct", label: "%", width: 44, default: true },
-  { key: "float", label: "Folga", width: 54, default: true },
-  { key: "assignee", label: "Responsável", width: 104, default: true },
-  { key: "pred", label: "Predec.", width: 80, default: true },
-];
-const COL_W = Object.fromEntries(COLUNAS.map((c) => [c.key, c.width])) as Record<ColKey, number>;
 
 function toDate(iso: string) {
   return new Date(iso.slice(0, 10) + "T00:00:00");
@@ -80,13 +55,10 @@ function diffDias(a: Date, b: Date) {
 function fmt(d: Date) {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC", day: "2-digit", month: "2-digit" });
 }
-// fim = último dia (inclusivo) da tarefa — usado pra exibir/desenhar a barra
 function fim(t: Tarefa) {
   if (!t.dataInicio) return null;
   return addDias(toDate(t.dataInicio), Math.max(t.duracaoDias, 1) - 1);
 }
-// dueDate no sentido do computeCPM (fim EXCLUSIVO = início + duração) — só pra alimentar o CPM
-// com a MESMA unidade que duracaoDias já usa, sem deslocar nenhuma tarefa por engano
 function cpmDueISO(t: Tarefa) {
   if (!t.dataInicio) return null;
   return addDias(toDate(t.dataInicio), t.duracaoDias).toISOString();
@@ -104,24 +76,28 @@ export default function Cronograma({
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_LEVELS>("compacto");
-  const [nameWidth, setNameWidth] = useState<keyof typeof NAME_WIDTHS>("estreita");
   const [showForm, setShowForm] = useState(false);
-  const [showColMenu, setShowColMenu] = useState(false);
-  const [hiddenCols, setHiddenCols] = useState<Set<ColKey>>(new Set(COLUNAS.filter((c) => !c.default).map((c) => c.key)));
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [blocosColapsados, setBlocosColapsados] = useState<Set<string>>(new Set());
+  const [novoBloco, setNovoBloco] = useState("");
+  const [criandoBloco, setCriandoBloco] = useState(false);
+  const [nomeNovoBloco, setNomeNovoBloco] = useState("");
+  const [subtarefaAbertaId, setSubtarefaAbertaId] = useState<string | null>(null);
+  const [novaSubtarefaTitulo, setNovaSubtarefaTitulo] = useState("");
   const [depPanelFor, setDepPanelFor] = useState<string | null>(null);
   const [newPredId, setNewPredId] = useState("");
   const [newTipo, setNewTipo] = useState<DependencyType>("FS");
   const [newLag, setNewLag] = useState("0");
-  const [savingDep, setSavingDep] = useState(false);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [drag, setDrag] = useState<{ tarefaId: string; modo: "mover" | "redimensionar"; startClientX: number; deltaDias: number } | null>(null);
   const dragRef = useRef(drag);
   dragRef.current = drag;
-  const draggedRef = useRef(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const panRef = useRef<{ startX: number; startY: number; scrollLeft: number; scrollTop: number } | null>(null);
+  const draggedBarRef = useRef(false);
+  const ganttScrollRef = useRef<HTMLDivElement>(null);
+  const panRef = useRef<{ startX: number; startY: number; scrollLeft: number } | null>(null);
   const [form, setForm] = useState({
     eap: "",
-    fase: "",
     titulo: "",
     dataInicio: "",
     duracaoDias: "1",
@@ -159,7 +135,7 @@ export default function Cronograma({
       body: JSON.stringify({
         obraId,
         eap: form.eap || undefined,
-        fase: form.fase || undefined,
+        fase: novoBloco || undefined,
         titulo: form.titulo,
         dataInicio: form.dataInicio || undefined,
         duracaoDias: Number(form.duracaoDias),
@@ -170,23 +146,35 @@ export default function Cronograma({
       }),
     });
     if (res.ok) {
-      setForm({ eap: "", fase: "", titulo: "", dataInicio: "", duracaoDias: "1", pessoas: "", horas: "", turno: "Dia", responsavelId: "" });
+      setForm({ eap: "", titulo: "", dataInicio: "", duracaoDias: "1", pessoas: "", horas: "", turno: "Dia", responsavelId: "" });
       load();
     }
+  }
+
+  function handleCriarBloco(e: React.FormEvent) {
+    e.preventDefault();
+    if (!nomeNovoBloco.trim()) return;
+    setNovoBloco(nomeNovoBloco.trim());
+    setNomeNovoBloco("");
+    setCriandoBloco(false);
+  }
+
+  async function handleAddSubtarefa(pai: Tarefa) {
+    if (!novaSubtarefaTitulo.trim()) return;
+    await fetch("/api/tarefas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ obraId, titulo: novaSubtarefaTitulo.trim(), fase: pai.fase ?? undefined, tarefaMaeId: pai.id, dataInicio: pai.dataInicio ?? undefined }),
+    });
+    setNovaSubtarefaTitulo("");
+    setSubtarefaAbertaId(null);
+    load();
   }
 
   async function handleDelete(id: string) {
     if (!confirm("Remover essa atividade?")) return;
     const res = await fetch(`/api/tarefas/${id}`, { method: "DELETE" });
     if (res.ok) load();
-  }
-
-  function toggleCol(key: ColKey) {
-    setHiddenCols((prev) => {
-      const next = new Set(prev);
-      next.has(key) ? next.delete(key) : next.add(key);
-      return next;
-    });
   }
 
   function toggleDepPanel(tarefaId: string) {
@@ -198,13 +186,11 @@ export default function Cronograma({
 
   async function handleAddDependencia(sucessoraId: string) {
     if (!newPredId) return;
-    setSavingDep(true);
     await fetch(`/api/tarefas/${sucessoraId}/dependencias`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ predecessoraId: newPredId, tipo: newTipo, lagDias: Number(newLag) || 0 }),
     });
-    setSavingDep(false);
     setNewPredId("");
     setNewLag("0");
     load();
@@ -215,13 +201,41 @@ export default function Cronograma({
     load();
   }
 
-  // Arrastar a barra (mover) ou a borda direita (redimensionar) — mesma mecânica do consominas:
-  // um único listener no window enquanto arrasta, PATCH só quando solta.
+  // mesma lógica de mesmoGrupo/handleDrop da Lista — arrastar só reordena dentro do mesmo bloco/pai
+  function mesmoGrupo(a: Tarefa, b: Tarefa) {
+    if (a.tarefaMaeId !== b.tarefaMaeId) return false;
+    if (a.tarefaMaeId) return true;
+    return (a.fase?.trim() || SEM_BLOCO) === (b.fase?.trim() || SEM_BLOCO);
+  }
+
+  async function handleDropReorder(targetId: string) {
+    const fromId = draggingId;
+    setDraggingId(null);
+    setDragOverId(null);
+    if (!fromId || fromId === targetId) return;
+    const dragged = tarefas.find((t) => t.id === fromId);
+    const target = tarefas.find((t) => t.id === targetId);
+    if (!dragged || !target || !mesmoGrupo(dragged, target)) return;
+    const lista = [...tarefas];
+    const fromIdx = lista.findIndex((t) => t.id === fromId);
+    const toIdx = lista.findIndex((t) => t.id === targetId);
+    const [movido] = lista.splice(fromIdx, 1);
+    lista.splice(toIdx, 0, movido);
+    setTarefas(lista);
+    await Promise.all(
+      lista.map((t, i) =>
+        fetch(`/api/tarefas/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ordem: i }) })
+      )
+    );
+    load();
+  }
+
+  // Arrastar a barra do Gantt (mover) ou a borda direita (redimensionar)
   function handleBarPointerDown(e: React.PointerEvent, t: Tarefa, modo: "mover" | "redimensionar") {
     if (!t.dataInicio) return;
     e.preventDefault();
     e.stopPropagation();
-    draggedRef.current = false;
+    draggedBarRef.current = false;
     setDrag({ tarefaId: t.id, modo, startClientX: e.clientX, deltaDias: 0 });
   }
 
@@ -232,7 +246,7 @@ export default function Cronograma({
       if (!current) return;
       const deltaDias = Math.round((e.clientX - current.startClientX) / dayWidth);
       if (deltaDias !== current.deltaDias) {
-        if (deltaDias !== 0) draggedRef.current = true;
+        if (deltaDias !== 0) draggedBarRef.current = true;
         setDrag({ ...current, deltaDias });
       }
     }
@@ -242,11 +256,8 @@ export default function Cronograma({
       if (!current || current.deltaDias === 0) return;
       const t = tarefas.find((x) => x.id === current.tarefaId);
       if (!t || !t.dataInicio) return;
-      if (current.modo === "redimensionar") {
-        patch(t.id, { duracaoDias: Math.max(0, t.duracaoDias + current.deltaDias) });
-      } else {
-        patch(t.id, { dataInicio: addDias(toDate(t.dataInicio), current.deltaDias).toISOString() });
-      }
+      if (current.modo === "redimensionar") patch(t.id, { duracaoDias: Math.max(0, t.duracaoDias + current.deltaDias) });
+      else patch(t.id, { dataInicio: addDias(toDate(t.dataInicio), current.deltaDias).toISOString() });
     }
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -257,46 +268,87 @@ export default function Cronograma({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!drag]);
 
-  // Arrastar o fundo do Gantt (fora de barras/inputs/área sticky) pra navegar — igual ao consominas
   function handlePanPointerDown(e: React.PointerEvent) {
     const target = e.target as HTMLElement;
     if (target.closest("input, button, select, .sticky")) return;
-    const el = scrollRef.current;
+    const el = ganttScrollRef.current;
     if (!el) return;
-    panRef.current = { startX: e.clientX, startY: e.clientY, scrollLeft: el.scrollLeft, scrollTop: el.scrollTop };
+    panRef.current = { startX: e.clientX, startY: e.clientY, scrollLeft: el.scrollLeft };
   }
   function handlePanPointerMove(e: React.PointerEvent) {
-    if (!panRef.current) return;
-    const el = scrollRef.current;
-    if (!el) return;
-    el.scrollLeft = panRef.current.scrollLeft - (e.clientX - panRef.current.startX);
-    el.scrollTop = panRef.current.scrollTop - (e.clientY - panRef.current.startY);
+    if (!panRef.current || !ganttScrollRef.current) return;
+    ganttScrollRef.current.scrollLeft = panRef.current.scrollLeft - (e.clientX - panRef.current.startX);
   }
   function handlePanPointerUp() {
     panRef.current = null;
   }
 
   const dayWidth = ZOOM_LEVELS[zoom];
-  const namePx = NAME_WIDTHS[nameWidth];
-  const visibleCols = COLUNAS.filter((c) => !hiddenCols.has(c.key));
-  const TABLE_W = WBS_W + namePx + visibleCols.reduce((s, c) => s + c.width, 0);
-
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
   const fases = useMemo(() => Array.from(new Set(tarefas.map((t) => t.fase ?? "Geral"))), [tarefas]);
   const faseColor = (fase: string | null) => FASE_COLORS[fases.indexOf(fase ?? "Geral") % FASE_COLORS.length];
 
-  const rows = useMemo(() => buildWbsHierarchy(tarefas), [tarefas]);
-  const wbsById = useMemo(() => new Map(rows.map((r) => [r.tarefa.id, r.wbs])), [rows]);
-  const byId = useMemo(() => new Map(tarefas.map((t) => [t.id, t])), [tarefas]);
+  // blocos existentes (fase das tarefas raiz), na ordem de primeira aparição
+  const blocos = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tarefas) if (!t.tarefaMaeId) set.add(t.fase?.trim() || SEM_BLOCO);
+    return Array.from(set);
+  }, [tarefas]);
+  const blocosParaSelecionar = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tarefas) if (t.fase?.trim()) set.add(t.fase.trim());
+    return Array.from(set);
+  }, [tarefas]);
+
+  // agrupa por bloco e numera em estilo WBS (1, 1.1, 1.1.1...) — mesmo algoritmo da Lista
+  const gruposPorBloco = useMemo(() => {
+    const porMae = new Map<string, Tarefa[]>();
+    for (const t of tarefas) {
+      const key = t.tarefaMaeId ?? "__root__";
+      if (!porMae.has(key)) porMae.set(key, []);
+      porMae.get(key)!.push(t);
+    }
+    const out = new Map<string, { tarefa: Tarefa; depth: number; numero: string }[]>();
+    const raizes = porMae.get("__root__") ?? [];
+    const porBloco = new Map<string, Tarefa[]>();
+    for (const raiz of raizes) {
+      const bloco = raiz.fase?.trim() || SEM_BLOCO;
+      if (!porBloco.has(bloco)) porBloco.set(bloco, []);
+      porBloco.get(bloco)!.push(raiz);
+    }
+    let blocoIdx = 0;
+    for (const [bloco, raizesDoBloco] of porBloco) {
+      blocoIdx++;
+      out.set(bloco, []);
+      raizesDoBloco.forEach((raiz, i) => {
+        const numeroRaiz = `${blocoIdx}.${i + 1}`;
+        out.get(bloco)!.push({ tarefa: raiz, depth: 0, numero: numeroRaiz });
+        if (!collapsed.has(raiz.id)) {
+          function walkFilhos(key: string, depth: number, prefixo: string) {
+            const filhos = porMae.get(key) ?? [];
+            filhos.forEach((t, k) => {
+              const numero = `${prefixo}.${k + 1}`;
+              out.get(bloco)!.push({ tarefa: t, depth, numero });
+              if (!collapsed.has(t.id)) walkFilhos(t.id, depth + 1, numero);
+            });
+          }
+          walkFilhos(raiz.id, 1, numeroRaiz);
+        }
+      });
+    }
+    return out;
+  }, [tarefas, collapsed]);
+
+  const wbsById = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const bloco of blocos) for (const l of gruposPorBloco.get(bloco) ?? []) m.set(l.tarefa.id, l.numero);
+    return m;
+  }, [blocos, gruposPorBloco]);
 
   const withDates = useMemo(() => tarefas.filter((t) => t.dataInicio), [tarefas]);
   const allDependencias = useMemo(() => {
     const list: { predecessorId: string; successorId: string; type: DependencyType; lagDays: number }[] = [];
-    for (const t of tarefas) {
-      for (const link of t.dependenciasComoSucessora) {
-        list.push({ predecessorId: link.predecessoraId, successorId: t.id, type: link.tipo, lagDays: link.lagDias });
-      }
-    }
+    for (const t of tarefas) for (const link of t.dependenciasComoSucessora) list.push({ predecessorId: link.predecessoraId, successorId: t.id, type: link.tipo, lagDays: link.lagDias });
     return list;
   }, [tarefas]);
   const cpm = useMemo(
@@ -315,17 +367,14 @@ export default function Cronograma({
     }
     const min = new Date(Math.min(...datas.map((d) => d.getTime())));
     const max = new Date(Math.max(...datas.map((d) => d.getTime()), inicioObra.getTime() + obraPrazoDias * 86400000));
-    const dias = Math.max(14, diffDias(min, max) + 4);
-    return { rangeStart: addDias(min, -2), totalDias: dias };
+    return { rangeStart: addDias(min, -2), totalDias: Math.max(14, diffDias(min, max) + 4) };
   }, [withDates, obraInicio, obraPrazoDias]);
 
   function offsetDias(d: Date) {
     return diffDias(rangeStart, d);
   }
-
   const dias = Array.from({ length: totalDias }, (_, i) => addDias(rangeStart, i));
   const hojeOffset = offsetDias(new Date(new Date().toDateString()));
-
   const meses: { label: string; dias: number }[] = [];
   for (const d of dias) {
     const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(".", "");
@@ -334,17 +383,16 @@ export default function Cronograma({
     else meses.push({ label, dias: 1 });
   }
 
-  // ao carregar (ou trocar zoom), centraliza a rolagem no dia de hoje
   useEffect(() => {
-    if (!scrollRef.current || tarefas.length === 0) return;
-    const el = scrollRef.current;
-    const alvo = TABLE_W + Math.max(hojeOffset, 0) * dayWidth - (el.clientWidth - TABLE_W) / 2;
+    if (!ganttScrollRef.current || tarefas.length === 0) return;
+    const el = ganttScrollRef.current;
+    const alvo = LABEL_W + Math.max(hojeOffset, 0) * dayWidth - (el.clientWidth - LABEL_W) / 2;
     el.scrollLeft = Math.max(alvo, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tarefas.length > 0, zoom]);
 
   const inputCls = "w-full pill-field px-3 py-1.5 text-sm";
-  const rowInputCls = "w-full rounded border border-transparent bg-transparent px-1 py-1 text-[9px] outline-none hover:border-ink-700 focus:border-brand disabled:text-neutral-400";
+  const cellInputCls = "rounded border-0 bg-transparent px-1 py-1 text-[11px] text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
 
   return (
     <div className="p-8">
@@ -357,6 +405,14 @@ export default function Cronograma({
           <span className="text-xs text-neutral-500">Esforço total</span>
           <span className="ml-1.5 font-semibold text-fg">{totalHH.toFixed(0)} HH</span>
         </div>
+        {cpm.hasCycle ? (
+          <div className="rounded-full bg-rose-100 px-3.5 py-2 text-xs font-medium text-rose-700">⚠ Ciclo de dependências</div>
+        ) : (
+          <>
+            <div className="rounded-full bg-brand/10 px-3.5 py-2 text-xs font-medium text-brand-dark">🕐 Caminho crítico: {cpm.projectDurationDays} dia(s)</div>
+            <div className="rounded-full bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-600">🔴 {criticalCount} crítica(s)</div>
+          </>
+        )}
         <button onClick={() => setShowForm((v) => !v)} className="ml-auto btn-primary px-4 py-2 text-sm">
           {showForm ? "Fechar formulário" : "+ Nova atividade"}
         </button>
@@ -367,10 +423,6 @@ export default function Cronograma({
           <div>
             <label className="mb-1 block text-xs text-neutral-500">EAP</label>
             <input value={form.eap} onChange={(e) => setForm({ ...form, eap: e.target.value })} placeholder="1.0" className={inputCls} />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-neutral-500">Fase</label>
-            <input value={form.fase} onChange={(e) => setForm({ ...form, fase: e.target.value })} placeholder="Fabricação" className={inputCls} />
           </div>
           <div className="col-span-2">
             <label className="mb-1 block text-xs text-neutral-500">Atividade</label>
@@ -411,496 +463,450 @@ export default function Cronograma({
             </select>
           </div>
           <button type="submit" className="col-span-2 self-end btn-primary px-4 py-2 text-sm sm:col-span-1">
-            Adicionar
+            Adicionar {novoBloco && <span className="font-normal opacity-80">em "{novoBloco}"</span>}
           </button>
         </form>
       )}
+
+      {/* seletor de bloco — cria bloco ANTES de criar tarefa, igual a Lista */}
+      <div className="mb-4 flex flex-wrap items-center gap-2.5">
+        {!criandoBloco ? (
+          <>
+            <select value={novoBloco} onChange={(e) => setNovoBloco(e.target.value)} className={inputCls} style={{ width: 200 }}>
+              <option value="">Sem bloco</option>
+              {blocosParaSelecionar.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => setCriandoBloco(true)} className="btn-ghost px-3 py-1.5 text-xs">
+              + Novo bloco
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleCriarBloco} className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={nomeNovoBloco}
+              onChange={(e) => setNomeNovoBloco(e.target.value)}
+              placeholder="Nome do bloco (Preparação, Fabricação, Montagem...)"
+              className={inputCls}
+              style={{ width: 280 }}
+            />
+            <button type="submit" className="btn-primary px-3 py-1.5 text-xs">
+              Criar
+            </button>
+            <button type="button" onClick={() => setCriandoBloco(false)} className="btn-ghost px-3 py-1.5 text-xs">
+              Cancelar
+            </button>
+          </form>
+        )}
+      </div>
 
       {tarefas.length === 0 ? (
         <p className="text-sm text-neutral-500">Nenhuma atividade cadastrada ainda.</p>
       ) : (
         <>
-          <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-neutral-500">
-            <div className="flex items-center gap-1">
-              <span>Zoom:</span>
+          {/* TABELA — agrupada por bloco, cria bloco → tarefa → subtarefa, arrasta pra reordenar */}
+          <div className="mb-6 overflow-x-auto card">
+            <table className="w-full text-sm">
+              <thead className="text-left text-neutral-600">
+                <tr>
+                  <th className="th-label w-8 border-b border-ink-800"></th>
+                  <th className="th-label border-b border-ink-800">Atividade</th>
+                  <th className="th-label border-b border-ink-800">Dur.</th>
+                  <th className="th-label border-b border-ink-800">Início prev.</th>
+                  <th className="th-label border-b border-ink-800">Término prev.</th>
+                  <th className="th-label border-b border-ink-800">%</th>
+                  <th className="th-label border-b border-ink-800">Folga</th>
+                  <th className="th-label border-b border-ink-800">Responsável</th>
+                  <th className="th-label border-b border-ink-800">Predec.</th>
+                  <th className="th-label border-b border-ink-800"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {blocos.map((bloco) => {
+                  const linhasDoBloco = gruposPorBloco.get(bloco) ?? [];
+                  const blocoColapsado = blocosColapsados.has(bloco);
+                  return (
+                    <Fragment key={bloco}>
+                      <tr className="border-t border-ink-800 bg-brand/[0.04]">
+                        <td colSpan={10} className="px-3 py-2">
+                          <button
+                            onClick={() =>
+                              setBlocosColapsados((c) => {
+                                const next = new Set(c);
+                                next.has(bloco) ? next.delete(bloco) : next.add(bloco);
+                                return next;
+                              })
+                            }
+                            className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600"
+                          >
+                            <span className="text-neutral-400">{blocoColapsado ? "▸" : "▾"}</span>
+                            {bloco}
+                            <span className="font-normal normal-case text-neutral-400">
+                              · {linhasDoBloco.length} {linhasDoBloco.length === 1 ? "atividade" : "atividades"}
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                      {!blocoColapsado &&
+                        linhasDoBloco.map(({ tarefa: t, depth, numero }) => {
+                          const result = cpm.results.get(t.id);
+                          const isCritica = !!result?.isCritical && !cpm.hasCycle;
+                          const temFilhas = tarefas.some((x) => x.tarefaMaeId === t.id);
+                          const temPredecessora = t.dependenciasComoSucessora.length > 0;
+                          const predText = t.dependenciasComoSucessora.map((l) => wbsById.get(l.predecessoraId) ?? "?").join(", ");
+                          const podeReceberDrop = draggingId && draggingId !== t.id && mesmoGrupo(tarefas.find((x) => x.id === draggingId)!, t);
+
+                          return (
+                            <Fragment key={t.id}>
+                              <tr
+                                draggable
+                                onDragStart={(e) => {
+                                  setDraggingId(t.id);
+                                  e.dataTransfer.effectAllowed = "move";
+                                }}
+                                onDragEnd={() => {
+                                  setDraggingId(null);
+                                  setDragOverId(null);
+                                }}
+                                onDragOver={(e) => {
+                                  if (!podeReceberDrop) return;
+                                  e.preventDefault();
+                                  if (dragOverId !== t.id) setDragOverId(t.id);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  handleDropReorder(t.id);
+                                }}
+                                className={`group border-t border-ink-800/60 ${draggingId === t.id ? "opacity-40" : ""} ${
+                                  dragOverId === t.id && podeReceberDrop ? "border-t-2 border-t-brand" : ""
+                                } ${isCritica ? "bg-rose-50/40" : ""}`}
+                              >
+                                <td className="cursor-grab px-1 py-2 text-center text-neutral-400 active:cursor-grabbing" title="Arrastar pra reordenar">
+                                  ⠿
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 18 }}>
+                                    {isCritica && <span className="h-3.5 w-1 shrink-0 rounded-full bg-rose-500" />}
+                                    <span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-400">{numero}</span>
+                                    {temFilhas && (
+                                      <button
+                                        onClick={() =>
+                                          setCollapsed((c) => {
+                                            const next = new Set(c);
+                                            next.has(t.id) ? next.delete(t.id) : next.add(t.id);
+                                            return next;
+                                          })
+                                        }
+                                        className="text-neutral-500"
+                                      >
+                                        {collapsed.has(t.id) ? "▸" : "▾"}
+                                      </button>
+                                    )}
+                                    <input
+                                      defaultValue={t.titulo}
+                                      onBlur={(e) => e.target.value.trim() && patch(t.id, { titulo: e.target.value })}
+                                      className={`${cellInputCls} min-w-0 flex-1 font-medium`}
+                                    />
+                                    <button
+                                      onClick={() => {
+                                        setSubtarefaAbertaId(subtarefaAbertaId === t.id ? null : t.id);
+                                        setNovaSubtarefaTitulo("");
+                                      }}
+                                      className="shrink-0 text-[10px] text-brand opacity-0 hover:underline group-hover:opacity-100"
+                                    >
+                                      + subtarefa
+                                    </button>
+                                  </div>
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    defaultValue={t.duracaoDias}
+                                    onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 0 })}
+                                    title={temPredecessora ? "O início é calculado pela predecessora" : "0 = marco"}
+                                    className={`${cellInputCls} w-12 text-center`}
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="date"
+                                    disabled={temPredecessora}
+                                    defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
+                                    onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
+                                    className={`${cellInputCls} w-32`}
+                                  />
+                                </td>
+                                <td className="whitespace-nowrap px-3 py-2 text-neutral-500">{fim(t) ? fmt(fim(t)!) : "—"}</td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    defaultValue={t.percentConcluido}
+                                    onBlur={(e) => {
+                                      const percent = Number(e.target.value);
+                                      patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
+                                    }}
+                                    className={`${cellInputCls} w-12 text-center`}
+                                  />
+                                </td>
+                                <td className={`px-3 py-2 ${isCritica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
+                                  {result && !cpm.hasCycle ? (isCritica ? "crítica" : `${result.float}d`) : "—"}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <div className="flex items-center gap-1.5">
+                                    {t.responsavel && <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />}
+                                    <select value={t.responsavelId ?? ""} onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })} className={`${cellInputCls} w-28`}>
+                                      <option value="">—</option>
+                                      {membros.map((m) => (
+                                        <option key={m.userId} value={m.userId}>
+                                          {m.nome}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </td>
+                                <td className="relative px-3 py-2">
+                                  <button
+                                    onClick={() => toggleDepPanel(t.id)}
+                                    className={`truncate rounded px-1 py-1 text-left text-[11px] hover:bg-black/5 ${depPanelFor === t.id ? "bg-brand/10 text-brand-dark" : "text-neutral-500"}`}
+                                  >
+                                    {predText || "—"} 🔗
+                                  </button>
+                                  {depPanelFor === t.id && (
+                                    <>
+                                      <div className="fixed inset-0 z-30" onClick={() => setDepPanelFor(null)} />
+                                      <div className="card absolute left-0 top-full z-40 w-72 p-3 text-xs normal-case" onClick={(e) => e.stopPropagation()}>
+                                        <p className="mb-1.5 font-semibold text-fg">Predecessoras de "{t.titulo}"</p>
+                                        <div className="mb-2 flex flex-col gap-1">
+                                          {t.dependenciasComoSucessora.map((link) => (
+                                            <div key={link.id} className="flex items-center gap-2 rounded-md bg-black/5 px-2 py-1.5">
+                                              <span className="flex-1 truncate">
+                                                {wbsById.get(link.predecessoraId)} · {link.predecessora.titulo}
+                                              </span>
+                                              <span className="shrink-0 text-neutral-400">{DEP_TYPE_LABEL[link.tipo]}</span>
+                                              <button onClick={() => handleRemoveDependencia(link.id)} className="shrink-0 text-neutral-300 hover:text-red-500">
+                                                ✕
+                                              </button>
+                                            </div>
+                                          ))}
+                                          {t.dependenciasComoSucessora.length === 0 && <p className="text-neutral-400">Nenhuma predecessora.</p>}
+                                        </div>
+                                        <div className="flex flex-col gap-1.5">
+                                          <select value={newPredId} onChange={(e) => setNewPredId(e.target.value)} className="pill-field w-full px-2 py-1">
+                                            <option value="">Escolher predecessora...</option>
+                                            {withDates
+                                              .filter((o) => o.id !== t.id)
+                                              .map((o) => (
+                                                <option key={o.id} value={o.id}>
+                                                  {wbsById.get(o.id)} · {o.titulo}
+                                                </option>
+                                              ))}
+                                          </select>
+                                          <div className="flex items-center gap-1.5">
+                                            <select value={newTipo} onChange={(e) => setNewTipo(e.target.value as DependencyType)} className="pill-field flex-1 px-1.5 py-1">
+                                              {(Object.keys(DEP_TYPE_LABEL) as DependencyType[]).map((v) => (
+                                                <option key={v} value={v}>
+                                                  {DEP_TYPE_LABEL[v]}
+                                                </option>
+                                              ))}
+                                            </select>
+                                            <input type="number" value={newLag} onChange={(e) => setNewLag(e.target.value)} title="Lag em dias" className="pill-field w-12 px-1.5 py-1" />
+                                            <button onClick={() => handleAddDependencia(t.id)} disabled={!newPredId} className="btn-primary shrink-0 px-2.5 py-1 disabled:opacity-50">
+                                              +
+                                            </button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2">
+                                  <button onClick={() => handleDelete(t.id)} className="text-[10px] text-neutral-300 hover:text-red-500">
+                                    ✕
+                                  </button>
+                                </td>
+                              </tr>
+                              {subtarefaAbertaId === t.id && (
+                                <tr className="border-t border-dashed border-ink-800 bg-ink-800/30">
+                                  <td></td>
+                                  <td colSpan={9} className="px-3 py-1.5" style={{ paddingLeft: (depth + 1) * 18 + 12 }}>
+                                    <form
+                                      onSubmit={(e) => {
+                                        e.preventDefault();
+                                        handleAddSubtarefa(t);
+                                      }}
+                                      className="flex items-center gap-2"
+                                    >
+                                      <span className="text-neutral-500">↳</span>
+                                      <input
+                                        autoFocus
+                                        value={novaSubtarefaTitulo}
+                                        onChange={(e) => setNovaSubtarefaTitulo(e.target.value)}
+                                        onKeyDown={(e) => e.key === "Escape" && setSubtarefaAbertaId(null)}
+                                        placeholder={`Nova subtarefa de "${t.titulo}"`}
+                                        className={`${inputCls} min-w-[240px] flex-1`}
+                                      />
+                                      <button type="submit" className="btn-primary px-2.5 py-1 text-xs">
+                                        Adicionar
+                                      </button>
+                                      <button type="button" onClick={() => setSubtarefaAbertaId(null)} className="btn-ghost px-2.5 py-1 text-xs">
+                                        Cancelar
+                                      </button>
+                                    </form>
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          );
+                        })}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* GANTT — separado embaixo, mesma ordem/agrupamento da tabela acima, sem setas (ficava emboladas) */}
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-fg">Gantt</h2>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-neutral-500">Zoom:</span>
               <div className="flex gap-0.5 rounded-full bg-black/5 p-0.5">
                 {(Object.keys(ZOOM_LEVELS) as (keyof typeof ZOOM_LEVELS)[]).map((z) => (
                   <button
                     key={z}
                     onClick={() => setZoom(z)}
-                    className={`rounded-full px-2.5 py-1 capitalize transition-colors ${zoom === z ? "bg-white text-fg shadow-sm" : "hover:text-fg"}`}
+                    className={`rounded-full px-2.5 py-1 capitalize transition-colors ${zoom === z ? "bg-white text-fg shadow-sm" : "text-neutral-500 hover:text-fg"}`}
                   >
                     {z}
                   </button>
                 ))}
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <span>Nome:</span>
-              <div className="flex gap-0.5 rounded-full bg-black/5 p-0.5">
-                {(Object.keys(NAME_WIDTHS) as (keyof typeof NAME_WIDTHS)[]).map((w) => (
-                  <button
-                    key={w}
-                    onClick={() => setNameWidth(w)}
-                    className={`rounded-full px-2.5 py-1 capitalize transition-colors ${nameWidth === w ? "bg-white text-fg shadow-sm" : "hover:text-fg"}`}
-                  >
-                    {w}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {cpm.hasCycle ? (
-              <span className="rounded-full bg-rose-100 px-2.5 py-1 font-medium text-rose-700">⚠ Ciclo de dependências — caminho crítico não pôde ser calculado</span>
-            ) : (
-              <>
-                <span className="rounded-full bg-brand/10 px-2.5 py-1 font-medium text-brand-dark">🕐 Caminho crítico: {cpm.projectDurationDays} dia(s)</span>
-                <span className="rounded-full bg-rose-50 px-2.5 py-1 font-medium text-rose-600">🔴 {criticalCount} tarefa(s) crítica(s)</span>
-              </>
-            )}
-            <div className="relative">
-              <button
-                onClick={() => setShowColMenu((v) => !v)}
-                className={`rounded-full px-3 py-1.5 transition-colors ${showColMenu ? "bg-brand text-white" : "bg-black/5 hover:bg-black/10"}`}
-              >
-                ⚙ Colunas
-              </button>
-              {showColMenu && (
-                <>
-                  <div className="fixed inset-0 z-30" onClick={() => setShowColMenu(false)} />
-                  <div className="card absolute left-0 top-9 z-40 w-48 p-2 normal-case">
-                    {COLUNAS.map((c) => (
-                      <label key={c.key} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-fg hover:bg-black/5">
-                        <input type="checkbox" checked={!hiddenCols.has(c.key)} onChange={() => toggleCol(c.key)} className="accent-brand" />
-                        {c.label}
-                      </label>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-            <span className="text-neutral-400">
-              Arraste a barra pra mover · segure a borda direita pra mudar a duração · arraste o fundo pra navegar · duração 0 = marco
-            </span>
           </div>
 
           <div
-            ref={scrollRef}
+            ref={ganttScrollRef}
             className="card overflow-auto [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:hover:bg-neutral-400 [&::-webkit-scrollbar-track]:bg-black/[0.02]"
-            style={{ maxHeight: "72vh" }}
+            style={{ maxHeight: "60vh" }}
           >
-            <div
-              style={{ width: TABLE_W + totalDias * dayWidth, cursor: "grab" }}
-              onPointerDown={handlePanPointerDown}
-              onPointerMove={handlePanPointerMove}
-              onPointerUp={handlePanPointerUp}
-              onPointerLeave={handlePanPointerUp}
-            >
-              {/* cabeçalho */}
-              <div className="flex" style={{ height: MONTH_ROW_H + ROW_H }}>
-                <div
-                  className="sticky left-0 top-0 z-30 flex shrink-0 items-end border-b border-r border-ink-800 bg-ink-900 text-[9px] font-bold uppercase tracking-wider text-neutral-400"
-                  style={{ width: TABLE_W, height: MONTH_ROW_H + ROW_H }}
-                >
-                  <div style={{ width: WBS_W, height: ROW_H }} className="flex items-center justify-center px-1">
-                    #
-                  </div>
-                  <div style={{ width: namePx, height: ROW_H }} className="flex items-center px-2">
-                    Tarefa
-                  </div>
-                  {visibleCols.map((c) => (
-                    <div key={c.key} style={{ width: c.width, height: ROW_H }} className="flex items-center justify-center px-1 text-center">
-                      {c.label}
+            <div style={{ width: LABEL_W + totalDias * dayWidth, position: "relative" }} onPointerDown={handlePanPointerDown} onPointerMove={handlePanPointerMove} onPointerUp={handlePanPointerUp} onPointerLeave={handlePanPointerUp}>
+              {hojeOffset >= 0 && hojeOffset < totalDias && (
+                <div className="pointer-events-none absolute top-0 bottom-0 z-10 w-0.5 bg-brand" style={{ left: LABEL_W + hojeOffset * dayWidth }} />
+              )}
+
+              <div className="sticky top-0 z-20 bg-ink-900">
+                <div className="flex border-b border-ink-800">
+                  <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900" />
+                  {meses.map((m, i) => (
+                    <div key={i} style={{ width: m.dias * dayWidth, minWidth: m.dias * dayWidth }} className="shrink-0 truncate border-r border-ink-800 px-1.5 py-1 text-[9px] font-bold capitalize text-neutral-400">
+                      {m.label}
                     </div>
                   ))}
                 </div>
-                <div className="sticky top-0 z-20 flex shrink-0 flex-col border-b border-ink-800 bg-ink-900">
-                  <div className="flex" style={{ height: MONTH_ROW_H }}>
-                    {meses.map((m, i) => (
-                      <div
-                        key={i}
-                        style={{ width: m.dias * dayWidth }}
-                        className="shrink-0 truncate border-b border-r border-ink-800 px-1.5 text-center text-[9px] font-bold capitalize text-neutral-400"
-                      >
-                        {m.label}
-                      </div>
-                    ))}
+                <div className="flex border-b border-ink-800">
+                  <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900 px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-neutral-400">
+                    Atividade
                   </div>
-                  <div className="flex" style={{ height: ROW_H }}>
-                    {dias.map((d, i) => {
-                      const isHoje = i === hojeOffset;
-                      const isFimSemana = d.getDay() === 0 || d.getDay() === 6;
-                      return (
-                        <div
-                          key={i}
-                          style={{ width: dayWidth }}
-                          className={`shrink-0 border-r border-ink-800/40 py-2 text-center text-[9px] ${
-                            isHoje ? "bg-brand/10 font-bold text-brand-dark" : isFimSemana ? "bg-black/[0.03] text-neutral-300" : "text-neutral-400"
-                          }`}
-                        >
-                          {d.getDate()}
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {dias.map((d, i) => (
+                    <div
+                      key={i}
+                      style={{ width: dayWidth, minWidth: dayWidth }}
+                      className={`shrink-0 border-r text-center text-[9px] ${d.getDate() === 1 ? "border-l-2 border-l-ink-700" : "border-ink-800/40"} ${
+                        i === hojeOffset ? "font-bold text-brand" : "text-neutral-400"
+                      }`}
+                    >
+                      {d.getDate()}
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* corpo */}
-              <div className="relative">
-                <svg className="pointer-events-none absolute left-0 top-0 z-0" width={totalDias * dayWidth} height={rows.length * ROW_H} style={{ marginLeft: TABLE_W }}>
-                  <defs>
-                    <marker id="dep-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                      <path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8" />
-                    </marker>
-                    <marker id="dep-arrow-crit" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                      <path d="M0,0 L6,3 L0,6 Z" fill="#e11d48" />
-                    </marker>
-                  </defs>
-                  {hojeOffset >= 0 && hojeOffset < totalDias && (
-                    <line x1={hojeOffset * dayWidth} x2={hojeOffset * dayWidth} y1={0} y2={rows.length * ROW_H} stroke="#E8802B" strokeWidth={1.5} strokeDasharray="4 3" opacity={0.5} />
-                  )}
-                  {rows.map(({ tarefa: t }) =>
-                    t.dependenciasComoSucessora.map((link) => {
-                      const pred = byId.get(link.predecessoraId);
-                      const predFim = pred ? fim(pred) : null;
-                      if (!pred || !predFim || !t.dataInicio) return null;
-                      const predRow = rows.findIndex((r) => r.tarefa.id === pred.id);
-                      const succRow = rows.findIndex((r) => r.tarefa.id === t.id);
-                      if (predRow < 0 || succRow < 0) return null;
-                      const predResult = cpm.results.get(pred.id);
-                      const succResult = cpm.results.get(t.id);
-                      const critEdge = !cpm.hasCycle && predResult?.isCritical && succResult?.isCritical;
-                      const x1 = offsetDias(predFim) * dayWidth + dayWidth;
-                      const y1 = predRow * ROW_H + ROW_H / 2;
-                      const x2 = offsetDias(toDate(t.dataInicio)) * dayWidth;
-                      const y2 = succRow * ROW_H + ROW_H / 2;
-                      const midX = (x1 + x2) / 2;
-                      return (
-                        <path
-                          key={link.id}
-                          d={`M ${x1} ${y1} C ${midX} ${y1} ${midX} ${y2} ${x2} ${y2}`}
-                          stroke={critEdge ? "#e11d48" : "#94a3b8"}
-                          strokeWidth={critEdge ? 2 : 1.5}
-                          fill="none"
-                          markerEnd={critEdge ? "url(#dep-arrow-crit)" : "url(#dep-arrow)"}
-                          opacity={critEdge ? 0.85 : 0.55}
-                        />
-                      );
-                    })
-                  )}
-                </svg>
-
-                {rows.map(({ tarefa: t, depth, wbs }) => {
-                  const result = cpm.results.get(t.id);
-                  const isCritica = !!result?.isCritical && !cpm.hasCycle;
-                  const hasConflito = !!result?.hasConflict && !cpm.hasCycle;
-                  const marco = t.dataInicio !== null && t.duracaoDias === 0;
-                  const temPredecessora = t.dependenciasComoSucessora.length > 0;
-                  const predText = t.dependenciasComoSucessora.map((l) => wbsById.get(l.predecessoraId) ?? "?").join(", ");
-                  const tempoGasto = t.pessoas && t.horas ? t.pessoas * Number(t.horas) : null;
-
-                  const isDragging = drag?.tarefaId === t.id;
-                  let startOff = 0;
-                  let widthPx = 0;
-                  if (t.dataInicio) {
-                    startOff = offsetDias(toDate(t.dataInicio));
-                    const endOff = offsetDias(fim(t)!);
-                    widthPx = Math.max(1, endOff - startOff + 1) * dayWidth;
-                    if (isDragging && drag.modo === "mover") startOff += drag.deltaDias;
-                    else if (isDragging && drag.modo === "redimensionar") widthPx = Math.max(dayWidth, widthPx + drag.deltaDias * dayWidth);
-                  }
-                  const cor = faseColor(t.fase);
-
-                  return (
-                    <div key={t.id} className="group relative flex border-b border-ink-800/50" style={{ height: ROW_H }}>
-                      <div className="sticky left-0 z-10 flex shrink-0 items-center border-r border-ink-800 bg-ink-900 text-[9px] group-hover:bg-black/[0.02]" style={{ width: TABLE_W }}>
-                        <div style={{ width: WBS_W }} className="shrink-0 truncate px-1 text-center font-mono text-[9px] text-neutral-400">
-                          {wbs}
-                        </div>
-                        <div style={{ width: namePx, paddingLeft: 6 + depth * 14 }} className="flex shrink-0 items-center gap-1 truncate pr-1">
-                          {depth > 0 && <span className="shrink-0 text-neutral-400">↳</span>}
-                          <span title={t.titulo} className="truncate text-fg">
-                            {t.titulo}
-                          </span>
-                          {isCritica && (
-                            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" title="No caminho crítico (folga zero)" />
-                          )}
-                          {hasConflito && <span className="shrink-0 text-[9px]" title="Conflito: início antes do que a rede permite">⚠</span>}
-                        </div>
-                        {!hiddenCols.has("fase") && (
-                          <div style={{ width: COL_W.fase }} className="shrink-0 px-1">
-                            <input defaultValue={t.fase ?? ""} onBlur={(e) => patch(t.id, { fase: e.target.value || null })} className={rowInputCls} />
-                          </div>
-                        )}
-                        {!hiddenCols.has("turno") && (
-                          <div style={{ width: COL_W.turno }} className="shrink-0 px-1">
-                            <select defaultValue={t.turno ?? "Dia"} onChange={(e) => patch(t.id, { turno: e.target.value })} className={rowInputCls}>
-                              <option>Dia</option>
-                              <option>Noite</option>
-                            </select>
-                          </div>
-                        )}
-                        {!hiddenCols.has("pessoas") && (
-                          <div style={{ width: COL_W.pessoas }} className="shrink-0 px-1">
-                            <input
-                              type="number"
-                              min={0}
-                              defaultValue={t.pessoas ?? ""}
-                              onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
-                              className={`${rowInputCls} text-center`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("horas") && (
-                          <div style={{ width: COL_W.horas }} className="shrink-0 px-1">
-                            <input
-                              type="number"
-                              step="0.5"
-                              min={0}
-                              defaultValue={t.horas ?? ""}
-                              onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
-                              className={`${rowInputCls} text-center`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("tempoGasto") && (
-                          <div style={{ width: COL_W.tempoGasto }} className="shrink-0 truncate px-1.5 text-center text-[9px] text-neutral-500">
-                            {tempoGasto !== null ? `${tempoGasto.toFixed(0)}h` : "—"}
-                          </div>
-                        )}
-                        {!hiddenCols.has("dur") && (
-                          <div style={{ width: COL_W.dur }} className="shrink-0 px-1">
-                            <input
-                              key={`dur-${t.id}-${t.duracaoDias}`}
-                              type="number"
-                              min={0}
-                              defaultValue={t.duracaoDias}
-                              onBlur={(e) => patch(t.id, { duracaoDias: Number(e.target.value) || 0 })}
-                              title={temPredecessora ? "Duração em dias — o início é calculado pela(s) predecessora(s)" : "Duração em dias (0 = marco)"}
-                              className={`${rowInputCls} text-center`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("start") && (
-                          <div style={{ width: COL_W.start }} className="shrink-0 px-1">
-                            <input
-                              key={`start-${t.id}-${t.dataInicio ?? ""}`}
-                              type="date"
-                              disabled={temPredecessora}
-                              defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
-                              onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
-                              title={temPredecessora ? "Calculado pela predecessora — mude a duração dela ou a antecedência (lag) pra mudar" : undefined}
-                              className={`${rowInputCls} text-[9px]`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("end") && (
-                          <div style={{ width: COL_W.end }} className="shrink-0 truncate px-1.5 text-center text-[9px] text-neutral-500">
-                            {fim(t) ? fmt(fim(t)!) : "—"}
-                          </div>
-                        )}
-                        {!hiddenCols.has("realStart") && (
-                          <div style={{ width: COL_W.realStart }} className="shrink-0 px-1">
-                            <input
-                              type="date"
-                              defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
-                              onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
-                              className={`${rowInputCls} text-[9px]`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("realEnd") && (
-                          <div style={{ width: COL_W.realEnd }} className="shrink-0 px-1">
-                            <input
-                              type="date"
-                              defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
-                              onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
-                              className={`${rowInputCls} text-[9px]`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("pct") && (
-                          <div style={{ width: COL_W.pct }} className="shrink-0 px-1">
-                            <input
-                              type="number"
-                              min={0}
-                              max={100}
-                              defaultValue={t.percentConcluido}
-                              onBlur={(e) => {
-                                const percent = Number(e.target.value);
-                                patch(t.id, { percentConcluido: percent, status: percent >= 100 ? "FEITO" : percent > 0 ? "FAZENDO" : "A_FAZER" });
-                              }}
-                              className={`${rowInputCls} text-center`}
-                            />
-                          </div>
-                        )}
-                        {!hiddenCols.has("float") && (
-                          <div style={{ width: COL_W.float }} className="shrink-0 px-1 text-center text-[9px]">
-                            {result && !cpm.hasCycle ? (
-                              isCritica ? (
-                                <span className="font-semibold text-rose-600">crítica</span>
-                              ) : (
-                                <span className="text-neutral-500">{result.float}d</span>
-                              )
-                            ) : (
-                              <span className="text-neutral-300">—</span>
-                            )}
-                          </div>
-                        )}
-                        {!hiddenCols.has("assignee") && (
-                          <div style={{ width: COL_W.assignee }} className="flex shrink-0 items-center gap-1 px-1">
-                            {t.responsavel && <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={16} />}
-                            <select
-                              value={t.responsavelId ?? ""}
-                              onChange={(e) => patch(t.id, { responsavelId: e.target.value || null })}
-                              className={`${rowInputCls} truncate`}
-                            >
-                              <option value="">—</option>
-                              {membros.map((m) => (
-                                <option key={m.userId} value={m.userId}>
-                                  {m.nome}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-                        {!hiddenCols.has("pred") && (
-                          <div style={{ width: COL_W.pred }} className="relative shrink-0 px-1">
-                            <button
-                              onClick={() => toggleDepPanel(t.id)}
-                              title="Gerenciar dependências"
-                              className={`w-full truncate rounded px-1 py-1 text-left text-[9px] hover:bg-black/5 ${depPanelFor === t.id ? "bg-brand/10 text-brand-dark" : "text-neutral-500"}`}
-                            >
-                              {predText || "—"} 🔗
-                            </button>
-                            {depPanelFor === t.id && (
-                              <>
-                                <div className="fixed inset-0 z-30" onClick={() => setDepPanelFor(null)} />
-                                <div className="card absolute left-0 top-full z-40 w-72 p-3 text-xs normal-case" onClick={(e) => e.stopPropagation()}>
-                                  <p className="mb-1.5 font-semibold text-fg">Predecessoras de "{t.titulo}"</p>
-                                  <div className="mb-2 flex flex-col gap-1">
-                                    {t.dependenciasComoSucessora.map((link) => (
-                                      <div key={link.id} className="flex items-center gap-2 rounded-md bg-black/5 px-2 py-1.5">
-                                        <span className="flex-1 truncate">
-                                          {wbsById.get(link.predecessoraId)} · {link.predecessora.titulo}
-                                        </span>
-                                        <span className="shrink-0 text-neutral-400">{DEP_TYPE_LABEL[link.tipo]}</span>
-                                        {link.lagDias !== 0 && (
-                                          <span className="shrink-0 text-neutral-400">
-                                            ({link.lagDias > 0 ? "+" : ""}
-                                            {link.lagDias}d)
-                                          </span>
-                                        )}
-                                        <button onClick={() => handleRemoveDependencia(link.id)} className="shrink-0 text-neutral-300 hover:text-red-500">
-                                          ✕
-                                        </button>
-                                      </div>
-                                    ))}
-                                    {t.dependenciasComoSucessora.length === 0 && <p className="text-neutral-400">Nenhuma predecessora.</p>}
-                                  </div>
-                                  <div className="flex flex-col gap-1.5">
-                                    <select value={newPredId} onChange={(e) => setNewPredId(e.target.value)} className="pill-field w-full px-2 py-1">
-                                      <option value="">Escolher predecessora...</option>
-                                      {withDates
-                                        .filter((o) => o.id !== t.id)
-                                        .map((o) => (
-                                          <option key={o.id} value={o.id}>
-                                            {wbsById.get(o.id)} · {o.titulo}
-                                          </option>
-                                        ))}
-                                    </select>
-                                    <div className="flex items-center gap-1.5">
-                                      <select value={newTipo} onChange={(e) => setNewTipo(e.target.value as DependencyType)} className="pill-field flex-1 px-1.5 py-1">
-                                        {(Object.keys(DEP_TYPE_LABEL) as DependencyType[]).map((v) => (
-                                          <option key={v} value={v}>
-                                            {DEP_TYPE_LABEL[v]}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      <input
-                                        type="number"
-                                        value={newLag}
-                                        onChange={(e) => setNewLag(e.target.value)}
-                                        title="Antecedência/folga em dias"
-                                        className="pill-field w-12 px-1.5 py-1"
-                                      />
-                                      <button
-                                        onClick={() => handleAddDependencia(t.id)}
-                                        disabled={!newPredId || savingDep}
-                                        className="btn-primary shrink-0 px-2.5 py-1 disabled:opacity-50"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <p className="mt-1.5 text-neutral-400">Só tarefas com data de início entram no cálculo do caminho crítico.</p>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
-                        <div className="ml-auto px-1.5">
-                          <button onClick={() => handleDelete(t.id)} className="text-[9px] text-neutral-300 hover:text-red-500" title="Remover">
-                            ✕
-                          </button>
-                        </div>
+              {blocos.map((bloco) => {
+                if (blocosColapsados.has(bloco)) return null;
+                return (
+                  <Fragment key={bloco}>
+                    <div className="flex items-center border-b border-ink-800 bg-brand/[0.04]" style={{ height: ROW_H }}>
+                      <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-10 shrink-0 truncate border-r border-ink-800 bg-ink-900 px-3 text-[10px] font-bold uppercase tracking-wide text-neutral-500">
+                        {bloco}
                       </div>
-
-                      <div className="relative shrink-0 group-hover:bg-black/[0.015]" style={{ width: totalDias * dayWidth, height: ROW_H }}>
-                        {t.dataInicio && !marco && (
-                          <div
-                            onPointerDown={(e) => handleBarPointerDown(e, t, "mover")}
-                            className={`group/bar absolute top-[7px] h-[18px] cursor-grab overflow-hidden rounded-md border shadow-sm active:cursor-grabbing ${
-                              isCritica ? "border-rose-400 bg-rose-50" : ""
-                            } ${isDragging ? "shadow-lg ring-2 ring-brand/40" : ""}`}
-                            style={{
-                              left: startOff * dayWidth,
-                              width: widthPx,
-                              ...(isCritica ? {} : { backgroundColor: `${cor}26`, borderColor: `${cor}80` }),
-                            }}
-                            title={`${t.titulo} — ${fmt(toDate(t.dataInicio))} a ${fim(t) ? fmt(fim(t)!) : ""} — ${t.percentConcluido}%${
-                              result && !cpm.hasCycle ? (isCritica ? " — crítica" : ` — folga ${result.float}d`) : ""
-                            }`}
-                          >
-                            <div className={`pointer-events-none h-full ${isCritica ? "bg-rose-400" : ""}`} style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isCritica ? undefined : cor }} />
-                            <div
-                              onPointerDown={(e) => handleBarPointerDown(e, t, "redimensionar")}
-                              title="Arraste pra mudar a duração"
-                              className="absolute -right-1 top-0 h-full w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100"
-                            >
-                              <div className="mx-auto h-full w-1 rounded-full bg-neutral-500/60" />
-                            </div>
-                          </div>
-                        )}
-                        {marco && (
-                          <div
-                            className="absolute top-[8px] h-4 w-4 rotate-45 cursor-pointer"
-                            style={{ left: startOff * dayWidth - 8, backgroundColor: isCritica ? "#e11d48" : cor }}
-                            title={`Marco: ${t.titulo}`}
-                          />
-                        )}
-                        {t.dataInicioReal && (
-                          <div
-                            className="absolute top-[3px] h-1 rounded-full bg-neutral-700"
-                            style={{
-                              left: offsetDias(toDate(t.dataInicioReal)) * dayWidth,
-                              width: Math.max(2, ((t.dataFimReal ? offsetDias(toDate(t.dataFimReal)) : offsetDias(new Date(new Date().toDateString()))) - offsetDias(toDate(t.dataInicioReal)) + 1) * dayWidth),
-                            }}
-                            title="Execução real"
-                          />
-                        )}
-                      </div>
+                      <div style={{ width: totalDias * dayWidth }} className="shrink-0 bg-brand/[0.04]" />
                     </div>
-                  );
-                })}
-              </div>
+                    {(gruposPorBloco.get(bloco) ?? []).map(({ tarefa: t, depth, numero }) => {
+                      const inicio = t.dataInicio ? toDate(t.dataInicio) : null;
+                      const offset = inicio ? Math.max(0, offsetDias(inicio)) : 0;
+                      const result = cpm.results.get(t.id);
+                      const isCritica = !!result?.isCritical && !cpm.hasCycle;
+                      const cor = faseColor(t.fase);
+                      const marco = t.dataInicio !== null && t.duracaoDias === 0;
+                      const isDragging = drag?.tarefaId === t.id;
+                      let widthPx = 0;
+                      let startOff = offset;
+                      if (inicio) {
+                        const endOff = offsetDias(fim(t)!);
+                        widthPx = Math.max(1, endOff - offset + 1) * dayWidth;
+                        if (isDragging && drag.modo === "mover") startOff += drag.deltaDias;
+                        else if (isDragging && drag.modo === "redimensionar") widthPx = Math.max(dayWidth, widthPx + drag.deltaDias * dayWidth);
+                      }
+                      return (
+                        <div key={t.id} className="flex border-b border-ink-800/50" style={{ height: ROW_H }}>
+                          <div style={{ width: LABEL_W, minWidth: LABEL_W, paddingLeft: 10 + depth * 14 }} className="sticky left-0 z-10 flex shrink-0 items-center gap-1 truncate border-r border-ink-800 bg-ink-900 px-1 text-[10px]" title={t.titulo}>
+                            {isCritica && <span className="h-2.5 w-1 shrink-0 rounded-full bg-rose-500" />}
+                            <span className="shrink-0 font-mono text-neutral-400">{numero}</span>
+                            <span className="truncate text-fg">{t.titulo}</span>
+                          </div>
+                          <div className="relative shrink-0" style={{ width: totalDias * dayWidth, height: ROW_H }}>
+                            {dias.map((d, i) => (
+                              <div key={i} className={`absolute top-0 bottom-0 border-r ${d.getDate() === 1 ? "border-l-2 border-l-ink-700" : "border-ink-800/30"}`} style={{ left: i * dayWidth, width: dayWidth }} />
+                            ))}
+                            {inicio && !marco && (
+                              <div
+                                onPointerDown={(e) => handleBarPointerDown(e, t, "mover")}
+                                className={`group/bar absolute top-[7px] h-[18px] cursor-grab overflow-hidden rounded-md border shadow-sm active:cursor-grabbing ${
+                                  isCritica ? "border-rose-400 bg-rose-50" : ""
+                                } ${isDragging ? "shadow-lg ring-2 ring-brand/40" : ""}`}
+                                style={{ left: startOff * dayWidth, width: widthPx, ...(isCritica ? {} : { backgroundColor: `${cor}26`, borderColor: `${cor}80` }) }}
+                                title={`${t.titulo} — ${t.percentConcluido}%${result && !cpm.hasCycle ? (isCritica ? " — crítica" : ` — folga ${result.float}d`) : ""}`}
+                              >
+                                <div className="pointer-events-none h-full" style={{ width: `${Math.min(t.percentConcluido, 100)}%`, backgroundColor: isCritica ? "#fb7185" : cor }} />
+                                <div onPointerDown={(e) => handleBarPointerDown(e, t, "redimensionar")} className="absolute -right-1 top-0 h-full w-3 cursor-ew-resize opacity-0 group-hover/bar:opacity-100">
+                                  <div className="mx-auto h-full w-1 rounded-full bg-neutral-500/60" />
+                                </div>
+                              </div>
+                            )}
+                            {marco && (
+                              <div className="absolute top-[8px] h-4 w-4 rotate-45 cursor-pointer" style={{ left: startOff * dayWidth - 8, backgroundColor: isCritica ? "#e11d48" : cor }} title={`Marco: ${t.titulo}`} />
+                            )}
+                            {t.dataInicioReal && (
+                              <div
+                                className="absolute top-[3px] h-1 rounded-full bg-neutral-700"
+                                style={{
+                                  left: offsetDias(toDate(t.dataInicioReal)) * dayWidth,
+                                  width: Math.max(2, ((t.dataFimReal ? offsetDias(toDate(t.dataFimReal)) : offsetDias(new Date(new Date().toDateString()))) - offsetDias(toDate(t.dataInicioReal)) + 1) * dayWidth),
+                                }}
+                                title="Execução real"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-[9px] text-neutral-500">
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-[10px] text-neutral-500">
             {fases.map((f) => (
               <span key={f} className="flex items-center gap-1.5">
-                <span className="h-2.5 w-3.5 rounded border border-ink-700" style={{ backgroundColor: `${faseColor(f)}22` }} />
+                <span className="h-2.5 w-3.5 rounded border border-ink-700" style={{ backgroundColor: `${faseColor(f)}26` }} />
                 {f}
               </span>
             ))}
@@ -914,7 +920,7 @@ export default function Cronograma({
               <span className="h-3 w-3 rotate-45 bg-brand" /> Marco
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-3 w-0 border-l-2 border-dashed border-brand" /> Hoje
+              <span className="h-3 w-0.5 bg-brand" /> Hoje
             </span>
           </div>
         </>
