@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import Avatar from "@/components/Avatar";
 import { personColor } from "@/lib/personColor";
 
@@ -62,6 +62,7 @@ export default function Cronograma({
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("medio");
   const [showForm, setShowForm] = useState(false);
+  const ganttScrollRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
     eap: "",
     fase: "",
@@ -191,6 +192,16 @@ export default function Cronograma({
     else meses.push({ label, dias: 1 });
   }
 
+  // ao carregar (ou trocar zoom), centraliza a rolagem horizontal do Gantt no dia de hoje
+  // em vez de deixar sempre no início — evita a sensação de "sumiu tarefa" quando o cronograma é longo
+  useEffect(() => {
+    if (!ganttScrollRef.current || tarefas.length === 0) return;
+    const el = ganttScrollRef.current;
+    const alvo = LABEL_W + Math.max(hojeOffset, 0) * dayWidth - (el.clientWidth - LABEL_W) / 2;
+    el.scrollLeft = Math.max(alvo, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tarefas.length > 0, zoom]);
+
   const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand";
   const cellInputCls = "w-full rounded border-0 bg-transparent px-1 py-1 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
 
@@ -285,8 +296,7 @@ export default function Cronograma({
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-ink-900 text-left text-neutral-600">
             <tr>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">EAP</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Atividade</th>
+              <th className="sticky left-0 z-20 border-b border-r border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Atividade</th>
               <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Fase</th>
               <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Turno</th>
               <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Pes.</th>
@@ -309,16 +319,19 @@ export default function Cronograma({
               const critica = folga !== null && folga !== undefined && folga <= 0;
               return (
                 <tr key={t.id} className={`border-b border-ink-800/60 ${critica ? "bg-rose-50/40" : ""}`}>
-                  <td className="px-3 py-2">
-                    <input defaultValue={t.eap ?? ""} onBlur={(e) => patch(t.id, { eap: e.target.value || null })} className={`${cellInputCls} w-14`} />
-                  </td>
-                  <td className="px-3 py-2">
+                  <td className={`sticky left-0 z-10 border-r border-ink-800 px-3 py-2 ${critica ? "bg-rose-50" : "bg-ink-900"}`}>
                     <div className="flex items-center gap-1.5">
                       {critica && <span className="h-4 w-1 shrink-0 rounded-full bg-rose-500" />}
                       <input
+                        defaultValue={t.eap ?? ""}
+                        onBlur={(e) => patch(t.id, { eap: e.target.value || null })}
+                        placeholder="EAP"
+                        className={`${cellInputCls} w-10 shrink-0 text-neutral-500`}
+                      />
+                      <input
                         defaultValue={t.titulo}
                         onBlur={(e) => e.target.value.trim() && patch(t.id, { titulo: e.target.value })}
-                        className={`${cellInputCls} min-w-[220px] font-medium`}
+                        className={`${cellInputCls} min-w-[190px] font-medium`}
                       />
                     </div>
                   </td>
@@ -447,7 +460,7 @@ export default function Cronograma({
             })}
             {tarefas.length === 0 && (
               <tr>
-                <td colSpan={16} className="px-4 py-10 text-center text-neutral-500">
+                <td colSpan={15} className="px-4 py-10 text-center text-neutral-500">
                   Nenhuma atividade cadastrada ainda.
                 </td>
               </tr>
@@ -477,7 +490,7 @@ export default function Cronograma({
             </div>
           </div>
 
-          <div className="mb-3 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+          <div ref={ganttScrollRef} className="mb-3 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
             <div style={{ width: LABEL_W + gridWidth, position: "relative" }}>
               {/* linha "Hoje" atravessando todas as linhas */}
               {hojeOffset >= 0 && hojeOffset < totalDias && (

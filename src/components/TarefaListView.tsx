@@ -410,8 +410,8 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="sticky top-0 z-20 w-8 border-b border-ink-800 bg-ink-900 px-1 py-2.5"></th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Título</th>
+              <th className="sticky left-0 top-0 z-30 w-8 border-b border-ink-800 bg-ink-900 px-1 py-2.5"></th>
+              <th className="sticky left-8 top-0 z-30 border-b border-r border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Título</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Status</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Prioridade</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Responsável</th>
@@ -482,10 +482,13 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                     dragOverId === t.id && podeReceberDrop ? "border-t-2 border-t-brand" : ""
                   }`}
                 >
-                  <td className="cursor-grab px-1 py-2.5 text-center text-neutral-400 active:cursor-grabbing" title="Arrastar para reordenar">
+                  <td
+                    className="sticky left-0 z-10 cursor-grab bg-ink-900 px-1 py-2.5 text-center text-neutral-400 active:cursor-grabbing"
+                    title="Arrastar para reordenar"
+                  >
                     ⠿
                   </td>
-                  <td className="px-3 py-2.5">
+                  <td className="sticky left-8 z-10 border-r border-ink-800 bg-ink-900 px-3 py-2.5">
                     <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 20 }}>
                       <span className="h-4 w-1 shrink-0 rounded-full" style={{ backgroundColor: PRIORIDADE_BORDA[t.prioridade] }} />
                       {temFilhas && (
