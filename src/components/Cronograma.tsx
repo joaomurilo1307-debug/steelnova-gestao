@@ -36,11 +36,16 @@ type Tarefa = {
 
 const DEP_TYPE_LABEL: Record<DependencyType, string> = { FS: "Término → Início", SS: "Início → Início", FF: "Término → Término", SF: "Início → Término" };
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
-const ZOOM_LEVELS = { compacto: 18, medio: 28, largo: 44 } as const;
-const NAME_WIDTHS = { estreita: 200, larga: 320 } as const;
-const ROW_H = 36;
-const MONTH_ROW_H = 20;
-const WBS_W = 40;
+// Medi o consominas ao vivo: linha=36px, fonte=11px, tabela sticky mais larga que a área visível
+// mesmo lá (o Gantt deles TAMBÉM só aparece depois de rolar um pouco). A diferença real que achei
+// foi a barra de rolagem: eles deixam sempre visível (grossa, custom), aqui usava a do sistema
+// (que em muita configuração de SO/navegador fica invisível até rolar — parece "quebrado" sem ser).
+// Reduzi mais um pouco (33px/10px) e cortei mais colunas do padrão pra sobrar mais Gantt à vista.
+const ZOOM_LEVELS = { compacto: 16, medio: 24, largo: 38 } as const;
+const NAME_WIDTHS = { estreita: 180, larga: 280 } as const;
+const ROW_H = 32;
+const MONTH_ROW_H = 18;
+const WBS_W = 34;
 
 type ColKey = "fase" | "turno" | "pessoas" | "horas" | "tempoGasto" | "dur" | "start" | "end" | "realStart" | "realEnd" | "pct" | "float" | "assignee" | "pred";
 const COLUNAS: { key: ColKey; label: string; width: number; default: boolean }[] = [
@@ -49,15 +54,15 @@ const COLUNAS: { key: ColKey; label: string; width: number; default: boolean }[]
   { key: "pessoas", label: "Pes.", width: 40, default: false },
   { key: "horas", label: "Horas", width: 48, default: false },
   { key: "tempoGasto", label: "Tempo gasto", width: 76, default: false },
-  { key: "dur", label: "Dur.", width: 52, default: true },
-  { key: "start", label: "Início prev.", width: 92, default: true },
-  { key: "end", label: "Término prev.", width: 88, default: true },
+  { key: "dur", label: "Dur.", width: 48, default: true },
+  { key: "start", label: "Início prev.", width: 84, default: true },
+  { key: "end", label: "Término prev.", width: 80, default: true },
   { key: "realStart", label: "Início real", width: 76, default: false },
   { key: "realEnd", label: "Término real", width: 76, default: false },
-  { key: "pct", label: "%", width: 48, default: true },
-  { key: "float", label: "Folga", width: 58, default: true },
-  { key: "assignee", label: "Responsável", width: 116, default: true },
-  { key: "pred", label: "Predec.", width: 92, default: true },
+  { key: "pct", label: "%", width: 44, default: true },
+  { key: "float", label: "Folga", width: 54, default: true },
+  { key: "assignee", label: "Responsável", width: 104, default: true },
+  { key: "pred", label: "Predec.", width: 80, default: true },
 ];
 const COL_W = Object.fromEntries(COLUNAS.map((c) => [c.key, c.width])) as Record<ColKey, number>;
 
@@ -339,7 +344,7 @@ export default function Cronograma({
   }, [tarefas.length > 0, zoom]);
 
   const inputCls = "w-full pill-field px-3 py-1.5 text-sm";
-  const rowInputCls = "w-full rounded border border-transparent bg-transparent px-1 py-1 text-[11px] outline-none hover:border-ink-700 focus:border-brand disabled:text-neutral-400";
+  const rowInputCls = "w-full rounded border border-transparent bg-transparent px-1 py-1 text-[9px] outline-none hover:border-ink-700 focus:border-brand disabled:text-neutral-400";
 
   return (
     <div className="p-8">
@@ -478,7 +483,11 @@ export default function Cronograma({
             </span>
           </div>
 
-          <div ref={scrollRef} className="card overflow-auto" style={{ maxHeight: "72vh" }}>
+          <div
+            ref={scrollRef}
+            className="card overflow-auto [scrollbar-width:auto] [&::-webkit-scrollbar]:h-3 [&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-neutral-300 [&::-webkit-scrollbar-thumb]:hover:bg-neutral-400 [&::-webkit-scrollbar-track]:bg-black/[0.02]"
+            style={{ maxHeight: "72vh" }}
+          >
             <div
               style={{ width: TABLE_W + totalDias * dayWidth, cursor: "grab" }}
               onPointerDown={handlePanPointerDown}
@@ -489,7 +498,7 @@ export default function Cronograma({
               {/* cabeçalho */}
               <div className="flex" style={{ height: MONTH_ROW_H + ROW_H }}>
                 <div
-                  className="sticky left-0 top-0 z-30 flex shrink-0 items-end border-b border-r border-ink-800 bg-ink-900 text-[10px] font-bold uppercase tracking-wider text-neutral-400"
+                  className="sticky left-0 top-0 z-30 flex shrink-0 items-end border-b border-r border-ink-800 bg-ink-900 text-[9px] font-bold uppercase tracking-wider text-neutral-400"
                   style={{ width: TABLE_W, height: MONTH_ROW_H + ROW_H }}
                 >
                   <div style={{ width: WBS_W, height: ROW_H }} className="flex items-center justify-center px-1">
@@ -510,7 +519,7 @@ export default function Cronograma({
                       <div
                         key={i}
                         style={{ width: m.dias * dayWidth }}
-                        className="shrink-0 truncate border-b border-r border-ink-800 px-1.5 text-center text-[10px] font-bold capitalize text-neutral-400"
+                        className="shrink-0 truncate border-b border-r border-ink-800 px-1.5 text-center text-[9px] font-bold capitalize text-neutral-400"
                       >
                         {m.label}
                       </div>
@@ -524,7 +533,7 @@ export default function Cronograma({
                         <div
                           key={i}
                           style={{ width: dayWidth }}
-                          className={`shrink-0 border-r border-ink-800/40 py-2 text-center text-[10px] ${
+                          className={`shrink-0 border-r border-ink-800/40 py-2 text-center text-[9px] ${
                             isHoje ? "bg-brand/10 font-bold text-brand-dark" : isFimSemana ? "bg-black/[0.03] text-neutral-300" : "text-neutral-400"
                           }`}
                         >
@@ -604,8 +613,8 @@ export default function Cronograma({
 
                   return (
                     <div key={t.id} className="group relative flex border-b border-ink-800/50" style={{ height: ROW_H }}>
-                      <div className="sticky left-0 z-10 flex shrink-0 items-center border-r border-ink-800 bg-ink-900 text-[11px] group-hover:bg-black/[0.02]" style={{ width: TABLE_W }}>
-                        <div style={{ width: WBS_W }} className="shrink-0 truncate px-1 text-center font-mono text-[10px] text-neutral-400">
+                      <div className="sticky left-0 z-10 flex shrink-0 items-center border-r border-ink-800 bg-ink-900 text-[9px] group-hover:bg-black/[0.02]" style={{ width: TABLE_W }}>
+                        <div style={{ width: WBS_W }} className="shrink-0 truncate px-1 text-center font-mono text-[9px] text-neutral-400">
                           {wbs}
                         </div>
                         <div style={{ width: namePx, paddingLeft: 6 + depth * 14 }} className="flex shrink-0 items-center gap-1 truncate pr-1">
@@ -616,7 +625,7 @@ export default function Cronograma({
                           {isCritica && (
                             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-rose-500" title="No caminho crítico (folga zero)" />
                           )}
-                          {hasConflito && <span className="shrink-0 text-[10px]" title="Conflito: início antes do que a rede permite">⚠</span>}
+                          {hasConflito && <span className="shrink-0 text-[9px]" title="Conflito: início antes do que a rede permite">⚠</span>}
                         </div>
                         {!hiddenCols.has("fase") && (
                           <div style={{ width: COL_W.fase }} className="shrink-0 px-1">
@@ -655,7 +664,7 @@ export default function Cronograma({
                           </div>
                         )}
                         {!hiddenCols.has("tempoGasto") && (
-                          <div style={{ width: COL_W.tempoGasto }} className="shrink-0 truncate px-1.5 text-center text-[10px] text-neutral-500">
+                          <div style={{ width: COL_W.tempoGasto }} className="shrink-0 truncate px-1.5 text-center text-[9px] text-neutral-500">
                             {tempoGasto !== null ? `${tempoGasto.toFixed(0)}h` : "—"}
                           </div>
                         )}
@@ -681,12 +690,12 @@ export default function Cronograma({
                               defaultValue={t.dataInicio ? t.dataInicio.slice(0, 10) : ""}
                               onBlur={(e) => patch(t.id, { dataInicio: e.target.value || undefined })}
                               title={temPredecessora ? "Calculado pela predecessora — mude a duração dela ou a antecedência (lag) pra mudar" : undefined}
-                              className={`${rowInputCls} text-[10px]`}
+                              className={`${rowInputCls} text-[9px]`}
                             />
                           </div>
                         )}
                         {!hiddenCols.has("end") && (
-                          <div style={{ width: COL_W.end }} className="shrink-0 truncate px-1.5 text-center text-[10px] text-neutral-500">
+                          <div style={{ width: COL_W.end }} className="shrink-0 truncate px-1.5 text-center text-[9px] text-neutral-500">
                             {fim(t) ? fmt(fim(t)!) : "—"}
                           </div>
                         )}
@@ -696,7 +705,7 @@ export default function Cronograma({
                               type="date"
                               defaultValue={t.dataInicioReal ? t.dataInicioReal.slice(0, 10) : ""}
                               onBlur={(e) => patch(t.id, { dataInicioReal: e.target.value || null })}
-                              className={`${rowInputCls} text-[10px]`}
+                              className={`${rowInputCls} text-[9px]`}
                             />
                           </div>
                         )}
@@ -706,7 +715,7 @@ export default function Cronograma({
                               type="date"
                               defaultValue={t.dataFimReal ? t.dataFimReal.slice(0, 10) : ""}
                               onBlur={(e) => patch(t.id, { dataFimReal: e.target.value || null })}
-                              className={`${rowInputCls} text-[10px]`}
+                              className={`${rowInputCls} text-[9px]`}
                             />
                           </div>
                         )}
@@ -726,7 +735,7 @@ export default function Cronograma({
                           </div>
                         )}
                         {!hiddenCols.has("float") && (
-                          <div style={{ width: COL_W.float }} className="shrink-0 px-1 text-center text-[10px]">
+                          <div style={{ width: COL_W.float }} className="shrink-0 px-1 text-center text-[9px]">
                             {result && !cpm.hasCycle ? (
                               isCritica ? (
                                 <span className="font-semibold text-rose-600">crítica</span>
@@ -760,7 +769,7 @@ export default function Cronograma({
                             <button
                               onClick={() => toggleDepPanel(t.id)}
                               title="Gerenciar dependências"
-                              className={`w-full truncate rounded px-1 py-1 text-left text-[10px] hover:bg-black/5 ${depPanelFor === t.id ? "bg-brand/10 text-brand-dark" : "text-neutral-500"}`}
+                              className={`w-full truncate rounded px-1 py-1 text-left text-[9px] hover:bg-black/5 ${depPanelFor === t.id ? "bg-brand/10 text-brand-dark" : "text-neutral-500"}`}
                             >
                               {predText || "—"} 🔗
                             </button>
@@ -831,7 +840,7 @@ export default function Cronograma({
                           </div>
                         )}
                         <div className="ml-auto px-1.5">
-                          <button onClick={() => handleDelete(t.id)} className="text-[10px] text-neutral-300 hover:text-red-500" title="Remover">
+                          <button onClick={() => handleDelete(t.id)} className="text-[9px] text-neutral-300 hover:text-red-500" title="Remover">
                             ✕
                           </button>
                         </div>
@@ -841,7 +850,7 @@ export default function Cronograma({
                         {t.dataInicio && !marco && (
                           <div
                             onPointerDown={(e) => handleBarPointerDown(e, t, "mover")}
-                            className={`group/bar absolute top-[9px] h-[18px] cursor-grab rounded-md border shadow-sm active:cursor-grabbing ${
+                            className={`group/bar absolute top-[7px] h-[18px] cursor-grab rounded-md border shadow-sm active:cursor-grabbing ${
                               isCritica ? "border-rose-400 bg-rose-50" : "border-ink-700 bg-black/[0.04]"
                             } ${isDragging ? "shadow-lg ring-2 ring-brand/40" : ""}`}
                             style={{ left: startOff * dayWidth, width: widthPx }}
@@ -884,7 +893,7 @@ export default function Cronograma({
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-neutral-500">
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-[9px] text-neutral-500">
             {fases.map((f) => (
               <span key={f} className="flex items-center gap-1.5">
                 <span className="h-2.5 w-3.5 rounded border border-ink-700" style={{ backgroundColor: `${faseColor(f)}22` }} />
