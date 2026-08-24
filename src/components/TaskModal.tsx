@@ -121,7 +121,7 @@ export default function TaskModal({
             <input
               value={form.titulo}
               onChange={(e) => setForm({ ...form, titulo: e.target.value })}
-              className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-full pill-field px-3 py-2 text-sm"
               autoFocus
             />
           </div>
@@ -132,7 +132,7 @@ export default function TaskModal({
               value={form.descricao}
               onChange={(e) => setForm({ ...form, descricao: e.target.value })}
               rows={2}
-              className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-full pill-field px-3 py-2 text-sm"
             />
           </div>
 
@@ -142,7 +142,7 @@ export default function TaskModal({
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               >
                 {STATUS_OPTIONS.map((s) => (
                   <option key={s.value} value={s.value}>
@@ -156,7 +156,7 @@ export default function TaskModal({
               <select
                 value={form.responsavelId}
                 onChange={(e) => setForm({ ...form, responsavelId: e.target.value })}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               >
                 <option value="">Sem responsável</option>
                 {membros.map((m) => (
@@ -175,7 +175,7 @@ export default function TaskModal({
                 type="date"
                 value={form.dataInicio}
                 onChange={(e) => setForm({ ...form, dataInicio: e.target.value })}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               />
             </div>
             <div>
@@ -185,7 +185,7 @@ export default function TaskModal({
                 min={1}
                 value={form.duracaoDias}
                 onChange={(e) => setForm({ ...form, duracaoDias: e.target.value })}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               />
             </div>
             <div>
@@ -196,7 +196,7 @@ export default function TaskModal({
                 max={100}
                 value={form.percentConcluido}
                 onChange={(e) => setForm({ ...form, percentConcluido: e.target.value })}
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               />
             </div>
           </div>
@@ -220,7 +220,7 @@ export default function TaskModal({
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+                className="btn-primary px-4 py-2 text-sm disabled:opacity-50"
               >
                 {saving ? "Salvando..." : "Salvar"}
               </button>

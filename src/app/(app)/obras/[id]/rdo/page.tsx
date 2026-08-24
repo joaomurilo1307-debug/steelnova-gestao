@@ -19,11 +19,11 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
   });
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="mb-4 flex justify-end">
         <Link
           href={`/obras/${params.id}/rdo/novo`}
-          className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
+          className="btn-primary px-3 py-1.5 text-sm"
         >
           + Novo RDO
         </Link>
@@ -36,7 +36,7 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
       ) : (
         <div className="flex flex-col gap-4">
           {rdos.map((rdo) => (
-            <div key={rdo.id} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+            <div key={rdo.id} className="card p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-medium text-fg">{rdo.data.toLocaleDateString("pt-BR", { timeZone: "UTC" })}</p>

@@ -8,3 +8,36 @@ body {
   font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Sistema visual compartilhado — cartão elevado (sombra suave) em vez de caixa com borda dura,
+   cabeçalho de tabela discreto, botões/inputs em pílula. Extraído por medição real do consominas-gestao
+   (mesma família de produto) pra tirar o ar "quadrado"/amador e deixar consistente entre as telas. */
+@layer components {
+  .card {
+    @apply rounded-2xl bg-ink-900;
+    border: 1px solid rgba(33, 28, 22, 0.05);
+    box-shadow: 0 1px 3px rgba(33, 28, 22, 0.04), 0 10px 24px -10px rgba(33, 28, 22, 0.13);
+  }
+
+  .th-label {
+    @apply px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-neutral-400;
+  }
+
+  .btn-primary {
+    @apply rounded-full bg-brand font-medium text-white shadow-sm transition-colors hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply rounded-full bg-white font-medium text-neutral-600 shadow-sm transition-colors hover:bg-neutral-50;
+    border: 1px solid rgba(33, 28, 22, 0.08);
+  }
+
+  .btn-ghost {
+    @apply rounded-full font-medium text-neutral-500 transition-colors hover:bg-black/5;
+  }
+
+  .pill-field {
+    @apply rounded-full bg-white text-fg shadow-sm outline-none transition-colors focus:border-brand;
+    border: 1px solid rgba(33, 28, 22, 0.08);
+  }
+}

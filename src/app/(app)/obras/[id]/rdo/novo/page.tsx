@@ -126,11 +126,11 @@ export default function NovoRdoPage() {
     router.refresh();
   }
 
-  const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand";
+  const inputCls = "w-full pill-field px-3 py-2 text-sm";
   const labelCls = "mb-1 block text-xs text-neutral-500";
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <form onSubmit={handleSubmit} className="flex max-w-4xl flex-col gap-6">
         <div>
           <h2 className="mb-2 text-sm font-semibold text-fg">Identificação</h2>
@@ -251,7 +251,7 @@ export default function NovoRdoPage() {
                 <select
                   value={a.situacao}
                   onChange={(e) => setAtividades((rows) => rows.map((r, idx) => (idx === i ? { ...r, situacao: e.target.value as any } : r)))}
-                  className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-2 py-2 text-sm text-fg outline-none focus:border-brand"
+                  className="w-32 pill-field px-2 py-2 text-sm"
                 >
                   <option value="FINALIZADA">Finalizada</option>
                   <option value="PARCIAL">Parcial</option>
@@ -320,7 +320,7 @@ export default function NovoRdoPage() {
         <button
           type="submit"
           disabled={loading}
-          className="self-start rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          className="self-start btn-primary px-4 py-2 disabled:opacity-50"
         >
           {loading ? "Salvando..." : "Salvar RDO"}
         </button>

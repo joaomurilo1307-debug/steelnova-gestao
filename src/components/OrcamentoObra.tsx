@@ -140,8 +140,8 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
   const ajusteParaAlvo = params.valorAlvo !== null ? params.valorAlvo - totalPreco : null;
 
   return (
-    <div className="p-6">
-      <details className="mb-4 rounded-xl border border-ink-800 bg-ink-900 p-4">
+    <div className="p-8">
+      <details className="mb-4 card p-4">
         <summary className="cursor-pointer text-sm font-semibold text-fg">
           Parâmetros de precificação (taxas de mercado)
         </summary>
@@ -170,14 +170,14 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
                     [key]: e.target.value === "" ? (key === "valorAlvo" ? null : 0) : Number(e.target.value),
                   })
                 }
-                className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-full pill-field px-3 py-2 text-sm"
               />
             </div>
           ))}
           <button
             type="submit"
             disabled={savingParams}
-            className="col-span-2 self-end rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50 sm:col-span-3"
+            className="col-span-2 self-end btn-primary px-4 py-2 text-sm disabled:opacity-50 sm:col-span-3"
           >
             {savingParams ? "Salvando..." : "Salvar parâmetros"}
           </button>
@@ -190,7 +190,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           <input
             value={form.nome}
             onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-56 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -200,7 +200,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.baseQtd}
             onChange={(e) => setForm({ ...form, baseQtd: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-24 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -208,7 +208,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           <select
             value={form.unidade}
             onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="pill-field px-3 py-2 text-sm"
           >
             <option value="kg">kg</option>
             <option value="m²">m²</option>
@@ -224,28 +224,28 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.materiaPrima}
             onChange={(e) => setForm({ ...form, materiaPrima: e.target.value })}
-            className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-32 pill-field px-3 py-2 text-sm"
           />
         </div>
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Adicionar serviço
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Serviço</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Base</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Un</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Matéria-prima</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Insumos</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Mão de obra</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Custo</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">BDI</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium">Preço</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-3 font-medium"></th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Serviço</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Base</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Un</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Matéria-prima</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Insumos</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Mão de obra</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Custo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">BDI</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Preço</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label"></th>
             </tr>
           </thead>
           <tbody>

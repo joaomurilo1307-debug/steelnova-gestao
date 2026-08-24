@@ -63,10 +63,10 @@ export default function FinancasPage() {
     <div>
       <TopBar title="Finanças" subtitle="Salários, retiradas, contabilidade e notas fiscais da empresa" />
 
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
           {totalPorTipo.map((t) => (
-            <div key={t.tipo} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+            <div key={t.tipo} className="card p-4">
               <p className="text-xs uppercase text-neutral-500">{t.tipo}</p>
               <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(t.total)}</p>
             </div>
@@ -79,7 +79,7 @@ export default function FinancasPage() {
             <select
               value={form.tipo}
               onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="pill-field px-3 py-2 text-sm"
             >
               {TIPOS.map((t) => (
                 <option key={t}>{t}</option>
@@ -91,7 +91,7 @@ export default function FinancasPage() {
             <input
               value={form.descricao}
               onChange={(e) => setForm({ ...form, descricao: e.target.value })}
-              className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-56 pill-field px-3 py-2 text-sm"
             />
           </div>
           <div>
@@ -99,7 +99,7 @@ export default function FinancasPage() {
             <input
               value={form.pessoa}
               onChange={(e) => setForm({ ...form, pessoa: e.target.value })}
-              className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-40 pill-field px-3 py-2 text-sm"
             />
           </div>
           <div>
@@ -109,7 +109,7 @@ export default function FinancasPage() {
               step="0.01"
               value={form.valor}
               onChange={(e) => setForm({ ...form, valor: e.target.value })}
-              className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-32 pill-field px-3 py-2 text-sm"
             />
           </div>
           <div>
@@ -118,15 +118,15 @@ export default function FinancasPage() {
               type="date"
               value={form.data}
               onChange={(e) => setForm({ ...form, data: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="pill-field px-3 py-2 text-sm"
             />
           </div>
-          <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+          <button type="submit" className="btn-primary px-4 py-2 text-sm">
             Lançar
           </button>
         </form>
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+        <div className="overflow-x-auto card">
           <table className="w-full text-sm">
             <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>

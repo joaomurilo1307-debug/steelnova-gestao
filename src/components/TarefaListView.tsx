@@ -320,7 +320,8 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
     return Array.from(set);
   }, [tarefas]);
 
-  // agrupa por bloco (fase da tarefa raiz), e dentro de cada bloco monta a hierarquia raiz+filhos
+  // agrupa por bloco (fase da tarefa raiz), monta a hierarquia raiz+filhos e numera
+  // no estilo EAP (1, 1.1, 1.1.1...) — igual ao padrão de planejamento de obra/projeto
   const gruposPorBloco = useMemo(() => {
     const porMae = new Map<string, Tarefa[]>();
     for (const t of tarefas) {
@@ -328,31 +329,43 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
       if (!porMae.has(key)) porMae.set(key, []);
       porMae.get(key)!.push(t);
     }
-    const out = new Map<string, { tarefa: Tarefa; depth: number }[]>();
+    const out = new Map<string, { tarefa: Tarefa; depth: number; numero: string }[]>();
     const raizes = porMae.get("__root__") ?? [];
+    const porBloco = new Map<string, Tarefa[]>();
     for (const raiz of raizes) {
       const bloco = raiz.fase?.trim() || SEM_BLOCO;
-      if (!out.has(bloco)) out.set(bloco, []);
-      out.get(bloco)!.push({ tarefa: raiz, depth: 0 });
-      if (!collapsed.has(raiz.id)) {
-        function walkFilhos(key: string, depth: number) {
-          for (const t of porMae.get(key) ?? []) {
-            out.get(bloco)!.push({ tarefa: t, depth });
-            if (!collapsed.has(t.id)) walkFilhos(t.id, depth + 1);
+      if (!porBloco.has(bloco)) porBloco.set(bloco, []);
+      porBloco.get(bloco)!.push(raiz);
+    }
+    let blocoIdx = 0;
+    for (const [bloco, raizesDoBloco] of porBloco) {
+      blocoIdx++;
+      out.set(bloco, []);
+      raizesDoBloco.forEach((raiz, i) => {
+        const numeroRaiz = `${blocoIdx}.${i + 1}`;
+        out.get(bloco)!.push({ tarefa: raiz, depth: 0, numero: numeroRaiz });
+        if (!collapsed.has(raiz.id)) {
+          function walkFilhos(key: string, depth: number, prefixo: string) {
+            const filhos = porMae.get(key) ?? [];
+            filhos.forEach((t, k) => {
+              const numero = `${prefixo}.${k + 1}`;
+              out.get(bloco)!.push({ tarefa: t, depth, numero });
+              if (!collapsed.has(t.id)) walkFilhos(t.id, depth + 1, numero);
+            });
           }
+          walkFilhos(raiz.id, 1, numeroRaiz);
         }
-        walkFilhos(raiz.id, 1);
-      }
+      });
     }
     return out;
   }, [tarefas, collapsed]);
 
-  const inputCls = "rounded border border-ink-700 bg-ink-800 px-2 py-1 text-xs text-fg outline-none focus:border-brand";
+  const inputCls = "pill-field px-3 py-1.5 text-sm";
 
   return (
-    <div className={compacto ? "" : "p-6"}>
-      {compacto && <h2 className="mb-2 text-sm font-semibold text-fg">{titulo}</h2>}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
+    <div className={compacto ? "" : "p-8"}>
+      {compacto && <h2 className="mb-3 text-sm font-semibold text-fg">{titulo}</h2>}
+      <div className="mb-3 flex flex-wrap items-center gap-2.5">
         {!criandoBloco ? (
           <>
             <select value={novoBloco} onChange={(e) => setNovoBloco(e.target.value)} className={inputCls}>
@@ -363,7 +376,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                 </option>
               ))}
             </select>
-            <button type="button" onClick={() => setCriandoBloco(true)} className="text-xs text-brand hover:underline">
+            <button type="button" onClick={() => setCriandoBloco(true)} className="btn-ghost px-3 py-1.5 text-xs">
               + Novo bloco
             </button>
           </>
@@ -376,25 +389,25 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
               placeholder="Nome do bloco (Aquisição, Fabricação, Montagem...)"
               className={`${inputCls} w-64`}
             />
-            <button type="submit" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark">
+            <button type="submit" className="btn-primary px-3 py-1.5 text-xs">
               Criar
             </button>
-            <button type="button" onClick={() => setCriandoBloco(false)} className="text-xs text-neutral-500 hover:underline">
+            <button type="button" onClick={() => setCriandoBloco(false)} className="btn-ghost px-3 py-1.5 text-xs">
               Cancelar
             </button>
           </form>
         )}
-        <span className="mx-1 h-4 w-px bg-ink-700" />
-        <label className={`cursor-pointer text-xs text-brand hover:underline ${importando ? "pointer-events-none opacity-50" : ""}`}>
+        <span className="mx-0.5 h-4 w-px bg-black/10" />
+        <label className={`btn-ghost cursor-pointer px-3 py-1.5 text-xs ${importando ? "pointer-events-none opacity-50" : ""}`}>
           {importando ? "Importando..." : "📥 Importar Excel"}
           <input type="file" accept=".xlsx,.xls,.csv" className="hidden" onChange={handleImportFile} />
         </label>
-        <button type="button" onClick={handleDownloadTemplate} className="text-xs text-neutral-500 hover:underline">
+        <button type="button" onClick={handleDownloadTemplate} className="btn-ghost px-3 py-1.5 text-xs">
           Baixar modelo
         </button>
       </div>
       {resultadoImport && <p className="mb-3 text-xs text-neutral-600">{resultadoImport}</p>}
-      <form onSubmit={handleAdd} className="mb-3 flex flex-wrap items-center gap-2">
+      <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-center gap-2.5">
         <input
           value={novoTitulo}
           onChange={(e) => setNovoTitulo(e.target.value)}
@@ -402,35 +415,35 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
           className={`${inputCls} min-w-[260px] flex-1`}
         />
         <input type="date" value={novaData} onChange={(e) => setNovaData(e.target.value)} className={inputCls} />
-        <button type="submit" className="rounded-lg bg-brand px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-1.5 text-xs">
           + Adicionar {novoBloco && <span className="font-normal opacity-80">em &quot;{novoBloco}&quot;</span>}
         </button>
       </form>
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
               <th className="sticky left-0 top-0 z-30 w-8 border-b border-ink-800 bg-ink-900 px-1 py-2.5"></th>
-              <th className="sticky left-8 top-0 z-30 border-b border-r border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Título</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Status</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Prioridade</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Responsável</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Início</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Prazo</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Tarefa-mãe</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Horas est.</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Valor hora</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Custo est.</th>
+              <th className="sticky left-8 top-0 z-30 border-b border-r border-ink-800 bg-ink-900 th-label">Título</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Status</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Prioridade</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Responsável</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Início</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Prazo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Tarefa-mãe</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Horas est.</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Valor hora</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Custo est.</th>
             </tr>
           </thead>
           <tbody>
-            {blocos.map((bloco) => {
+            {blocos.map((bloco, blocoIdx) => {
               const linhasDoBloco = gruposPorBloco.get(bloco) ?? [];
               const blocoColapsado = blocosColapsados.has(bloco);
               return (
                 <Fragment key={bloco}>
-                  <tr className="border-t border-ink-800 bg-ink-800/60">
-                    <td colSpan={11} className="px-3 py-1.5">
+                  <tr className="border-t border-ink-800 bg-brand/[0.04]">
+                    <td colSpan={11} className="px-3 py-2">
                       <button
                         onClick={() =>
                           setBlocosColapsados((c) => {
@@ -439,9 +452,13 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                             return next;
                           })
                         }
-                        className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-neutral-500"
+                        className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-600"
                       >
-                        {blocoColapsado ? "▸" : "▾"} {bloco}
+                        <span className="text-neutral-400">{blocoColapsado ? "▸" : "▾"}</span>
+                        <span className="flex h-4 w-4 items-center justify-center rounded-full bg-brand/15 text-[10px] font-bold normal-case text-brand-dark">
+                          {blocoIdx + 1}
+                        </span>
+                        {bloco}
                         <span className="font-normal normal-case text-neutral-400">
                           · {linhasDoBloco.length} {linhasDoBloco.length === 1 ? "atividade" : "atividades"}
                         </span>
@@ -449,7 +466,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                     </td>
                   </tr>
                   {!blocoColapsado &&
-                    linhasDoBloco.map(({ tarefa: t, depth }) => {
+                    linhasDoBloco.map(({ tarefa: t, depth, numero }) => {
                       const fim = prazo(t);
                       const atrasada = !!fim && t.status !== "FEITO" && fim < new Date(new Date().toDateString());
                       const temFilhas = tarefas.some((x) => x.tarefaMaeId === t.id);
@@ -505,8 +522,8 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                           {collapsed.has(t.id) ? "▸" : "▾"}
                         </button>
                       )}
-                      {depth > 0 && <span className="text-neutral-500">↳</span>}
-                      <span className="text-fg">{t.titulo}</span>
+                      <span className="shrink-0 font-mono text-[11px] tabular-nums text-neutral-400">{numero}</span>
+                      <span className={depth > 0 ? "text-fg-muted" : "font-medium text-fg"}>{t.titulo}</span>
                       <button
                         onClick={() => {
                           setSubtarefaAbertaId(subtarefaAbertaId === t.id ? null : t.id);
@@ -642,7 +659,7 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
                           placeholder={`Nova subtarefa de "${t.titulo}"`}
                           className={`${inputCls} min-w-[240px] flex-1`}
                         />
-                        <button type="submit" className="rounded-lg bg-brand px-2.5 py-1 text-xs font-medium text-white hover:bg-brand-dark">
+                        <button type="submit" className="btn-primary px-2.5 py-1 text-xs">
                           Adicionar
                         </button>
                         <button type="button" onClick={() => setSubtarefaAbertaId(null)} className="text-xs text-neutral-500 hover:underline">

@@ -80,15 +80,15 @@ export default function RaciPage() {
     <div>
       <TopBar title="Matriz RACI" subtitle="Responsável, Aprovador, Consultado, Informado — por atividade de rotina" />
 
-      <div className="p-6">
-        <form onSubmit={handleAddProcesso} className="mb-6 flex flex-wrap items-end gap-2 rounded-xl border border-ink-800 bg-ink-900 p-4">
+      <div className="p-8">
+        <form onSubmit={handleAddProcesso} className="mb-6 flex flex-wrap items-end gap-2 card p-4">
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Área</label>
             <input
               list="areas-sugeridas"
               value={novoProcesso.area}
               onChange={(e) => setNovoProcesso({ ...novoProcesso, area: e.target.value })}
-              className="w-44 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-44 pill-field px-3 py-2 text-sm"
             />
             <datalist id="areas-sugeridas">
               {AREAS_SUGERIDAS.map((a) => (
@@ -102,10 +102,10 @@ export default function RaciPage() {
               value={novoProcesso.nome}
               onChange={(e) => setNovoProcesso({ ...novoProcesso, nome: e.target.value })}
               placeholder="Ex: Aprovar orçamento de obra"
-              className="w-64 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-64 pill-field px-3 py-2 text-sm"
             />
           </div>
-          <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+          <button type="submit" className="btn-primary px-4 py-2 text-sm">
             + Adicionar processo
           </button>
         </form>
@@ -113,7 +113,7 @@ export default function RaciPage() {
         {Object.entries(porArea).map(([area, lista]) => (
           <div key={area} className="mb-6">
             <h2 className="mb-2 text-sm font-semibold text-fg">{area}</h2>
-            <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+            <div className="overflow-x-auto card">
               <table className="w-full text-sm">
                 <thead className="bg-ink-900 text-left text-neutral-600">
                   <tr>

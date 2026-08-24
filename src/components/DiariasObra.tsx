@@ -150,17 +150,17 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
   const totalDesembolsado = desembolsos.reduce((s, d) => s + Number(d.valor), 0);
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Mão de obra a pagar</p>
           <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(totalAPagar)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Desembolsado (material/adiant.)</p>
           <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(totalDesembolsado)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Saldo a pagar (líquido)</p>
           <p className="mt-1 text-lg font-semibold text-emerald-600">
             {formatBRL(resumo.reduce((s, r) => s + r.saldo, 0))}
@@ -173,7 +173,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         <select
           value={novoPonto.funcionarioId}
           onChange={(e) => setNovoPonto({ ...novoPonto, funcionarioId: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="pill-field px-3 py-2 text-sm"
         >
           <option value="">Funcionário...</option>
           {funcionarios.map((f) => (
@@ -186,21 +186,21 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           type="date"
           value={novoPonto.dia}
           onChange={(e) => setNovoPonto({ ...novoPonto, dia: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="pill-field px-3 py-2 text-sm"
         />
         <input
           type="time"
           value={novoPonto.entrada}
           onChange={(e) => setNovoPonto({ ...novoPonto, entrada: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="pill-field px-3 py-2 text-sm"
         />
         <input
           type="time"
           value={novoPonto.saida}
           onChange={(e) => setNovoPonto({ ...novoPonto, saida: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="pill-field px-3 py-2 text-sm"
         />
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Lançar
         </button>
         <details className="ml-auto">
@@ -210,12 +210,12 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
               placeholder="Nome"
               value={novoFunc.nome}
               onChange={(e) => setNovoFunc({ ...novoFunc, nome: e.target.value })}
-              className="w-36 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="w-36 pill-field px-3 py-2 text-sm"
             />
             <select
               value={novoFunc.cargo}
               onChange={(e) => setNovoFunc({ ...novoFunc, cargo: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="pill-field px-3 py-2 text-sm"
             >
               {CARGOS.map((c) => (
                 <option key={c} value={c}>
@@ -226,7 +226,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
             <select
               value={novoFunc.regime}
               onChange={(e) => setNovoFunc({ ...novoFunc, regime: e.target.value })}
-              className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+              className="pill-field px-3 py-2 text-sm"
             >
               <option value="Diaria">Diária</option>
               <option value="Fixo">Fixo</option>
@@ -237,7 +237,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
                 placeholder="Valor fixo"
                 value={novoFunc.valorFixo}
                 onChange={(e) => setNovoFunc({ ...novoFunc, valorFixo: e.target.value })}
-                className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-28 pill-field px-3 py-2 text-sm"
               />
             ) : (
               <input
@@ -245,7 +245,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
                 placeholder="Diária (opcional)"
                 value={novoFunc.diariaPadrao}
                 onChange={(e) => setNovoFunc({ ...novoFunc, diariaPadrao: e.target.value })}
-                className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                className="w-32 pill-field px-3 py-2 text-sm"
               />
             )}
             <button type="submit" className="rounded-lg bg-ink-700 px-3 py-2 text-xs text-fg hover:bg-ink-700/80">
@@ -255,16 +255,16 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
         </details>
       </form>
 
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Dia</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Funcionário</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Entrada</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Saída</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Horas</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium"></th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Dia</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Funcionário</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Entrada</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Saída</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Horas</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label"></th>
             </tr>
           </thead>
           <tbody>
@@ -294,18 +294,18 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold text-fg">Resumo por funcionário — acerto</h2>
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Funcionário</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Cargo</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Regime</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Horas</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Diárias</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">A pagar</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Adiantado</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Saldo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Funcionário</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Cargo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Regime</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Horas</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Diárias</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">A pagar</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Adiantado</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Saldo</th>
             </tr>
           </thead>
           <tbody>
@@ -338,18 +338,18 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           placeholder="Pessoa (quem pagou)"
           value={novoDesembolso.pessoa}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, pessoa: e.target.value })}
-          className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="w-32 pill-field px-3 py-2 text-sm"
         />
         <input
           placeholder="Item"
           value={novoDesembolso.item}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, item: e.target.value })}
-          className="w-44 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="w-44 pill-field px-3 py-2 text-sm"
         />
         <select
           value={novoDesembolso.categoria}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, categoria: e.target.value })}
-          className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="pill-field px-3 py-2 text-sm"
         >
           <option>Material</option>
           <option>Alimentação</option>
@@ -361,7 +361,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           <select
             value={novoDesembolso.funcionarioRefId}
             onChange={(e) => setNovoDesembolso({ ...novoDesembolso, funcionarioRefId: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="pill-field px-3 py-2 text-sm"
           >
             <option value="">Adiantamento p/...</option>
             {funcionarios.map((f) => (
@@ -377,22 +377,22 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
           placeholder="Valor"
           value={novoDesembolso.valor}
           onChange={(e) => setNovoDesembolso({ ...novoDesembolso, valor: e.target.value })}
-          className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+          className="w-28 pill-field px-3 py-2 text-sm"
         />
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Lançar
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Pessoa</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Item</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Categoria</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Ref.</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-3 py-2 font-medium">Valor</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Pessoa</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Item</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Categoria</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Ref.</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Valor</th>
             </tr>
           </thead>
           <tbody>

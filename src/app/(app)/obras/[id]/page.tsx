@@ -17,27 +17,27 @@ export default async function ObraVisaoGeralPage({ params }: { params: { id: str
 
   return (
     <div>
-      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+      <div className="grid grid-cols-1 gap-4 p-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Contrato</p>
           <p className="mt-2 text-xl font-semibold text-fg">{formatBRL(Number(obra.valorContrato))}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Custo previsto</p>
           <p className="mt-2 text-xl font-semibold text-fg">{formatBRL(custoPrevisto)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Custo realizado</p>
           <p className="mt-2 text-xl font-semibold text-fg">{formatBRL(custoReal)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Progresso</p>
           <p className="mt-2 text-xl font-semibold text-fg">{obra.progresso}%</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 px-6 pb-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+      <div className="grid grid-cols-1 gap-6 px-8 pb-8 lg:grid-cols-2">
+        <div className="card p-4">
           <h2 className="mb-3 text-sm font-semibold text-fg">Dados gerais</h2>
           <dl className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
@@ -55,7 +55,7 @@ export default async function ObraVisaoGeralPage({ params }: { params: { id: str
           </dl>
         </div>
 
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <h2 className="mb-3 text-sm font-semibold text-fg">Equipe da obra</h2>
           {obra.membros.length === 0 ? (
             <p className="text-sm text-neutral-500">Nenhum membro vinculado ainda — veja a aba Equipe.</p>

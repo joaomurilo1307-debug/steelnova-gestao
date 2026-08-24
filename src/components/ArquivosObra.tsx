@@ -72,19 +72,19 @@ export default function ArquivosObra({ obraId }: { obraId: string }) {
     .reduce((s, a) => s + Number(a.valor ?? 0), 0);
 
   return (
-    <div className="p-6">
-      <div className="mb-4 rounded-xl border border-ink-800 bg-ink-900 p-4">
+    <div className="p-8">
+      <div className="mb-4 card p-4">
         <p className="text-xs uppercase text-neutral-500">Total em notas fiscais anexadas</p>
         <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(totalNotas)}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2 rounded-xl border border-ink-800 bg-ink-900 p-4">
+      <form onSubmit={handleSubmit} className="mb-4 flex flex-wrap items-end gap-2 card p-4">
         <div>
           <label className="mb-1 block text-xs text-neutral-500">Categoria</label>
           <select
             value={form.categoria}
             onChange={(e) => setForm({ ...form, categoria: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="pill-field px-3 py-2 text-sm"
           >
             {Object.entries(CATEGORIA_LABEL).map(([k, v]) => (
               <option key={k} value={k}>
@@ -99,7 +99,7 @@ export default function ArquivosObra({ obraId }: { obraId: string }) {
             value={form.descricao}
             onChange={(e) => setForm({ ...form, descricao: e.target.value })}
             placeholder="Ex: Compra de parafusos"
-            className="w-52 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-52 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -109,7 +109,7 @@ export default function ArquivosObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.valor}
             onChange={(e) => setForm({ ...form, valor: e.target.value })}
-            className="w-32 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-32 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -118,7 +118,7 @@ export default function ArquivosObra({ obraId }: { obraId: string }) {
             type="date"
             value={form.data}
             onChange={(e) => setForm({ ...form, data: e.target.value })}
-            className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -133,13 +133,13 @@ export default function ArquivosObra({ obraId }: { obraId: string }) {
         <button
           type="submit"
           disabled={uploading || !file}
-          className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+          className="btn-primary px-4 py-2 text-sm disabled:opacity-50"
         >
           {uploading ? "Enviando..." : "Anexar"}
         </button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="bg-ink-900 text-left text-neutral-600">
             <tr>

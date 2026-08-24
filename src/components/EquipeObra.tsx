@@ -49,7 +49,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <h2 className="mb-2 text-sm font-semibold text-fg">Sócios / responsáveis</h2>
       <form onSubmit={handleAdd} className="mb-4 flex flex-wrap items-end gap-2">
         <div>
@@ -57,7 +57,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
           <select
             value={form.userId}
             onChange={(e) => setForm({ ...form, userId: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-56 pill-field px-3 py-2 text-sm"
           >
             <option value="">Selecione...</option>
             {usuarios.map((u) => (
@@ -73,17 +73,17 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
             placeholder="Engenheiro, Mestre de obra..."
             value={form.funcao}
             onChange={(e) => setForm({ ...form, funcao: e.target.value })}
-            className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-56 pill-field px-3 py-2 text-sm"
           />
         </div>
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Adicionar
         </button>
       </form>
 
       <div className="flex flex-col gap-2">
         {membros.map((m) => (
-          <div key={m.id} className="flex items-center justify-between rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div key={m.id} className="flex items-center justify-between card p-4">
             <div>
               <p className="text-sm font-medium text-fg">{m.user.name}</p>
               <p className="text-xs text-neutral-500">{m.funcao}</p>
@@ -109,7 +109,7 @@ export default function EquipeObra({ obraId }: { obraId: string }) {
       <p className="mb-2 text-xs text-neutral-500">Soldadores, instaladores, ajudantes e demais — compartilhados entre obras.</p>
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {funcionarios.map((f) => (
-          <div key={f.id} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div key={f.id} className="card p-4">
             <p className="text-sm font-medium text-fg">{f.nome}</p>
             <p className="text-xs text-neutral-500">{f.cargo ?? "Sem cargo definido"} · {f.regime}</p>
           </div>

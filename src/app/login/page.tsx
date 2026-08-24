@@ -29,7 +29,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink-950 px-4">
-      <div className="w-full max-w-sm rounded-xl border border-ink-700 bg-ink-900 p-8">
+      <div className="w-full max-w-sm card p-8">
         <div className="mb-6 flex flex-col items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-steelnova.png" alt="SteelNova Engenharia" style={{ height: 52, width: "auto" }} />
@@ -44,7 +44,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
+              className="w-full pill-field px-4 py-2.5 text-sm"
             />
           </div>
           <div>
@@ -54,7 +54,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-fg outline-none focus:border-brand"
+              className="w-full pill-field px-4 py-2.5 text-sm"
             />
           </div>
 
@@ -63,7 +63,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-lg bg-brand px-4 py-2 font-medium text-white transition hover:bg-brand-dark disabled:opacity-50"
+            className="mt-2 btn-primary w-full py-2.5 disabled:opacity-50"
           >
             {loading ? "Entrando..." : "Entrar"}
           </button>

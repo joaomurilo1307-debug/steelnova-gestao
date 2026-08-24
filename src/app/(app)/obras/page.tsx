@@ -12,14 +12,14 @@ export default async function ObrasPage() {
     <div>
       <TopBar title="Obras" subtitle="Cadastro de obras" />
 
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-4 flex justify-end">
-          <Link href="/obras/nova" className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark">
+          <Link href="/obras/nova" className="btn-primary px-3 py-1.5 text-sm">
             + Nova obra
           </Link>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+        <div className="overflow-x-auto card">
           <table className="w-full text-sm">
             <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>

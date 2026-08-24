@@ -26,7 +26,7 @@ type Tarefa = {
 };
 
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
-const ZOOM_PRESETS = { compacto: 20, medio: 30, largo: 44 } as const;
+const ZOOM_PRESETS = { compacto: 14, medio: 22, largo: 34 } as const;
 const LABEL_W = 240;
 const ROW_H = 34;
 
@@ -60,7 +60,7 @@ export default function Cronograma({
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
-  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("medio");
+  const [zoom, setZoom] = useState<keyof typeof ZOOM_PRESETS>("compacto");
   const [showForm, setShowForm] = useState(false);
   const ganttScrollRef = useRef<HTMLDivElement>(null);
   const [form, setForm] = useState({
@@ -202,39 +202,36 @@ export default function Cronograma({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tarefas.length > 0, zoom]);
 
-  const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand";
+  const inputCls = "w-full pill-field px-3 py-1.5 text-sm";
   const cellInputCls = "w-full rounded border-0 bg-transparent px-1 py-1 text-xs text-fg outline-none focus:bg-ink-800 focus:ring-1 focus:ring-brand";
 
   return (
-    <div className="p-6">
-      <div className="mb-4 flex flex-wrap items-center gap-4 text-sm">
-        <div className="rounded-lg border border-ink-800 bg-ink-900 px-3 py-2">
-          <span className="text-neutral-500">Atividades: </span>
-          <span className="font-medium text-fg">{tarefas.length}</span>
+    <div className="p-8">
+      <div className="mb-5 flex flex-wrap items-center gap-2.5 text-sm">
+        <div className="card px-3.5 py-2">
+          <span className="text-xs text-neutral-500">Atividades</span>
+          <span className="ml-1.5 font-semibold text-fg">{tarefas.length}</span>
         </div>
-        <div className="rounded-lg border border-ink-800 bg-ink-900 px-3 py-2">
-          <span className="text-neutral-500">Esforço total: </span>
-          <span className="font-medium text-fg">{totalHH.toFixed(0)} HH</span>
+        <div className="card px-3.5 py-2">
+          <span className="text-xs text-neutral-500">Esforço total</span>
+          <span className="ml-1.5 font-semibold text-fg">{totalHH.toFixed(0)} HH</span>
         </div>
-        <div className="rounded-lg border border-ink-800 bg-ink-900 px-3 py-2">
-          <span className="text-neutral-500">Pico de equipe: </span>
-          <span className="font-medium text-fg">{totalPessoasPico} pessoas</span>
+        <div className="card px-3.5 py-2">
+          <span className="text-xs text-neutral-500">Pico de equipe</span>
+          <span className="ml-1.5 font-semibold text-fg">{totalPessoasPico} pessoas</span>
         </div>
         {tarefasCriticas > 0 && (
-          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
+          <div className="rounded-full bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-700 shadow-sm">
             ⚠ {tarefasCriticas} tarefa{tarefasCriticas > 1 ? "s" : ""} crítica{tarefasCriticas > 1 ? "s" : ""}
           </div>
         )}
-        <button
-          onClick={() => setShowForm((v) => !v)}
-          className="ml-auto rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
-        >
+        <button onClick={() => setShowForm((v) => !v)} className="ml-auto btn-primary px-4 py-2 text-sm">
           {showForm ? "Fechar formulário" : "+ Nova atividade"}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={handleAdd} className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-ink-800 bg-ink-900 p-4 sm:grid-cols-4 lg:grid-cols-6">
+        <form onSubmit={handleAdd} className="mb-4 grid grid-cols-2 gap-2 card p-4 sm:grid-cols-4 lg:grid-cols-6">
           <div>
             <label className="mb-1 block text-xs text-neutral-500">EAP</label>
             <input value={form.eap} onChange={(e) => setForm({ ...form, eap: e.target.value })} placeholder="1.0" className={inputCls} />
@@ -285,32 +282,32 @@ export default function Cronograma({
             <label className="mb-1 block text-xs text-neutral-500">Observações</label>
             <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className={inputCls} />
           </div>
-          <button type="submit" className="col-span-2 self-end rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark sm:col-span-1">
+          <button type="submit" className="col-span-2 self-end btn-primary px-4 py-2 text-sm sm:col-span-1">
             Adicionar
           </button>
         </form>
       )}
 
       {/* TABELA DE EDIÇÃO — tabela simples, rolagem normal, sem truques de layout */}
-      <div className="mb-6 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+      <div className="mb-6 overflow-x-auto card">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10 bg-ink-900 text-left text-neutral-600">
             <tr>
-              <th className="sticky left-0 z-20 border-b border-r border-ink-800 bg-ink-900 px-3 py-2.5 font-medium">Atividade</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Fase</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Turno</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Pes.</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Horas</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Dur.</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Início prev.</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Término prev.</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Início real</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Término real</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">%</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Folga</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Responsável</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium">Predecessora</th>
-              <th className="border-b border-ink-800 px-3 py-2.5 font-medium"></th>
+              <th className="sticky left-0 z-20 border-b border-r border-ink-800 bg-ink-900 th-label">Atividade</th>
+              <th className="th-label border-b border-ink-800">Fase</th>
+              <th className="th-label border-b border-ink-800">Turno</th>
+              <th className="th-label border-b border-ink-800">Pes.</th>
+              <th className="th-label border-b border-ink-800">Horas</th>
+              <th className="th-label border-b border-ink-800">Dur.</th>
+              <th className="th-label border-b border-ink-800">Início prev.</th>
+              <th className="th-label border-b border-ink-800">Término prev.</th>
+              <th className="th-label border-b border-ink-800">Início real</th>
+              <th className="th-label border-b border-ink-800">Término real</th>
+              <th className="th-label border-b border-ink-800">%</th>
+              <th className="th-label border-b border-ink-800">Folga</th>
+              <th className="th-label border-b border-ink-800">Responsável</th>
+              <th className="th-label border-b border-ink-800">Predecessora</th>
+              <th className="th-label border-b border-ink-800"></th>
             </tr>
           </thead>
           <tbody>
@@ -476,12 +473,14 @@ export default function Cronograma({
             <h2 className="text-sm font-semibold text-fg">Gantt</h2>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-neutral-500">Zoom:</span>
-              <div className="flex overflow-hidden rounded-lg border border-ink-700">
+              <div className="flex gap-0.5 rounded-full bg-black/5 p-0.5">
                 {(Object.keys(ZOOM_PRESETS) as (keyof typeof ZOOM_PRESETS)[]).map((z) => (
                   <button
                     key={z}
                     onClick={() => setZoom(z)}
-                    className={`px-2.5 py-1 capitalize ${zoom === z ? "bg-brand text-white" : "bg-ink-900 text-neutral-500 hover:bg-ink-800"}`}
+                    className={`rounded-full px-2.5 py-1 capitalize transition-colors ${
+                      zoom === z ? "bg-white text-fg shadow-sm" : "text-neutral-500 hover:text-fg"
+                    }`}
                   >
                     {z}
                   </button>
@@ -490,7 +489,7 @@ export default function Cronograma({
             </div>
           </div>
 
-          <div ref={ganttScrollRef} className="mb-3 overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+          <div ref={ganttScrollRef} className="mb-3 overflow-x-auto card">
             <div style={{ width: LABEL_W + gridWidth, position: "relative" }}>
               {/* linha "Hoje" atravessando todas as linhas */}
               {hojeOffset >= 0 && hojeOffset < totalDias && (
@@ -515,7 +514,10 @@ export default function Cronograma({
                   ))}
                 </div>
                 <div className="flex border-b border-ink-800">
-                  <div style={{ width: LABEL_W, minWidth: LABEL_W }} className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900 px-2 py-1 text-xs font-medium text-neutral-600">
+                  <div
+                    style={{ width: LABEL_W, minWidth: LABEL_W }}
+                    className="sticky left-0 z-30 shrink-0 border-r border-ink-800 bg-ink-900 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider text-neutral-400"
+                  >
                     Atividade
                   </div>
                   {dias.map((d, i) => (

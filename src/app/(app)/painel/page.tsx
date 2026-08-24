@@ -38,10 +38,10 @@ export default async function PainelPage() {
     <div>
       <TopBar title="Painel" subtitle="Visão geral das obras" />
 
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {kpis.map((kpi) => (
-            <div key={kpi.label} className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+            <div key={kpi.label} className="card p-4">
               <p className="text-xs uppercase tracking-wide text-neutral-500">{kpi.label}</p>
               <p className="mt-2 text-2xl font-semibold text-fg">{kpi.value}</p>
               <p className="mt-1 text-xs text-neutral-500">{kpi.hint}</p>
@@ -53,7 +53,7 @@ export default async function PainelPage() {
           <h2 className="text-sm font-semibold text-fg">Obras</h2>
           <Link
             href="/obras/nova"
-            className="rounded-lg bg-brand px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-dark"
+            className="btn-primary px-3 py-1.5 text-sm"
           >
             + Nova obra
           </Link>
@@ -74,7 +74,7 @@ export default async function PainelPage() {
                 <Link
                   key={obra.id}
                   href={`/obras/${obra.id}`}
-                  className="rounded-xl border border-ink-800 bg-ink-900 p-4 transition hover:border-brand/50"
+                  className="card p-4 transition hover:border-brand/50"
                 >
                   <p className="text-[11px] uppercase tracking-wide text-neutral-500">{obra.cliente}</p>
                   <div className="mb-2 flex items-start justify-between gap-2">

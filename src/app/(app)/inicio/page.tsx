@@ -41,7 +41,7 @@ export default async function InicioPage() {
         subtitle={hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" })}
       />
 
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <div className="relative overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-indigo-100 p-4 shadow-sm">
             <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl bg-violet-500 text-white shadow">
@@ -77,7 +77,7 @@ export default async function InicioPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <h2 className="mb-3 text-sm font-semibold text-fg">Agenda de hoje</h2>
             {tarefasHoje.length === 0 ? (
               <p className="text-sm text-neutral-500">Nenhuma atividade com início hoje.</p>
@@ -98,7 +98,7 @@ export default async function InicioPage() {
             )}
           </div>
 
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <h2 className="mb-3 text-sm font-semibold text-fg">Atrasadas</h2>
             {tarefasAtrasadas.length === 0 ? (
               <p className="text-sm text-neutral-500">Nada atrasado — parabéns.</p>

@@ -104,7 +104,7 @@ function PropostaDetalhe({ p, obras, onChanged }: { p: Proposta; obras: Obra[]; 
     onChanged();
   }
 
-  const inputCls = "w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand";
+  const inputCls = "w-full pill-field px-2 py-1.5 text-sm";
 
   return (
     <tr className="border-t border-ink-800/60 bg-ink-800/30">
@@ -260,21 +260,21 @@ export default function PropostasPage() {
     <div>
       <TopBar title="Propostas" subtitle="Funil comercial — captação, orçamento e fechamento" />
 
-      <div className="p-6">
+      <div className="p-8">
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <p className="text-xs uppercase text-neutral-500">Propostas</p>
             <p className="mt-1 text-lg font-semibold text-fg">{propostas.length}</p>
           </div>
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <p className="text-xs uppercase text-neutral-500">Em aberto</p>
             <p className="mt-1 text-lg font-semibold text-fg">{emAberto}</p>
           </div>
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <p className="text-xs uppercase text-neutral-500">Valor no funil</p>
             <p className="mt-1 text-lg font-semibold text-fg">{formatBRL(valorTotal)}</p>
           </div>
-          <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <div className="card p-4">
             <p className="text-xs uppercase text-neutral-500">Aprovado</p>
             <p className="mt-1 text-lg font-semibold text-emerald-600">{formatBRL(valorAprovado)}</p>
           </div>
@@ -282,58 +282,58 @@ export default function PropostasPage() {
 
         <button
           onClick={() => setShowForm((v) => !v)}
-          className="mb-4 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
+          className="mb-4 btn-primary px-4 py-2 text-sm"
         >
           {showForm ? "Fechar formulário" : "+ Nova proposta"}
         </button>
 
         {showForm && (
-          <form onSubmit={handleAdd} className="mb-6 grid grid-cols-2 gap-2 rounded-xl border border-ink-800 bg-ink-900 p-4 sm:grid-cols-3">
+          <form onSubmit={handleAdd} className="mb-6 grid grid-cols-2 gap-2 card p-4 sm:grid-cols-3">
             <div>
               <label className="mb-1 block text-xs text-neutral-500">Cliente</label>
-              <input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input value={form.cliente} onChange={(e) => setForm({ ...form, cliente: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-500">Contato</label>
-              <input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} placeholder="nome / telefone" className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input value={form.contato} onChange={(e) => setForm({ ...form, contato: e.target.value })} placeholder="nome / telefone" className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-500">Segmento</label>
-              <input value={form.segmento} onChange={(e) => setForm({ ...form, segmento: e.target.value })} placeholder="industrial, agro..." className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input value={form.segmento} onChange={(e) => setForm({ ...form, segmento: e.target.value })} placeholder="industrial, agro..." className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-xs text-neutral-500">Escopo</label>
-              <input value={form.escopo} onChange={(e) => setForm({ ...form, escopo: e.target.value })} placeholder="estrutura metálica, galpão, reforma..." className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input value={form.escopo} onChange={(e) => setForm({ ...form, escopo: e.target.value })} placeholder="estrutura metálica, galpão, reforma..." className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-500">Valor (R$)</label>
-              <input type="number" step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input type="number" step="0.01" value={form.valor} onChange={(e) => setForm({ ...form, valor: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div>
               <label className="mb-1 block text-xs text-neutral-500">Validade</label>
-              <input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
             <div className="col-span-2">
               <label className="mb-1 block text-xs text-neutral-500">Observações</label>
-              <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full rounded-lg border border-ink-700 bg-ink-800 px-2 py-1.5 text-sm text-fg outline-none focus:border-brand" />
+              <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
-            <button type="submit" className="col-span-1 self-end rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+            <button type="submit" className="col-span-1 self-end btn-primary px-4 py-2 text-sm">
               Criar
             </button>
           </form>
         )}
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+        <div className="overflow-x-auto card">
           <table className="w-full text-sm">
             <thead className="text-left text-neutral-600">
               <tr>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Cliente</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Escopo</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Obra vinculada</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Valor</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Validade</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium">Status</th>
-                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 px-4 py-3 font-medium"></th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Cliente</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Escopo</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Obra vinculada</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Valor</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Validade</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Status</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label"></th>
               </tr>
             </thead>
             <tbody>

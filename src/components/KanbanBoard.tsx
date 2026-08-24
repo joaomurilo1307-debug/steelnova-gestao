@@ -59,9 +59,9 @@ function TaskCard({ tarefa, accent, onClick }: { tarefa: Tarefa; accent: string;
       {...listeners}
       {...attributes}
       onClick={onClick}
-      className={`cursor-grab rounded-xl border border-l-4 ${accent} ${
-        due?.atrasada ? "border-red-300 bg-red-50/60" : "border-ink-700 bg-ink-900"
-      } p-3 shadow-sm transition hover:shadow-md active:cursor-grabbing ${isDragging ? "opacity-60" : ""}`}
+      className={`cursor-grab rounded-xl border-l-4 ${accent} ${
+        due?.atrasada ? "bg-red-50/60 shadow-sm" : "card"
+      } p-3 transition hover:shadow-md active:cursor-grabbing ${isDragging ? "opacity-60" : ""}`}
     >
       {due?.atrasada && (
         <span className="mb-1.5 inline-flex items-center gap-1 rounded-md bg-red-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-700">
@@ -109,7 +109,7 @@ function Column({ col, tarefas, onCardClick }: { col: (typeof COLUNAS)[number]; 
   const atrasadas = tarefas.filter((t) => dueInfo(t)?.atrasada).length;
 
   return (
-    <div ref={setNodeRef} className={`flex w-72 shrink-0 flex-col rounded-2xl border border-ink-800 bg-ink-950 p-3 ${isOver ? "ring-2 ring-brand" : ""}`}>
+    <div ref={setNodeRef} className={`flex w-72 shrink-0 flex-col rounded-2xl bg-black/[0.025] p-3 transition ${isOver ? "ring-2 ring-brand" : ""}`}>
       <div className="mb-3 flex items-center gap-2 px-1">
         <span className={`h-2.5 w-2.5 rounded-full ${col.dot}`} />
         <p className="text-sm font-semibold text-fg">{col.label}</p>
@@ -165,7 +165,7 @@ export default function KanbanBoard({ obraId }: { obraId: string }) {
   const atrasadas = tarefas.filter((t) => dueInfo(t)?.atrasada);
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="min-h-[1px]">
           {atrasadas.length > 0 ? (
@@ -179,7 +179,7 @@ export default function KanbanBoard({ obraId }: { obraId: string }) {
             )
           )}
         </div>
-        <button onClick={() => setModalTarefa(null)} className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button onClick={() => setModalTarefa(null)} className="btn-primary px-4 py-2 text-sm">
           + Nova tarefa
         </button>
       </div>

@@ -76,21 +76,21 @@ export default async function ObraResultadoPage({ params }: { params: { id: stri
   ] as const;
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Receita</p>
           <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(receita)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Custo total</p>
           <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(custoTotal)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Impostos ({(impostoPercent * 100).toFixed(1)}%)</p>
           <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(impostos)}</p>
         </div>
-        <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+        <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Lucro</p>
           <p className={`mt-1 text-xl font-semibold ${lucro >= 0 ? "text-emerald-600" : "text-red-600"}`}>
             {formatBRL(lucro)}
@@ -98,7 +98,7 @@ export default async function ObraResultadoPage({ params }: { params: { id: stri
         </div>
       </div>
 
-      <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+      <div className="card p-4">
         <h2 className="mb-3 text-sm font-semibold text-fg">Composição do custo</h2>
         <table className="w-full text-sm">
           <tbody>

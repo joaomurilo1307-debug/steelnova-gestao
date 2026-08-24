@@ -46,7 +46,7 @@ export default async function CalendarioPage() {
   return (
     <div>
       <TopBar title="Calendário" subtitle={nomeMes} />
-      <div className="p-6">
+      <div className="p-8">
         <CalendarioMes ano={ano} mes={mes} eventos={eventos} />
       </div>
     </div>

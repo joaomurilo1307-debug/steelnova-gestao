@@ -63,7 +63,7 @@ export default function NovaObraPage() {
     <div>
       <TopBar title="Nova obra" subtitle="Cadastro de obra" />
 
-      <div className="p-6">
+      <div className="p-8">
         <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-4">
           {field("Nome da obra", "nome")}
           {field("Cliente", "cliente")}
@@ -77,7 +77,7 @@ export default function NovaObraPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 self-start rounded-lg bg-brand px-4 py-2 font-medium text-white hover:bg-brand-dark disabled:opacity-50"
+            className="mt-2 self-start btn-primary px-4 py-2 disabled:opacity-50"
           >
             {loading ? "Salvando..." : "Salvar obra"}
           </button>

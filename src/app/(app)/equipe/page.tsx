@@ -96,9 +96,9 @@ export default function EquipePage() {
     <div>
       <TopBar title="Equipe" subtitle="Pessoas da SteelNova" />
 
-      <div className="p-6">
+      <div className="p-8">
         {isAdmin && (
-          <details className="mb-4 rounded-xl border border-ink-800 bg-ink-900 p-4">
+          <details className="mb-4 card p-4">
             <summary className="cursor-pointer text-sm font-semibold text-fg">+ Criar acesso</summary>
             <form onSubmit={handleCreate} className="mt-4 flex flex-wrap items-end gap-2">
               <div>
@@ -106,7 +106,7 @@ export default function EquipePage() {
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-48 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                  className="w-48 pill-field px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -115,7 +115,7 @@ export default function EquipePage() {
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="w-56 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                  className="w-56 pill-field px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -123,7 +123,7 @@ export default function EquipePage() {
                 <input
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                  className="w-40 pill-field px-3 py-2 text-sm"
                 />
               </div>
               <div>
@@ -131,7 +131,7 @@ export default function EquipePage() {
                 <select
                   value={form.role}
                   onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className="rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+                  className="pill-field px-3 py-2 text-sm"
                 >
                   <option value="ADMIN">Administrador</option>
                   <option value="ENGENHEIRO">Engenheiro</option>
@@ -139,7 +139,7 @@ export default function EquipePage() {
                   <option value="VISUALIZADOR">Visualizador</option>
                 </select>
               </div>
-              <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+              <button type="submit" className="btn-primary px-4 py-2 text-sm">
                 Criar
               </button>
             </form>
@@ -154,7 +154,7 @@ export default function EquipePage() {
 
         {resetMsg && <p className="mb-3 text-sm text-neutral-600">{resetMsg}</p>}
 
-        <div className="overflow-x-auto rounded-xl border border-ink-800 bg-ink-900">
+        <div className="overflow-x-auto card">
           <table className="w-full text-sm">
             <thead className="bg-ink-900 text-left text-neutral-600">
               <tr>
@@ -212,7 +212,7 @@ export default function EquipePage() {
                           />
                           <button
                             onClick={() => handleReset(u.id)}
-                            className="rounded-lg bg-brand px-2 py-1 text-xs font-medium text-white hover:bg-brand-dark"
+                            className="btn-primary px-2 py-1 text-xs"
                           >
                             Salvar
                           </button>

@@ -105,14 +105,14 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
   const fornecidosPeloCliente = materiais.filter((m) => m.fornecidoPeloCliente);
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <form onSubmit={handleAdd} className="mb-5 flex flex-wrap items-end gap-2">
         <div>
           <label className="mb-1 block text-xs text-neutral-500">Componente</label>
           <select
             value={form.grupo}
             onChange={(e) => setForm({ ...form, grupo: e.target.value })}
-            className="w-44 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-44 pill-field px-3 py-2 text-sm"
           >
             <option value="">— tipo —</option>
             {COMPONENTES.map((c) => (
@@ -126,7 +126,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             placeholder="Perfil UDC 127x50..."
             value={form.nome}
             onChange={(e) => setForm({ ...form, nome: e.target.value })}
-            className="w-52 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-52 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -135,7 +135,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             placeholder="kg, m², un..."
             value={form.unidade}
             onChange={(e) => setForm({ ...form, unidade: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-24 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -145,7 +145,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             step="0.01"
             value={form.quantidadePrevista}
             onChange={(e) => setForm({ ...form, quantidadePrevista: e.target.value })}
-            className="w-28 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-28 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -153,7 +153,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
           <input
             value={form.fornecedor}
             onChange={(e) => setForm({ ...form, fornecedor: e.target.value })}
-            className="w-40 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-40 pill-field px-3 py-2 text-sm"
           />
         </div>
         <div>
@@ -163,25 +163,25 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             step="0.001"
             value={form.pesoUnitario}
             onChange={(e) => setForm({ ...form, pesoUnitario: e.target.value })}
-            className="w-24 rounded-lg border border-ink-700 bg-ink-800 px-3 py-2 text-sm text-fg outline-none focus:border-brand"
+            className="w-24 pill-field px-3 py-2 text-sm"
           />
         </div>
-        <button type="submit" className="rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark">
+        <button type="submit" className="btn-primary px-4 py-2 text-sm">
           Adicionar
         </button>
       </form>
 
       {materiais.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-3">
-          <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3">
+          <div className="card px-4 py-3">
             <div className="text-xs uppercase tracking-wide text-neutral-500">Componentes</div>
             <div className="text-xl font-bold text-fg">{grupos.length}</div>
           </div>
-          <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3">
+          <div className="card px-4 py-3">
             <div className="text-xs uppercase tracking-wide text-neutral-500">Itens</div>
             <div className="text-xl font-bold text-fg">{materiais.length}</div>
           </div>
-          <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-3">
+          <div className="card px-4 py-3">
             <div className="text-xs uppercase tracking-wide text-neutral-500">Peso total</div>
             <div className="text-xl font-bold text-brand">{pesoTotal.toFixed(1)} kg</div>
           </div>
@@ -233,7 +233,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
       )}
 
       {grupos.length === 0 && (
-        <div className="rounded-xl border border-ink-800 bg-ink-900 px-4 py-10 text-center text-neutral-500">
+        <div className="card px-4 py-10 text-center text-neutral-500">
           Nenhum material cadastrado ainda. Escolha o <b>componente</b> (tesouras, terças, chapas…) e adicione.
         </div>
       )}
@@ -243,7 +243,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
           const itens = materiais.filter((m) => (m.grupo || "Outros") === grupo);
           const pesoGrupo = itens.reduce((s, m) => s + pesoDe(m), 0);
           return (
-            <div key={grupo} className="overflow-hidden rounded-xl border border-ink-800 bg-ink-900">
+            <div key={grupo} className="overflow-hidden card">
               <div className="flex items-center justify-between border-b border-ink-800 bg-ink-800 px-4 py-2.5">
                 <div className="flex items-center gap-2">
                   <span className="h-2.5 w-2.5 rounded-full bg-brand" />

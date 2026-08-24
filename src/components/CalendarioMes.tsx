@@ -27,7 +27,7 @@ export default function CalendarioMes({
   while (celulas.length % 7 !== 0) celulas.push(null);
 
   return (
-    <div className="rounded-xl border border-ink-800 bg-ink-900 p-4">
+    <div className="card p-4">
       <div className="mb-2 grid grid-cols-7 gap-2">
         {DIAS_SEMANA.map((d) => (
           <div key={d} className="text-center text-xs font-medium text-neutral-500">

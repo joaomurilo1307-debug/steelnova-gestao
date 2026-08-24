@@ -61,7 +61,7 @@ function TaskCard({ tarefa, onPrioridade }: { tarefa: Tarefa; onPrioridade: (id:
       style={style}
       {...listeners}
       {...attributes}
-      className={`cursor-grab rounded-lg border border-ink-700 bg-ink-800 p-3 text-sm text-fg active:cursor-grabbing ${
+      className={`cursor-grab rounded-xl bg-ink-800 p-3 text-sm text-fg shadow-sm transition hover:shadow-md active:cursor-grabbing ${
         isDragging ? "opacity-60" : ""
       }`}
     >
@@ -117,7 +117,7 @@ function Column({ col, tarefas, onPrioridade }: { col: (typeof COLUNAS)[number];
   return (
     <div
       ref={setNodeRef}
-      className={`flex w-72 shrink-0 flex-col rounded-xl border border-ink-800 bg-ink-900 p-3 ${
+      className={`flex w-72 shrink-0 flex-col card p-3 ${
         isOver ? "ring-1 ring-brand" : ""
       }`}
     >
@@ -173,7 +173,7 @@ export default function TarefasTodas() {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-8">
       <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
         <div className="flex gap-4 overflow-x-auto pb-4">
           {COLUNAS.map((col) => (
