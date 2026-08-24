@@ -39,6 +39,9 @@ export async function GET(req: Request) {
       responsavel: { select: { id: true, name: true, avatarUrl: true } },
       obra: { select: { id: true, nome: true } },
       _count: { select: { subtarefas: true } },
+      dependenciasComoSucessora: {
+        select: { id: true, tipo: true, lagDias: true, predecessoraId: true, predecessora: { select: { id: true, titulo: true } } },
+      },
     },
     orderBy: [{ ordem: "asc" }, { createdAt: "asc" }],
   });

@@ -36,6 +36,14 @@ enum TarefaPrioridade {
   URGENTE
 }
 
+// FS = término→início (padrão), SS = início→início, FF = término→término, SF = início→término
+enum TipoDependencia {
+  FS
+  SS
+  FF
+  SF
+}
+
 enum RaciPapel {
   R
   A
@@ -166,8 +174,29 @@ model Tarefa {
   tarefaMae    Tarefa?  @relation("TarefaSubtarefas", fields: [tarefaMaeId], references: [id], onDelete: Cascade)
   subtarefas   Tarefa[] @relation("TarefaSubtarefas")
 
+  // rede de dependências pra CPM de verdade (caminho crítico) — permite várias predecessoras por
+  // tarefa, com tipo (FS/SS/FF/SF) e lag em dias, igual ao consominas. O predecessoraId acima é
+  // mantido só por compatibilidade com dado antigo; o cálculo de folga/crítico passa a usar isto.
+  dependenciasComoSucessora    TarefaDependencia[] @relation("DependenciaSucessora")
+  dependenciasComoPredecessora TarefaDependencia[] @relation("DependenciaPredecessora")
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model TarefaDependencia {
+  id             String          @id @default(cuid())
+  predecessoraId String
+  sucessoraId    String
+  tipo           TipoDependencia @default(FS)
+  lagDias        Int             @default(0)
+
+  predecessora Tarefa @relation("DependenciaPredecessora", fields: [predecessoraId], references: [id], onDelete: Cascade)
+  sucessora    Tarefa @relation("DependenciaSucessora", fields: [sucessoraId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([predecessoraId, sucessoraId])
 }
 
 model Rdo {
