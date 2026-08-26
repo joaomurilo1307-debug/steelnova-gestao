@@ -1,127 +1,96 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/format";
+import { calcularResultados } from "@/lib/resultado";
 
 export const dynamic = "force-dynamic";
 
-function horasEntre(entrada: string, saida: string): number {
-  const [eh, em] = entrada.split(":").map(Number);
-  const [sh, sm] = saida.split(":").map(Number);
-  let mins = sh * 60 + sm - (eh * 60 + em);
-  if (mins < 0) mins += 24 * 60;
-  return mins / 60;
-}
-
 export default async function ObraResultadoPage({ params }: { params: { id: string } }) {
-  const obra = await prisma.obra.findUnique({
-    where: { id: params.id },
-    include: {
-      custos: true,
-      materiais: true,
-      desembolsos: true,
-      parametrosOrcamento: true,
-      lancamentosPonto: { include: { funcionario: true } },
-    },
-  });
-  if (!obra) notFound();
+  const { obras } = await calcularResultados();
+  const r = obras.find((o) => o.obraId === params.id);
+  if (!r) notFound();
 
-  const horasPorDiaria = Number(obra.parametrosOrcamento?.horasPorDiaria ?? 8);
-  const diariaPadrao = Number(obra.parametrosOrcamento?.diariaPadrao ?? 150);
-  const impostoPercent = Number(obra.parametrosOrcamento?.impostoPercent ?? 0.06);
+  const linhasDiretas = [
+    ["Mão de obra (diárias / ponto)", r.maoDeObra],
+    ["Desembolsos (material/alimentação/ferramenta)", r.desembolsos],
+    ["Materiais recebidos (custo × qtd.)", r.materiais],
+    ["Lançamentos de custo (aba Custos)", r.lancamentos],
+  ] as const;
 
-  const porFuncionario = new Map<string, { horas: number; regime: string; valorFixo: number; diariaFunc: number | null }>();
-  for (const l of obra.lancamentosPonto) {
-    const key = l.funcionario.id;
-    const cur = porFuncionario.get(key) ?? {
-      horas: 0,
-      regime: l.funcionario.regime,
-      valorFixo: Number(l.funcionario.valorFixo ?? 0),
-      diariaFunc: l.funcionario.diariaPadrao ? Number(l.funcionario.diariaPadrao) : null,
-    };
-    cur.horas += horasEntre(l.entrada, l.saida);
-    porFuncionario.set(key, cur);
-  }
-  let custoMaoDeObra = 0;
-  for (const f of porFuncionario.values()) {
-    if (f.regime === "Fixo") {
-      custoMaoDeObra += f.valorFixo;
-    } else {
-      const taxa = f.diariaFunc ?? diariaPadrao;
-      custoMaoDeObra += f.horas * (taxa / horasPorDiaria);
-    }
-  }
-
-  const custoDesembolsos = obra.desembolsos
-    .filter((d) => d.categoria !== "Adiantamento")
-    .reduce((s, d) => s + Number(d.valor), 0);
-
-  const custoMateriais = obra.materiais.reduce(
-    (s, m) => s + Number(m.custoUnitario ?? 0) * Number(m.quantidadeRecebida),
-    0
-  );
-
-  const custoLancamentos = obra.custos.reduce((s, c) => s + Number(c.valorRealizado ?? c.valorPrevisto), 0);
-
-  const receita = Number(obra.valorContrato);
-  const custoTotal = custoMaoDeObra + custoDesembolsos + custoMateriais + custoLancamentos;
-  const impostos = receita * impostoPercent;
-  const lucro = receita - custoTotal - impostos;
-  const margem = receita > 0 ? lucro / receita : 0;
-
-  const linhas = [
-    ["Mão de obra (diárias)", custoMaoDeObra],
-    ["Desembolsos (material/alimentação/ferramenta)", custoDesembolsos],
-    ["Materiais recebidos (custo unitário × qtd.)", custoMateriais],
-    ["Lançamentos de custo (aba Custos)", custoLancamentos],
+  const linhasIndiretas = [
+    ["Custos indiretos rateados (por horas)", r.indiretosRateados],
+    ["Depreciação de aquisições (rateada)", r.depreciacaoRateada],
+    ["Custos indiretos só desta obra", r.indiretosUma],
   ] as const;
 
   return (
     <div className="p-8">
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div className="card p-4">
-          <p className="text-xs uppercase text-neutral-500">Receita</p>
-          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(receita)}</p>
+        <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100 p-4 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-900/60">Receita</p>
+          <p className="mt-0.5 text-xl font-bold text-emerald-700">{formatBRL(r.receita)}</p>
+          <p className="mt-0.5 text-[11px] text-emerald-800/70">{r.receitaMedida > 0 ? "por medições" : "valor do contrato"}</p>
         </div>
         <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Custo total</p>
-          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(custoTotal)}</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(r.custoTotal)}</p>
+          <p className="mt-0.5 text-[11px] text-neutral-500">diretos + indiretos rateados</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs uppercase text-neutral-500">Impostos ({(impostoPercent * 100).toFixed(1)}%)</p>
-          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(impostos)}</p>
+          <p className="text-xs uppercase text-neutral-500">Impostos</p>
+          <p className="mt-1 text-xl font-semibold text-fg">{formatBRL(r.impostos)}</p>
         </div>
-        <div className="card p-4">
-          <p className="text-xs uppercase text-neutral-500">Lucro</p>
-          <p className={`mt-1 text-xl font-semibold ${lucro >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-            {formatBRL(lucro)}
-          </p>
+        <div className={`rounded-2xl border p-4 shadow-sm ${r.lucro >= 0 ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-teal-100" : "border-red-200 bg-gradient-to-br from-red-50 to-rose-100"}`}>
+          <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Resultado operacional</p>
+          <p className={`mt-0.5 text-xl font-bold ${r.lucro >= 0 ? "text-emerald-700" : "text-red-700"}`}>{formatBRL(r.lucro)}</p>
+          <p className="mt-0.5 text-[11px] text-neutral-500">margem {(r.margem * 100).toFixed(1)}%</p>
         </div>
       </div>
 
-      <div className="card p-4">
-        <h2 className="mb-3 text-sm font-semibold text-fg">Composição do custo</h2>
-        <table className="w-full text-sm">
-          <tbody>
-            {linhas.map(([label, valor]) => (
-              <tr key={label} className="border-t border-ink-800">
-                <td className="py-2 text-neutral-600">{label}</td>
-                <td className="py-2 text-right text-fg">{formatBRL(valor)}</td>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div className="card p-4">
+          <h2 className="mb-3 text-sm font-semibold text-fg">Custos diretos da obra</h2>
+          <table className="w-full text-sm">
+            <tbody>
+              {linhasDiretas.map(([label, valor]) => (
+                <tr key={label} className="border-t border-ink-800">
+                  <td className="py-2 text-neutral-600">{label}</td>
+                  <td className="py-2 text-right text-fg">{formatBRL(valor)}</td>
+                </tr>
+              ))}
+              <tr className="border-t border-ink-700 font-medium">
+                <td className="py-2 text-fg">Total diretos</td>
+                <td className="py-2 text-right text-fg">{formatBRL(r.diretos)}</td>
               </tr>
-            ))}
-            <tr className="border-t border-ink-700 font-medium">
-              <td className="py-2 text-fg">CUSTO TOTAL</td>
-              <td className="py-2 text-right text-fg">{formatBRL(custoTotal)}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="mt-4 text-sm text-neutral-600">
-          Margem sobre a receita: <span className="text-fg">{(margem * 100).toFixed(1)}%</span>
-        </p>
-        <p className="mt-1 text-xs text-neutral-600">
-          Receita = valor do contrato da obra (edite em Visão geral, se necessário). Imposto = % sobre faturamento
-          configurado na aba Orçamento → Parâmetros.
-        </p>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="card p-4">
+          <h2 className="mb-1 text-sm font-semibold text-fg">Custos indiretos rateados</h2>
+          <p className="mb-2 text-xs text-neutral-500">
+            Esta obra tem {r.horas.toFixed(0)}h de {r.ativa ? `${(r.share * 100).toFixed(1)}% das horas das obras ativas` : "obra concluída — não recebe rateio"}.
+          </p>
+          <table className="w-full text-sm">
+            <tbody>
+              {linhasIndiretas.map(([label, valor]) => (
+                <tr key={label} className="border-t border-ink-800">
+                  <td className="py-2 text-neutral-600">{label}</td>
+                  <td className="py-2 text-right text-fg">{formatBRL(valor)}</td>
+                </tr>
+              ))}
+              <tr className="border-t border-ink-700 font-medium">
+                <td className="py-2 text-fg">Total indiretos</td>
+                <td className="py-2 text-right text-fg">{formatBRL(r.indiretosRateados + r.depreciacaoRateada + r.indiretosUma)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <p className="mt-4 text-xs text-neutral-500">
+        Receita = medições (ou valor do contrato, se ainda não houver medição). Indiretos e depreciação são rateados
+        entre as obras ativas na proporção das horas trabalhadas. Cadastre aquisições e custos indiretos em Finanças.
+      </p>
     </div>
   );
 }
