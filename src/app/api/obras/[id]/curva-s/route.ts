@@ -33,8 +33,20 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     prisma.medicao.findMany({ where: { obraId: params.id }, orderBy: { data: "asc" } }),
   ]);
 
-  const inicioObra = new Date(obra.dataInicio);
+  // início da série = o MENOR entre a data oficial da obra e a data real da tarefa
+  // mais cedo do Planejamento. Se o Planejamento foi remanejado (obra atrasada,
+  // replanejada, ou — caso da HNSD — datas de demonstração deslocadas) e passou a
+  // começar antes da data oficial, usar só obra.dataInicio cortava esses dias da
+  // conta e a curva "previsto" nunca chegava perto de 100% (bug real, achado
+  // comparando com o Esforço total da aba — a soma batia, mas a curva parava na
+  // metade porque metade dos dias de HH ficava antes do início considerado).
+  let inicioObra = new Date(obra.dataInicio);
   let fimSerie = addDias(inicioObra, Math.max(obra.prazoPrevistoDias, 1));
+  for (const t of tarefas) {
+    if (!t.dataInicio) continue;
+    const inicioTarefa = new Date(t.dataInicio);
+    if (inicioTarefa < inicioObra) inicioObra = inicioTarefa;
+  }
 
   // HH por dia, espalhando cada tarefa igualmente pelos dias que ela dura
   const hhPorDia = new Map<string, number>();

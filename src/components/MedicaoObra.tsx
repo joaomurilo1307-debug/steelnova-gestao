@@ -5,8 +5,8 @@ import * as XLSX from "xlsx";
 import { formatBRL } from "@/lib/format";
 
 type Medicao = { id: string; numero: number; data: string; descricao: string | null; valor: string };
-type LinhaComponente = { grupo: string; peso: number; pctFabricado: number; pctMontado: number; pctPonderado: number };
-type ComponentesResp = { linhas: LinhaComponente[]; pesoTotal: number; pctObra: number; valorMedidoSugerido: number; valorContrato: number };
+type LinhaComponente = { servicoId: string; nome: string; baseQtd: number; unidade: string; valor: number; pctConcluido: number };
+type ComponentesResp = { linhas: LinhaComponente[]; valorTotalServicos: number; pctObra: number; valorMedidoSugerido: number; valorContrato: number };
 type CurvaS = {
   previsto: { data: string; pct: number }[];
   realizado: { data: string; pct: number; valor: number }[];
@@ -55,12 +55,12 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [obraId]);
 
-  async function salvarComponente(grupo: string, pctFabricado: number, pctMontado: number) {
-    setSalvandoGrupo(grupo);
+  async function salvarComponente(servicoId: string, pctConcluido: number) {
+    setSalvandoGrupo(servicoId);
     await fetch(`/api/obras/${obraId}/medicao-componentes`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ grupo, pctFabricado, pctMontado }),
+      body: JSON.stringify({ servicoId, pctConcluido }),
     });
     const cRes = await fetch(`/api/obras/${obraId}/medicao-componentes`);
     if (cRes.ok) setComponentes(await cRes.json());
@@ -76,7 +76,7 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
       body: JSON.stringify({
         obraId,
         data: new Date().toISOString().slice(0, 10),
-        descricao: `Medição física — ${componentes.pctObra.toFixed(1)}% (ponderado por peso)`,
+        descricao: `Medição física — ${componentes.pctObra.toFixed(1)}% (ponderado pelo valor de cada serviço)`,
         valor: Math.round(componentes.valorMedidoSugerido * 100) / 100,
       }),
     });
@@ -111,21 +111,22 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
       wb,
       XLSX.utils.json_to_sheet(
         componentes.linhas.map((l) => ({
-          Componente: l.grupo,
-          "Peso (kg)": Number(l.peso.toFixed(1)),
-          "% do peso total": componentes.pesoTotal > 0 ? Number(((l.peso / componentes.pesoTotal) * 100).toFixed(1)) : 0,
-          "% Fabricado": l.pctFabricado,
-          "% Montado": l.pctMontado,
-          "% Ponderado (médio)": Number(l.pctPonderado.toFixed(1)),
+          Serviço: l.nome,
+          Qtd: l.baseQtd,
+          Un: l.unidade,
+          "Valor do serviço (R$)": Number(l.valor.toFixed(2)),
+          "% do valor total": componentes.valorTotalServicos > 0 ? Number(((l.valor / componentes.valorTotalServicos) * 100).toFixed(1)) : 0,
+          "% Concluído": l.pctConcluido,
+          "Valor medido (R$)": Number(((l.valor * l.pctConcluido) / 100).toFixed(2)),
         }))
       ),
-      "Por componente"
+      "Por serviço"
     );
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([
-        { Indicador: "Peso total da obra (kg)", Valor: Number(componentes.pesoTotal.toFixed(1)) },
-        { Indicador: "% físico da obra (ponderado por peso)", Valor: `${componentes.pctObra.toFixed(1)}%` },
+        { Indicador: "Valor total dos serviços orçados", Valor: Number(componentes.valorTotalServicos.toFixed(2)) },
+        { Indicador: "% físico-financeiro da obra (ponderado pelo valor)", Valor: `${componentes.pctObra.toFixed(1)}%` },
         { Indicador: "Valor do contrato", Valor: componentes.valorContrato },
         { Indicador: "Valor medido sugerido (% físico × contrato)", Valor: Number(componentes.valorMedidoSugerido.toFixed(2)) },
         { Indicador: "% previsto (curva S, hoje)", Valor: curva ? `${curva.pctPrevistoHoje.toFixed(1)}%` : "—" },
@@ -206,15 +207,15 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
         </div>
       )}
 
-      {/* ---------------- Medição física por componente (peso) ---------------- */}
+      {/* ---------------- Medição física-financeira por serviço (valor) ---------------- */}
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-sm font-semibold text-fg">
-          Medição física por componente (peso) {nomeObra && <span className="text-neutral-400">· {nomeObra}</span>}
+          Medição por serviço — ponderada pelo valor {nomeObra && <span className="text-neutral-400">· {nomeObra}</span>}
         </h2>
         {componentes && (
           <div className="flex items-center gap-3">
             <span className="text-xs text-neutral-500">
-              % físico da obra (ponderado por {componentes.pesoTotal.toFixed(0)} kg):
+              % físico-financeiro (ponderado por {formatBRL(componentes.valorTotalServicos)} em serviços):
             </span>
             <span className="text-lg font-bold text-brand">{componentes.pctObra.toFixed(1)}%</span>
           </div>
@@ -225,28 +226,28 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
-              <th className="th-label">Componente</th>
-              <th className="th-label">Peso</th>
-              <th className="th-label">% do peso</th>
-              <th className="th-label">% Fabricado</th>
-              <th className="th-label">% Montado</th>
-              <th className="th-label">% Ponderado</th>
+              <th className="th-label">Serviço (Orçamento)</th>
+              <th className="th-label">Qtd.</th>
+              <th className="th-label">Valor do serviço</th>
+              <th className="th-label">% do valor</th>
+              <th className="th-label">% Concluído</th>
+              <th className="th-label">Valor medido</th>
             </tr>
           </thead>
           <tbody>
             {componentes?.linhas.map((l) => (
               <LinhaComponenteRow
-                key={l.grupo}
+                key={l.servicoId}
                 linha={l}
-                pesoTotal={componentes.pesoTotal}
-                salvando={salvandoGrupo === l.grupo}
-                onSalvar={(f, m) => salvarComponente(l.grupo, f, m)}
+                valorTotal={componentes.valorTotalServicos}
+                salvando={salvandoGrupo === l.servicoId}
+                onSalvar={(pct) => salvarComponente(l.servicoId, pct)}
               />
             ))}
             {(!componentes || componentes.linhas.length === 0) && (
               <tr>
                 <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
-                  Cadastre materiais com peso (aba Materiais) pra medir por componente.
+                  Cadastre os serviços na aba Orçamento (Fabricação, Montagem, Instalação...) pra medir por valor real.
                 </td>
               </tr>
             )}
@@ -266,7 +267,8 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
           📄 Gerar relatório (Excel)
         </button>
         <span className="text-xs text-neutral-500">
-          % Ponderado = (Fabricado + Montado) ÷ 2 por componente; o % da obra pondera cada componente pelo peso dele.
+          Cada serviço pesa pelo valor real dele no Orçamento (fabricação e montagem, que carregam mão de obra, pesam
+          mais por kg do que instalação de telha, por exemplo) — não pelo peso físico puro.
         </span>
       </div>
 
@@ -375,54 +377,43 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
 
 function LinhaComponenteRow({
   linha,
-  pesoTotal,
+  valorTotal,
   salvando,
   onSalvar,
 }: {
   linha: LinhaComponente;
-  pesoTotal: number;
+  valorTotal: number;
   salvando: boolean;
-  onSalvar: (pctFabricado: number, pctMontado: number) => void;
+  onSalvar: (pctConcluido: number) => void;
 }) {
-  const [fab, setFab] = useState(linha.pctFabricado);
-  const [mont, setMont] = useState(linha.pctMontado);
+  const [pct, setPct] = useState(linha.pctConcluido);
 
   useEffect(() => {
-    setFab(linha.pctFabricado);
-    setMont(linha.pctMontado);
+    setPct(linha.pctConcluido);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linha.pctFabricado, linha.pctMontado]);
+  }, [linha.pctConcluido]);
 
   return (
     <tr className="border-t border-ink-800">
-      <td className="px-4 py-2.5 text-fg">{linha.grupo}</td>
-      <td className="px-4 py-2.5 text-neutral-600">{linha.peso > 0 ? `${linha.peso.toFixed(1)} kg` : "—"}</td>
-      <td className="px-4 py-2.5 text-neutral-600">{pesoTotal > 0 ? `${((linha.peso / pesoTotal) * 100).toFixed(1)}%` : "—"}</td>
+      <td className="px-4 py-2.5 text-fg">{linha.nome}</td>
+      <td className="px-4 py-2.5 text-neutral-600">
+        {linha.baseQtd.toLocaleString("pt-BR")} {linha.unidade}
+      </td>
+      <td className="px-4 py-2.5 text-neutral-600">{formatBRL(linha.valor)}</td>
+      <td className="px-4 py-2.5 text-neutral-600">{valorTotal > 0 ? `${((linha.valor / valorTotal) * 100).toFixed(1)}%` : "—"}</td>
       <td className="px-4 py-2.5">
         <input
           type="number"
           min={0}
           max={100}
-          value={fab}
-          onChange={(e) => setFab(Number(e.target.value))}
-          onBlur={() => onSalvar(fab, mont)}
+          value={pct}
+          onChange={(e) => setPct(Number(e.target.value))}
+          onBlur={() => onSalvar(pct)}
           className="w-20 pill-field px-2 py-1 text-sm"
         />
+        {salvando && <span className="ml-1.5 text-xs text-neutral-400">salvando...</span>}
       </td>
-      <td className="px-4 py-2.5">
-        <input
-          type="number"
-          min={0}
-          max={100}
-          value={mont}
-          onChange={(e) => setMont(Number(e.target.value))}
-          onBlur={() => onSalvar(fab, mont)}
-          className="w-20 pill-field px-2 py-1 text-sm"
-        />
-      </td>
-      <td className="px-4 py-2.5 font-medium text-fg">
-        {((fab + mont) / 2).toFixed(1)}% {salvando && <span className="text-xs text-neutral-400">salvando...</span>}
-      </td>
+      <td className="px-4 py-2.5 font-medium text-fg">{formatBRL((linha.valor * pct) / 100)}</td>
     </tr>
   );
 }

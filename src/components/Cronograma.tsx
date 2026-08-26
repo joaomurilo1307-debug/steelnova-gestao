@@ -47,6 +47,17 @@ function horasEntre(entrada: string, saida: string): number {
   return mins / 60;
 }
 
+const COLUNAS_OPCIONAIS = [
+  { key: "pessoas", label: "Pessoas" },
+  { key: "horas", label: "Horas" },
+  { key: "turno", label: "Turno" },
+  { key: "equipe", label: "Equipe" },
+  { key: "folga", label: "Folga" },
+  { key: "predec", label: "Predecessora" },
+] as const;
+type ColunaKey = (typeof COLUNAS_OPCIONAIS)[number]["key"];
+const COLUNAS_PADRAO: ColunaKey[] = ["pessoas", "horas", "equipe", "folga", "predec"];
+
 const SEM_BLOCO = "Sem bloco";
 const DEP_TYPE_LABEL: Record<DependencyType, string> = { FS: "Término → Início", SS: "Início → Início", FF: "Término → Término", SF: "Início → Término" };
 const FASE_COLORS = ["#E8802B", "#0ea5e9", "#8b5cf6", "#14b8a6", "#f43f5e", "#eab308", "#65a30d"];
@@ -109,6 +120,25 @@ export default function Cronograma({
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [pontos, setPontos] = useState<Ponto[]>([]);
   const [equipePanelFor, setEquipePanelFor] = useState<string | null>(null);
+  const [colunasVisiveis, setColunasVisiveis] = useState<Set<ColunaKey>>(new Set(COLUNAS_PADRAO));
+  const [colunasPanelAberto, setColunasPanelAberto] = useState(false);
+
+  useEffect(() => {
+    try {
+      const salvo = localStorage.getItem("steelnova-cronograma-colunas");
+      if (salvo) setColunasVisiveis(new Set(JSON.parse(salvo) as ColunaKey[]));
+    } catch {}
+  }, []);
+  function toggleColuna(key: ColunaKey) {
+    setColunasVisiveis((prev) => {
+      const next = new Set(prev);
+      next.has(key) ? next.delete(key) : next.add(key);
+      try {
+        localStorage.setItem("steelnova-cronograma-colunas", JSON.stringify([...next]));
+      } catch {}
+      return next;
+    });
+  }
   const [zoom, setZoom] = useState<keyof typeof ZOOM_LEVELS>("compacto");
   const [showForm, setShowForm] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -495,7 +525,24 @@ export default function Cronograma({
             <div className="rounded-full bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-600">🔴 {criticalCount} crítica(s)</div>
           </>
         )}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="relative ml-auto flex items-center gap-2">
+          <button type="button" onClick={() => setColunasPanelAberto((v) => !v)} className="btn-ghost px-3 py-2 text-sm">
+            ⚙ Colunas
+          </button>
+          {colunasPanelAberto && (
+            <>
+              <div className="fixed inset-0 z-30" onClick={() => setColunasPanelAberto(false)} />
+              <div className="card absolute right-0 top-full z-40 mt-1 w-48 p-2 text-xs" onClick={(e) => e.stopPropagation()}>
+                <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase text-neutral-400">Mostrar colunas</p>
+                {COLUNAS_OPCIONAIS.map((c) => (
+                  <label key={c.key} className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-1 hover:bg-black/5">
+                    <input type="checkbox" checked={colunasVisiveis.has(c.key)} onChange={() => toggleColuna(c.key)} />
+                    <span className="text-fg">{c.label}</span>
+                  </label>
+                ))}
+              </div>
+            </>
+          )}
           <PlanejamentoImport obraId={obraId} />
           <button onClick={() => setShowForm((v) => !v)} className="btn-primary px-4 py-2 text-sm">
             {showForm ? "Fechar formulário" : "+ Nova atividade"}
@@ -606,10 +653,17 @@ export default function Cronograma({
                   <th className="th-label border-b border-ink-800">Início prev.</th>
                   <th className="th-label border-b border-ink-800">Término prev.</th>
                   <th className="th-label border-b border-ink-800">%</th>
-                  <th className="th-label border-b border-ink-800">Folga</th>
+                  {colunasVisiveis.has("pessoas") && <th className="th-label border-b border-ink-800">Pessoas</th>}
+                  {colunasVisiveis.has("horas") && <th className="th-label border-b border-ink-800">Horas</th>}
+                  {colunasVisiveis.has("turno") && <th className="th-label border-b border-ink-800">Turno</th>}
+                  {colunasVisiveis.has("folga") && <th className="th-label border-b border-ink-800">Folga</th>}
                   <th className="th-label border-b border-ink-800">Responsável</th>
-                  <th className="th-label border-b border-ink-800" title="Equipe de campo (Funcionario) — puxa horas reais do Ponto/RDO">Equipe</th>
-                  <th className="th-label border-b border-ink-800">Predec.</th>
+                  {colunasVisiveis.has("equipe") && (
+                    <th className="th-label border-b border-ink-800" title="Equipe de campo (Funcionario) — puxa horas reais do Ponto/RDO">
+                      Equipe
+                    </th>
+                  )}
+                  {colunasVisiveis.has("predec") && <th className="th-label border-b border-ink-800">Predec.</th>}
                   <th className="th-label border-b border-ink-800"></th>
                 </tr>
               </thead>
@@ -750,9 +804,46 @@ export default function Cronograma({
                                     className={`${cellInputCls} w-12 text-center`}
                                   />
                                 </td>
-                                <td className={`px-3 py-2 ${isCritica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
-                                  {result && !cpm.hasCycle ? (isCritica ? "crítica" : `${result.float}d`) : "—"}
-                                </td>
+                                {colunasVisiveis.has("pessoas") && (
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      defaultValue={t.pessoas ?? ""}
+                                      onBlur={(e) => patch(t.id, { pessoas: e.target.value ? Number(e.target.value) : null })}
+                                      className={`${cellInputCls} w-12 text-center`}
+                                    />
+                                  </td>
+                                )}
+                                {colunasVisiveis.has("horas") && (
+                                  <td className="px-3 py-2">
+                                    <input
+                                      type="number"
+                                      min={0}
+                                      step="0.5"
+                                      defaultValue={t.horas ?? ""}
+                                      onBlur={(e) => patch(t.id, { horas: e.target.value ? Number(e.target.value) : null })}
+                                      className={`${cellInputCls} w-14 text-center`}
+                                    />
+                                  </td>
+                                )}
+                                {colunasVisiveis.has("turno") && (
+                                  <td className="px-3 py-2">
+                                    <select
+                                      value={t.turno ?? "Dia"}
+                                      onChange={(e) => patch(t.id, { turno: e.target.value })}
+                                      className={`${cellInputCls} w-16`}
+                                    >
+                                      <option>Dia</option>
+                                      <option>Noite</option>
+                                    </select>
+                                  </td>
+                                )}
+                                {colunasVisiveis.has("folga") && (
+                                  <td className={`px-3 py-2 ${isCritica ? "font-semibold text-rose-600" : "text-neutral-500"}`}>
+                                    {result && !cpm.hasCycle ? (isCritica ? "crítica" : `${result.float}d`) : "—"}
+                                  </td>
+                                )}
                                 <td className="px-3 py-2">
                                   <div className="flex items-center gap-1.5">
                                     {t.responsavel && <Avatar name={t.responsavel.name} photoUrl={t.responsavel.avatarUrl} color={personColor(t.responsavel.id)} size={18} />}
@@ -766,6 +857,7 @@ export default function Cronograma({
                                     </select>
                                   </div>
                                 </td>
+                                {colunasVisiveis.has("equipe") && (
                                 <td className="relative px-3 py-2">
                                   {(() => {
                                     const nomesEquipe = t.equipeIds.map((id) => funcionarios.find((f) => f.id === id)?.nome).filter(Boolean) as string[];
@@ -815,6 +907,8 @@ export default function Cronograma({
                                     );
                                   })()}
                                 </td>
+                                )}
+                                {colunasVisiveis.has("predec") && (
                                 <td className="relative px-3 py-2">
                                   <button
                                     onClick={() => toggleDepPanel(t.id)}
@@ -870,6 +964,7 @@ export default function Cronograma({
                                     </>
                                   )}
                                 </td>
+                                )}
                                 <td className="px-3 py-2">
                                   <button onClick={() => handleDelete(t.id)} className="text-[10px] text-neutral-300 hover:text-red-500">
                                     ✕
