@@ -11,6 +11,7 @@ const TABS = [
   { seg: "cronograma", label: "Planejamento" },
   { seg: "rdo", label: "RDO" },
   { seg: "diarias", label: "Diárias" },
+  { seg: "medicao", label: "Medição" },
   { seg: "custos", label: "Custos" },
   { seg: "materiais", label: "Materiais" },
   { seg: "equipe", label: "Equipe" },

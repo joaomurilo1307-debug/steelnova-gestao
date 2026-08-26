@@ -123,6 +123,20 @@ model Obra {
   desembolsos        Desembolso[]
   mensagens          ChatMensagem[]
   proposta           Proposta?
+  medicoes           Medicao[]
+}
+
+// Boletim de medição da obra — o executado que vira receita medida (base do resultado operacional).
+model Medicao {
+  id        String   @id @default(cuid())
+  obraId    String
+  numero    Int      @default(1)
+  data      DateTime
+  descricao String?
+  valor     Decimal  @db.Decimal(14, 2)
+  createdAt DateTime @default(now())
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
 }
 
 model ChatMensagem {
