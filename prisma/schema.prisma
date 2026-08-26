@@ -125,6 +125,21 @@ model Obra {
   proposta           Proposta?
   medicoes           Medicao[]
   custosIndiretos    CustoIndireto[]
+  medicaoComponentes MedicaoComponente[]
+}
+
+// Medição física por componente (peso). % Fabricado e % Montado por grupo de material.
+// Peso vem dos Materiais; o avanço é sugerido pelo Planejamento e ajustado aqui.
+model MedicaoComponente {
+  id           String  @id @default(cuid())
+  obraId       String
+  grupo        String
+  pctFabricado Decimal @default(0) @db.Decimal(5, 2)
+  pctMontado   Decimal @default(0) @db.Decimal(5, 2)
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+
+  @@unique([obraId, grupo])
 }
 
 // Aquisição / imobilizado (ex.: máquina). Dois papéis:
