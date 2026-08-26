@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import RdoDeleteButton from "@/components/RdoDeleteButton";
+import RdoImport from "@/components/RdoImport";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,8 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
 
   return (
     <div className="p-8">
-      <div className="mb-4 flex justify-end">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <RdoImport obraId={params.id} />
         <Link
           href={`/obras/${params.id}/rdo/novo`}
           className="btn-primary px-3 py-1.5 text-sm"

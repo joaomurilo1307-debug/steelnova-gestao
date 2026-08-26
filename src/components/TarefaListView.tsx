@@ -188,47 +188,84 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
         return;
       }
       const headers = Object.keys(rows[0]);
-      const colTitulo = acharColuna(headers, ["título", "titulo", "atividade", "tarefa"]);
-      const colFase = acharColuna(headers, ["fase", "bloco"]);
+      const colItem = acharColuna(headers, ["item", "título", "titulo", "atividade", "tarefa"]);
+      const colSubitem = acharColuna(headers, ["subitem", "sub-item", "sub item", "subitem de"]);
+      const colFase = acharColuna(headers, ["bloco", "fase"]);
       const colStatus = acharColuna(headers, ["status"]);
       const colPrioridade = acharColuna(headers, ["prioridade"]);
       const colInicio = acharColuna(headers, ["início", "inicio", "data", "data início", "data inicio"]);
+      const colDuracao = acharColuna(headers, ["duração", "duracao", "duração (dias)", "duracao (dias)", "dias"]);
       const colResp = acharColuna(headers, ["responsável", "responsavel"]);
       const colHorasEst = acharColuna(headers, ["horas estimadas", "horas est.", "horas est"]);
       const colValorHora = acharColuna(headers, ["valor hora", "valor/hora", "valor hora (r$)"]);
 
-      if (!colTitulo) {
-        setResultadoImport('Não achei uma coluna de título ("Título", "Atividade" ou "Tarefa"). Confira o cabeçalho da planilha.');
+      if (!colItem) {
+        setResultadoImport('Não achei uma coluna de item ("Item", "Título", "Atividade" ou "Tarefa"). Confira o cabeçalho da planilha.');
         return;
       }
 
-      let ok = 0;
-      let falhas = 0;
-      for (const row of rows) {
-        const titulo = String(row[colTitulo] ?? "").trim();
-        if (!titulo) continue;
-        const respNome = colResp ? String(row[colResp] ?? "").trim() : "";
-        const membro = respNome ? membros.find((m) => normalizar(m.nome) === normalizar(respNome) || normalizar(m.nome).includes(normalizar(respNome))) : null;
-
-        const body: any = {
+      const val = (row: Record<string, any>, col: string | null) => (col ? String(row[col] ?? "").trim() : "");
+      const bloco = (row: Record<string, any>) => val(row, colFase) || novoBloco || undefined;
+      const camposComuns = (row: Record<string, any>, titulo: string) => {
+        const respNome = val(row, colResp);
+        const membro = respNome
+          ? membros.find((m) => normalizar(m.nome) === normalizar(respNome) || normalizar(m.nome).includes(normalizar(respNome)))
+          : null;
+        return {
           obraId,
           titulo,
-          fase: colFase ? String(row[colFase] ?? "").trim() || novoBloco || undefined : novoBloco || undefined,
+          fase: bloco(row),
           status: mapStatus(colStatus ? String(row[colStatus]) : undefined),
           prioridade: mapPrioridade(colPrioridade ? String(row[colPrioridade]) : undefined),
           dataInicio: colInicio ? excelDataParaISO(row[colInicio]) : undefined,
+          duracaoDias: colDuracao && row[colDuracao] !== "" ? Number(row[colDuracao]) : undefined,
           responsavelId: membro?.userId,
           horasEstimadas: colHorasEst && row[colHorasEst] !== "" ? Number(row[colHorasEst]) : undefined,
           valorHora: colValorHora && row[colValorHora] !== "" ? Number(row[colValorHora]) : undefined,
-        };
+        } as any;
+      };
+      const criar = async (body: any): Promise<string | null> => {
         const res = await fetch("/api/tarefas", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
         });
-        if (res.ok) ok++;
+        if (!res.ok) return null;
+        const t = await res.json().catch(() => null);
+        return t?.id ?? "ok";
+      };
+
+      let ok = 0;
+      let falhas = 0;
+      // chave do item pai = bloco + nome do item (normalizado)
+      const chave = (blocoNome: string | undefined, item: string) => `${normalizar(blocoNome || "")}|${normalizar(item)}`;
+      const idsItens = new Map<string, string>();
+
+      // Passe 1 — cria os ITENS (linhas sem subitem preenchido). Guarda o id de cada item.
+      for (const row of rows) {
+        const item = val(row, colItem);
+        const sub = val(row, colSubitem);
+        if (!item || sub) continue; // subitens ficam pro passe 2
+        const id = await criar(camposComuns(row, item));
+        if (id) {
+          ok++;
+          if (id !== "ok") idsItens.set(chave(bloco(row), item), id);
+        } else falhas++;
+      }
+
+      // Passe 2 — cria os SUBITENS, ligando ao item pai (mesmo bloco + nome do item).
+      for (const row of rows) {
+        const item = val(row, colItem);
+        const sub = val(row, colSubitem);
+        if (!sub) continue;
+        const paiId = idsItens.get(chave(bloco(row), item));
+        const body = camposComuns(row, sub);
+        if (paiId) body.tarefaMaeId = paiId;
+        const id = await criar(body);
+        if (id) ok++;
         else falhas++;
       }
+
       setResultadoImport(`Importado: ${ok} ${ok === 1 ? "atividade" : "atividades"}${falhas > 0 ? `, ${falhas} falharam` : ""}.`);
       load();
     } catch (err: any) {
@@ -239,14 +276,18 @@ export default function TarefaListView({ obraId, titulo = "Lista de atividades",
   }
 
   function handleDownloadTemplate() {
+    // Bloco = seção; Item = atividade; Subitem = sub-atividade dentro do item (deixe vazio se for item).
     const exemplo = [
-      { Título: "Reunião de alinhamento", Fase: "Aquisição", Status: "A fazer", Prioridade: "Média", Início: "2026-09-01", Responsável: "", "Horas estimadas": 1, "Valor hora": "" },
-      { Título: "Orçar calhas", Fase: "Aquisição", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-02", Responsável: "", "Horas estimadas": 2, "Valor hora": "" },
+      { Bloco: "Contratação", Item: "Levantamento em campo", Subitem: "", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-01", "Duração": 1, Responsável: "", "Horas estimadas": 4, "Valor hora": "" },
+      { Bloco: "Fabricação", Item: "Tesouras", Subitem: "", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-05", "Duração": 5, Responsável: "", "Horas estimadas": 40, "Valor hora": "" },
+      { Bloco: "Fabricação", Item: "Tesouras", Subitem: "Corte dos perfis", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-05", "Duração": 2, Responsável: "", "Horas estimadas": 16, "Valor hora": "" },
+      { Bloco: "Fabricação", Item: "Tesouras", Subitem: "Solda e montagem", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-07", "Duração": 3, Responsável: "", "Horas estimadas": 24, "Valor hora": "" },
+      { Bloco: "Montagem", Item: "Montagem no local", Subitem: "", Status: "A fazer", Prioridade: "Alta", Início: "2026-09-15", "Duração": 4, Responsável: "", "Horas estimadas": 32, "Valor hora": "" },
     ];
     const sheet = XLSX.utils.json_to_sheet(exemplo);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, sheet, "Atividades");
-    XLSX.writeFile(wb, "modelo-importacao-atividades.xlsx");
+    XLSX.writeFile(wb, "modelo-planejamento-steelnova.xlsx");
   }
 
   async function patch(id: string, body: any) {
