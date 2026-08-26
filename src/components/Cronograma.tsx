@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import Avatar from "@/components/Avatar";
 import { personColor } from "@/lib/personColor";
 import { computeCPM, type DependencyType } from "@/lib/cpm";
+import PlanejamentoImport from "@/components/PlanejamentoImport";
 
 type Dependencia = {
   id: string;
@@ -30,6 +31,7 @@ type Tarefa = {
   tarefaMaeId: string | null;
   dataInicioReal: string | null;
   dataFimReal: string | null;
+  valorHora: string | null;
   dependenciasComoSucessora: Dependencia[];
 };
 
@@ -75,6 +77,8 @@ export default function Cronograma({
 }) {
   const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
+  const [diariaPadrao, setDiariaPadrao] = useState(150);
+  const [horasPorDiaria, setHorasPorDiaria] = useState(8);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_LEVELS>("compacto");
   const [showForm, setShowForm] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -108,11 +112,20 @@ export default function Cronograma({
   });
 
   async function load() {
-    const [tRes, oRes] = await Promise.all([fetch(`/api/tarefas?obraId=${obraId}`), fetch(`/api/obras/${obraId}`)]);
+    const [tRes, oRes, pRes] = await Promise.all([
+      fetch(`/api/tarefas?obraId=${obraId}`),
+      fetch(`/api/obras/${obraId}`),
+      fetch(`/api/obras/${obraId}/parametros-orcamento`),
+    ]);
     if (tRes.ok) setTarefas(await tRes.json());
     if (oRes.ok) {
       const obra = await oRes.json();
       setMembros(obra.membros.map((m: any) => ({ userId: m.user.id, nome: m.user.name, avatarUrl: m.user.avatarUrl ?? null })));
+    }
+    if (pRes.ok) {
+      const p = await pRes.json();
+      setDiariaPadrao(Number(p.diariaPadrao));
+      setHorasPorDiaria(Number(p.horasPorDiaria));
     }
   }
 
@@ -285,6 +298,12 @@ export default function Cronograma({
 
   const dayWidth = ZOOM_LEVELS[zoom];
   const totalHH = tarefas.reduce((s, t) => s + (t.pessoas ?? 0) * Number(t.horas ?? 0), 0);
+  const taxaHoraPadrao = horasPorDiaria > 0 ? diariaPadrao / horasPorDiaria : 0;
+  const custoPrevisto = tarefas.reduce((s, t) => {
+    const hh = (t.pessoas ?? 0) * Number(t.horas ?? 0);
+    const taxa = t.valorHora ? Number(t.valorHora) : taxaHoraPadrao;
+    return s + hh * taxa;
+  }, 0);
   const fases = useMemo(() => Array.from(new Set(tarefas.map((t) => t.fase ?? "Geral"))), [tarefas]);
   const faseColor = (fase: string | null) => FASE_COLORS[fases.indexOf(fase ?? "Geral") % FASE_COLORS.length];
 
@@ -405,6 +424,12 @@ export default function Cronograma({
           <span className="text-xs text-neutral-500">Esforço total</span>
           <span className="ml-1.5 font-semibold text-fg">{totalHH.toFixed(0)} HH</span>
         </div>
+        <div className="card px-3.5 py-2" title="Pessoas × Horas de cada atividade × valor-hora (da atividade, ou padrão da obra)">
+          <span className="text-xs text-neutral-500">Custo previsto (mão de obra)</span>
+          <span className="ml-1.5 font-semibold text-fg">
+            {custoPrevisto.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+          </span>
+        </div>
         {cpm.hasCycle ? (
           <div className="rounded-full bg-rose-100 px-3.5 py-2 text-xs font-medium text-rose-700">⚠ Ciclo de dependências</div>
         ) : (
@@ -413,9 +438,12 @@ export default function Cronograma({
             <div className="rounded-full bg-rose-50 px-3.5 py-2 text-xs font-medium text-rose-600">🔴 {criticalCount} crítica(s)</div>
           </>
         )}
-        <button onClick={() => setShowForm((v) => !v)} className="ml-auto btn-primary px-4 py-2 text-sm">
-          {showForm ? "Fechar formulário" : "+ Nova atividade"}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <PlanejamentoImport obraId={obraId} />
+          <button onClick={() => setShowForm((v) => !v)} className="btn-primary px-4 py-2 text-sm">
+            {showForm ? "Fechar formulário" : "+ Nova atividade"}
+          </button>
+        </div>
       </div>
 
       {showForm && (
