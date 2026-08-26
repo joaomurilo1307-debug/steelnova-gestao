@@ -72,6 +72,13 @@ enum RdoSituacao {
   PARCIAL
 }
 
+// Status de compra de cada material (aba Materiais). Alimenta o card "Compras necessárias".
+enum StatusCompra {
+  A_COMPRAR
+  EM_COTACAO
+  COMPRADO
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -273,6 +280,7 @@ model Material {
   custoUnitario        Decimal? @db.Decimal(14, 2)
   pesoUnitario         Decimal? @db.Decimal(12, 3)
   fornecidoPeloCliente Boolean  @default(false)
+  statusCompra         StatusCompra @default(A_COMPRAR)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -391,6 +399,7 @@ model CustoLancamento {
   id              String   @id @default(cuid())
   obraId          String
   categoria       String
+  tipo            String   @default("Direto") // "Direto" | "Indireto" — para relatórios
   descricao       String
   valorPrevisto   Decimal  @db.Decimal(14, 2)
   valorRealizado  Decimal? @db.Decimal(14, 2)

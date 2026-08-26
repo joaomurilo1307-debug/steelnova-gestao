@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+type StatusCompra = "A_COMPRAR" | "EM_COTACAO" | "COMPRADO";
+
 type Material = {
   id: string;
   grupo: string | null;
@@ -12,7 +14,15 @@ type Material = {
   fornecedor: string | null;
   pesoUnitario: string | null;
   fornecidoPeloCliente: boolean;
+  statusCompra: StatusCompra;
 };
+
+const STATUS_COMPRA: Record<StatusCompra, { label: string; cls: string }> = {
+  A_COMPRAR: { label: "A comprar", cls: "bg-amber-100 text-amber-800 border-amber-300" },
+  EM_COTACAO: { label: "Em cotação", cls: "bg-sky-100 text-sky-800 border-sky-300" },
+  COMPRADO: { label: "Comprado", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
+};
+const STATUS_ORDER: StatusCompra[] = ["A_COMPRAR", "EM_COTACAO", "COMPRADO"];
 
 // Tipos de componente da estrutura metálica — para separar o material
 const COMPONENTES = [
@@ -91,6 +101,16 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
     if (res.ok) load();
   }
 
+  async function handleStatusCompra(id: string, valor: StatusCompra) {
+    // otimista: reflete na hora, sem esperar o reload
+    setMateriais((prev) => prev.map((m) => (m.id === id ? { ...m, statusCompra: valor } : m)));
+    await fetch(`/api/materiais/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ statusCompra: valor }),
+    });
+  }
+
   const pesoDe = (m: Material) => (m.pesoUnitario ? Number(m.pesoUnitario) * Number(m.quantidadePrevista) : 0);
 
   // Agrupa por tipo de componente (grupo), na ordem de COMPONENTES + extras
@@ -99,10 +119,12 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
   const grupos = ordem.filter((g) => gruposPresentes.includes(g));
   const pesoTotal = materiais.reduce((s, m) => s + pesoDe(m), 0);
   const saldoDe = (m: Material) => Number(m.quantidadePrevista) - Number(m.quantidadeRecebida);
-  // "Compras necessárias" é só o que a SteelNova precisa comprar — material fornecido
-  // pelo cliente (ex.: HNSD) não entra, mesmo com saldo pendente de recebimento.
-  const pendentes = materiais.filter((m) => saldoDe(m) > 0.001 && !m.fornecidoPeloCliente);
+  // "Compras necessárias" = o que a SteelNova precisa comprar. Material fornecido pelo cliente
+  // (ex.: HNSD) não entra; item já marcado "Comprado" também sai da lista.
+  const compraveis = materiais.filter((m) => !m.fornecidoPeloCliente);
+  const pendentes = compraveis.filter((m) => m.statusCompra !== "COMPRADO");
   const fornecidosPeloCliente = materiais.filter((m) => m.fornecidoPeloCliente);
+  const contaStatus = (s: StatusCompra) => compraveis.filter((m) => m.statusCompra === s).length;
 
   return (
     <div className="p-8">
@@ -185,6 +207,16 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
             <div className="text-xs uppercase tracking-wide text-neutral-500">Peso total</div>
             <div className="text-xl font-bold text-brand">{pesoTotal.toFixed(1)} kg</div>
           </div>
+          {compraveis.length > 0 && (
+            <div className="card flex items-center gap-3 px-4 py-3">
+              <div className="text-xs uppercase tracking-wide text-neutral-500">Compras</div>
+              {STATUS_ORDER.map((s) => (
+                <span key={s} className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${STATUS_COMPRA[s].cls}`}>
+                  {contaStatus(s)} {STATUS_COMPRA[s].label}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -208,7 +240,8 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                     <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Componente</th>
                     <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Material</th>
                     <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Fornecedor</th>
-                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 text-right font-medium">Falta comprar</th>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 font-medium">Situação</th>
+                    <th className="sticky top-0 z-10 bg-amber-50 px-4 py-2 text-right font-medium">Quantidade</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -217,7 +250,18 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                       <td className="px-4 py-2 text-neutral-600">{m.grupo || "Outros"}</td>
                       <td className="px-4 py-2 font-medium text-fg">{m.nome}</td>
                       <td className="px-4 py-2 text-neutral-600">{m.fornecedor ?? "—"}</td>
-                      <td className="px-4 py-2 text-right font-semibold text-amber-700">{saldoDe(m).toLocaleString("pt-BR")} {m.unidade}</td>
+                      <td className="px-4 py-2">
+                        <select
+                          value={m.statusCompra}
+                          onChange={(e) => handleStatusCompra(m.id, e.target.value as StatusCompra)}
+                          className={`rounded-full border px-2 py-1 text-xs font-semibold ${STATUS_COMPRA[m.statusCompra].cls}`}
+                        >
+                          {STATUS_ORDER.map((s) => (
+                            <option key={s} value={s}>{STATUS_COMPRA[s].label}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-4 py-2 text-right font-semibold text-amber-700">{Number(m.quantidadePrevista).toLocaleString("pt-BR")} {m.unidade}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -260,6 +304,7 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                     <th className="px-4 py-2 font-medium">Previsto</th>
                     <th className="px-4 py-2 font-medium">Recebido</th>
                     <th className="px-4 py-2 font-medium">Peso total</th>
+                    <th className="px-4 py-2 font-medium">Situação da compra</th>
                     <th className="px-4 py-2 font-medium" title="Marca que o material é fornecido pelo cliente, não é compra da SteelNova">
                       Cliente fornece
                     </th>
@@ -274,6 +319,21 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                       <td className="px-4 py-2.5 text-neutral-600">{Number(m.quantidadePrevista)} {m.unidade}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{Number(m.quantidadeRecebida)} {m.unidade}</td>
                       <td className="px-4 py-2.5 text-neutral-600">{m.pesoUnitario ? `${pesoDe(m).toFixed(1)} kg` : "—"}</td>
+                      <td className="px-4 py-2.5">
+                        {m.fornecidoPeloCliente ? (
+                          <span className="text-xs text-neutral-400">— cliente fornece —</span>
+                        ) : (
+                          <select
+                            value={m.statusCompra}
+                            onChange={(e) => handleStatusCompra(m.id, e.target.value as StatusCompra)}
+                            className={`rounded-full border px-2 py-1 text-xs font-semibold ${STATUS_COMPRA[m.statusCompra].cls}`}
+                          >
+                            {STATUS_ORDER.map((s) => (
+                              <option key={s} value={s}>{STATUS_COMPRA[s].label}</option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
                       <td className="px-4 py-2.5 text-center">
                         <input
                           type="checkbox"

@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 const createCustoSchema = z.object({
   obraId: z.string().min(1),
   categoria: z.string().min(1),
+  tipo: z.string().optional(),
   descricao: z.string().min(1),
   valorPrevisto: z.number().nonnegative(),
   valorRealizado: z.number().nonnegative().optional(),
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
     data: {
       obraId: parsed.data.obraId,
       categoria: parsed.data.categoria,
+      tipo: parsed.data.tipo ?? "Direto",
       descricao: parsed.data.descricao,
       valorPrevisto: parsed.data.valorPrevisto,
       valorRealizado: parsed.data.valorRealizado,
