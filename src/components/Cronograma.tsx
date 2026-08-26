@@ -176,6 +176,26 @@ export default function Cronograma({
     load();
   }
 
+  // atualiza local (setState funcional, sempre pega o estado mais recente) ANTES de
+  // disparar o PATCH — clicar rápido em várias pessoas do mesmo popover não perde
+  // marcação por causa da corrida entre o load() de um clique e o próximo clique
+  function toggleEquipe(tarefaId: string, funcionarioId: string) {
+    setTarefas((prev) =>
+      prev.map((x) => {
+        if (x.id !== tarefaId) return x;
+        const equipeIds = x.equipeIds.includes(funcionarioId)
+          ? x.equipeIds.filter((id) => id !== funcionarioId)
+          : [...x.equipeIds, funcionarioId];
+        fetch(`/api/tarefas/${tarefaId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ equipeIds }),
+        });
+        return { ...x, equipeIds };
+      })
+    );
+  }
+
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!form.titulo.trim()) return;
@@ -775,10 +795,7 @@ export default function Cronograma({
                                                       <input
                                                         type="checkbox"
                                                         checked={marcado}
-                                                        onChange={() => {
-                                                          const novo = marcado ? t.equipeIds.filter((id) => id !== f.id) : [...t.equipeIds, f.id];
-                                                          patch(t.id, { equipeIds: novo });
-                                                        }}
+                                                        onChange={() => toggleEquipe(t.id, f.id)}
                                                       />
                                                       <span className="truncate text-fg">{f.nome}</span>
                                                       {f.cargo && <span className="shrink-0 text-[10px] text-neutral-400">{f.cargo}</span>}
