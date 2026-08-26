@@ -12,11 +12,16 @@ const createSchema = z.object({
   valorFixo: z.number().nonnegative().optional(),
 });
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
-  const funcionarios = await prisma.funcionario.findMany({ where: { active: true }, orderBy: { nome: "asc" } });
+  const { searchParams } = new URL(req.url);
+  const todos = searchParams.get("todos") === "1";
+  const funcionarios = await prisma.funcionario.findMany({
+    where: todos ? undefined : { active: true },
+    orderBy: { nome: "asc" },
+  });
   return NextResponse.json(funcionarios);
 }
 

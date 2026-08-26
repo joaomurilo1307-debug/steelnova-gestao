@@ -25,9 +25,11 @@ const OPERACAO = [
 
 const COMERCIAL = [{ href: "/propostas", label: "Propostas", icon: IconPropostas }];
 
+const RH = [{ href: "/rh", label: "Funcionários", icon: IconEquipe }];
+
 const EMPRESA = [
   { href: "/financas", label: "Finanças", icon: IconCustos },
-  { href: "/equipe", label: "Equipe", icon: IconEquipe },
+  { href: "/equipe", label: "Equipe (sócios)", icon: IconEquipe },
   { href: "/relatorios", label: "Relatórios", icon: IconRelatorios },
   { href: "/raci", label: "Matriz RACI", icon: IconRaci },
 ];
@@ -81,6 +83,7 @@ export default function Sidebar() {
       <div className="flex-1 overflow-y-auto">
         <NavGroup title="Operação" items={OPERACAO} pathname={pathname} />
         <NavGroup title="Comercial" items={COMERCIAL} pathname={pathname} />
+        <NavGroup title="RH" items={RH} pathname={pathname} />
         <NavGroup title="Empresa" items={EMPRESA} pathname={pathname} />
       </div>
 

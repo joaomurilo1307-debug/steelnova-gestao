@@ -10,6 +10,7 @@ const patchSchema = z.object({
   regime: z.enum(["Diaria", "Fixo"]).optional(),
   diariaPadrao: z.number().nonnegative().nullable().optional(),
   valorFixo: z.number().nonnegative().nullable().optional(),
+  active: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
