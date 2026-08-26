@@ -6,6 +6,7 @@ import { formatBRL } from "@/lib/format";
 import AquisicoesView from "@/components/financas/AquisicoesView";
 import CustosIndiretosView from "@/components/financas/CustosIndiretosView";
 import ResultadoView from "@/components/financas/ResultadoView";
+import PropostasProjecaoView from "@/components/financas/PropostasProjecaoView";
 
 type Lancamento = {
   id: string;
@@ -23,6 +24,7 @@ const ABAS = [
   { key: "aquisicoes", label: "Aquisições" },
   { key: "indiretos", label: "Custos indiretos" },
   { key: "resultado", label: "Resultado operacional" },
+  { key: "propostas", label: "Propostas" },
 ];
 
 export default function FinancasPage() {
@@ -92,6 +94,7 @@ export default function FinancasPage() {
         {aba === "aquisicoes" && <AquisicoesView />}
         {aba === "indiretos" && <CustosIndiretosView />}
         {aba === "resultado" && <ResultadoView />}
+        {aba === "propostas" && <PropostasProjecaoView />}
         {aba === "caixa" && (
         <>
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">

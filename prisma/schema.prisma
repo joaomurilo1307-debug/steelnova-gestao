@@ -468,6 +468,7 @@ model Proposta {
   escopo         String
   valor          Decimal?       @db.Decimal(14, 2)
   custoEstimado  Decimal?       @db.Decimal(14, 2)
+  custoGasto     Decimal?       @db.Decimal(14, 2) // valor investido pra ganhar a proposta (visita, projeto, deslocamento)
   status         PropostaStatus @default(RASCUNHO)
   dataEnvio      DateTime?
   validade       DateTime?

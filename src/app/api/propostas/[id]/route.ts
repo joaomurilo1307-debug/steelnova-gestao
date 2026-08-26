@@ -11,6 +11,7 @@ const patchSchema = z.object({
   escopo: z.string().min(1).optional(),
   valor: z.number().nonnegative().nullable().optional(),
   custoEstimado: z.number().nonnegative().nullable().optional(),
+  custoGasto: z.number().nonnegative().nullable().optional(),
   status: z.enum(["RASCUNHO", "ENVIADA", "EM_NEGOCIACAO", "APROVADA", "RECUSADA", "CONVERTIDA"]).optional(),
   dataEnvio: z.string().nullable().optional(),
   validade: z.string().nullable().optional(),
