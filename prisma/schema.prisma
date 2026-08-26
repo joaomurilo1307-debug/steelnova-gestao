@@ -124,6 +124,35 @@ model Obra {
   mensagens          ChatMensagem[]
   proposta           Proposta?
   medicoes           Medicao[]
+  custosIndiretos    CustoIndireto[]
+}
+
+// Aquisição / imobilizado (ex.: máquina). Dois papéis:
+//  - COMPETÊNCIA: parcela mensal (valor/vidaUtilMeses) entra no rateio das obras ativas → resultado operacional.
+//  - CAIXA: valor cheio na dataCompra → relatórios de lucro/caixa (o dinheiro saiu inteiro).
+model Aquisicao {
+  id            String   @id @default(cuid())
+  descricao     String
+  categoria     String   @default("Equipamento")
+  valor         Decimal  @db.Decimal(14, 2)
+  dataCompra    DateTime
+  vidaUtilMeses Int      @default(24)
+  createdAt     DateTime @default(now())
+}
+
+// Custo indireto (ex.: salário administrativo, aluguel). Rateado entre obras.
+model CustoIndireto {
+  id          String   @id @default(cuid())
+  descricao   String
+  categoria   String   @default("Salário")
+  valor       Decimal  @db.Decimal(14, 2)
+  competencia DateTime
+  recorrente  Boolean  @default(false)
+  escopo      String   @default("TODAS") // "TODAS" (ativas por horas) | "UMA" (obra específica)
+  obraId      String?
+  createdAt   DateTime @default(now())
+
+  obra Obra? @relation(fields: [obraId], references: [id], onDelete: SetNull)
 }
 
 // Boletim de medição da obra — o executado que vira receita medida (base do resultado operacional).

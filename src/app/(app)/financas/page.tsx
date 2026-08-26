@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import TopBar from "@/components/TopBar";
 import { formatBRL } from "@/lib/format";
+import AquisicoesView from "@/components/financas/AquisicoesView";
+import CustosIndiretosView from "@/components/financas/CustosIndiretosView";
 
 type Lancamento = {
   id: string;
@@ -15,7 +17,14 @@ type Lancamento = {
 
 const TIPOS = ["Salário", "Retirada de caixa", "Contabilidade", "Nota fiscal", "Outro"];
 
+const ABAS = [
+  { key: "caixa", label: "Caixa" },
+  { key: "aquisicoes", label: "Aquisições" },
+  { key: "indiretos", label: "Custos indiretos" },
+];
+
 export default function FinancasPage() {
+  const [aba, setAba] = useState("caixa");
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [form, setForm] = useState({
     tipo: TIPOS[0],
@@ -61,9 +70,27 @@ export default function FinancasPage() {
 
   return (
     <div>
-      <TopBar title="Finanças" subtitle="Salários, retiradas, contabilidade e notas fiscais da empresa" />
+      <TopBar title="Finanças" subtitle="Caixa, aquisições e custos indiretos da empresa" />
+
+      <div className="flex gap-1 overflow-x-auto border-b border-ink-800 px-8">
+        {ABAS.map((a) => (
+          <button
+            key={a.key}
+            onClick={() => setAba(a.key)}
+            className={`shrink-0 border-b-2 px-3 py-2.5 text-sm transition ${
+              aba === a.key ? "border-brand font-medium text-brand" : "border-transparent text-neutral-600 hover:text-fg"
+            }`}
+          >
+            {a.label}
+          </button>
+        ))}
+      </div>
 
       <div className="p-8">
+        {aba === "aquisicoes" && <AquisicoesView />}
+        {aba === "indiretos" && <CustosIndiretosView />}
+        {aba === "caixa" && (
+        <>
         <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
           {totalPorTipo.map((t) => (
             <div key={t.tipo} className="card p-4">
@@ -157,6 +184,8 @@ export default function FinancasPage() {
             </tbody>
           </table>
         </div>
+        </>
+        )}
       </div>
     </div>
   );
