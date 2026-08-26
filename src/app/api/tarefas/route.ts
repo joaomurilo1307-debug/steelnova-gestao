@@ -24,6 +24,7 @@ const createTarefaSchema = z.object({
   tarefaMaeId: z.string().optional(),
   horasEstimadas: z.number().nonnegative().optional(),
   valorHora: z.number().nonnegative().optional(),
+  equipeIds: z.array(z.string()).optional(),
 });
 
 export async function GET(req: Request) {
@@ -83,6 +84,7 @@ export async function POST(req: Request) {
       tarefaMaeId: parsed.data.tarefaMaeId,
       horasEstimadas: parsed.data.horasEstimadas,
       valorHora: parsed.data.valorHora,
+      equipeIds: parsed.data.equipeIds ?? [],
       ordem: count,
     },
   });

@@ -231,6 +231,10 @@ model Tarefa {
   tarefaMaeId       String?
   horasEstimadas    Decimal?          @db.Decimal(8, 2)
   valorHora         Decimal?          @db.Decimal(10, 2)
+  // Equipe de campo (Funcionario) alocada nesta atividade — separado do responsavelId
+  // (que é o sócio/User responsável). Serve pra puxar horas reais batidas no Ponto/RDO
+  // por essas pessoas dentro da janela da tarefa, sem redigitar nada.
+  equipeIds         String[]          @default([])
 
   obra         Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
   responsavel  User?    @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
@@ -244,6 +248,7 @@ model Tarefa {
   // mantido só por compatibilidade com dado antigo; o cálculo de folga/crítico passa a usar isto.
   dependenciasComoSucessora    TarefaDependencia[] @relation("DependenciaSucessora")
   dependenciasComoPredecessora TarefaDependencia[] @relation("DependenciaPredecessora")
+  rdoAtividades                RdoAtividade[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -304,8 +309,13 @@ model RdoAtividade {
   rdoId     String
   descricao String
   situacao  RdoSituacao @default(PARCIAL)
+  // Liga a atividade do dia a um item real do Planejamento (opcional — permite
+  // digitar livre quando não houver correspondência). SetNull: apagar a tarefa
+  // não some com o histórico do RDO.
+  tarefaId  String?
 
-  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  rdo    Rdo     @relation(fields: [rdoId], references: [id], onDelete: Cascade)
+  tarefa Tarefa? @relation(fields: [tarefaId], references: [id], onDelete: SetNull)
 }
 
 model RdoPendencia {

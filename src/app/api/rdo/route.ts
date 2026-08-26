@@ -14,6 +14,7 @@ const trabalhadorSchema = z.object({
 const atividadeSchema = z.object({
   descricao: z.string().min(1),
   situacao: z.enum(["FINALIZADA", "PARCIAL"]).default("PARCIAL"),
+  tarefaId: z.string().optional(),
 });
 
 const pendenciaSchema = z.object({
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
     include: {
       autor: { select: { name: true } },
       trabalhadores: true,
-      atividades: true,
+      atividades: { include: { tarefa: { select: { id: true, titulo: true } } } },
       pendencias: true,
       fotos: true,
     },

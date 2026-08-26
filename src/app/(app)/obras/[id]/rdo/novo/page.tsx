@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 type Funcionario = { id: string; nome: string; cargo: string | null };
+type TarefaOpt = { id: string; titulo: string; fase: string | null };
 
 type TrabalhadorRow = { funcionarioId: string; nome: string; funcao: string; entrada: string; saida: string };
-type AtividadeRow = { descricao: string; situacao: "FINALIZADA" | "PARCIAL" };
+type AtividadeRow = { descricao: string; situacao: "FINALIZADA" | "PARCIAL"; tarefaId: string };
 type PendenciaRow = { descricao: string; observacao: string };
 
 const CLIMA_OPTIONS = [
@@ -21,6 +22,7 @@ export default function NovoRdoPage() {
   const params = useParams<{ id: string }>();
 
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [tarefas, setTarefas] = useState<TarefaOpt[]>([]);
   const [form, setForm] = useState({
     data: new Date().toISOString().slice(0, 10),
     clima: "SOL",
@@ -34,7 +36,7 @@ export default function NovoRdoPage() {
   const [trabalhadores, setTrabalhadores] = useState<TrabalhadorRow[]>([
     { funcionarioId: "", nome: "", funcao: "", entrada: "07:00", saida: "17:00" },
   ]);
-  const [atividades, setAtividades] = useState<AtividadeRow[]>([{ descricao: "", situacao: "PARCIAL" }]);
+  const [atividades, setAtividades] = useState<AtividadeRow[]>([{ descricao: "", situacao: "PARCIAL", tarefaId: "" }]);
   const [pendencias, setPendencias] = useState<PendenciaRow[]>([]);
   const [foto, setFoto] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,10 @@ export default function NovoRdoPage() {
     fetch("/api/funcionarios")
       .then((r) => (r.ok ? r.json() : []))
       .then(setFuncionarios);
+    fetch(`/api/tarefas?obraId=${params.id}`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((ts) => setTarefas(ts.map((t: any) => ({ id: t.id, titulo: t.titulo, fase: t.fase }))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function updateTrabalhador(i: number, patch: Partial<TrabalhadorRow>) {
@@ -83,7 +89,11 @@ export default function NovoRdoPage() {
           entrada: t.entrada || undefined,
           saida: t.saida || undefined,
         })),
-        atividades: atividadesValidas,
+        atividades: atividadesValidas.map((a) => ({
+          descricao: a.descricao,
+          situacao: a.situacao,
+          tarefaId: a.tarefaId || undefined,
+        })),
         pendencias: pendenciasValidas.map((p) => ({ descricao: p.descricao, observacao: p.observacao || undefined })),
       }),
     });
@@ -233,7 +243,7 @@ export default function NovoRdoPage() {
             <h2 className="text-sm font-semibold text-fg">Atividades realizadas no dia</h2>
             <button
               type="button"
-              onClick={() => setAtividades((a) => [...a, { descricao: "", situacao: "PARCIAL" }])}
+              onClick={() => setAtividades((a) => [...a, { descricao: "", situacao: "PARCIAL", tarefaId: "" }])}
               className="text-xs text-brand hover:underline"
             >
               + Adicionar atividade
@@ -241,7 +251,26 @@ export default function NovoRdoPage() {
           </div>
           <div className="flex flex-col gap-2">
             {atividades.map((a, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={i} className="flex flex-col gap-1.5 rounded-lg border border-ink-800 bg-ink-900 p-2 sm:flex-row sm:items-center sm:gap-2 sm:border-0 sm:bg-transparent sm:p-0">
+                <select
+                  value={a.tarefaId}
+                  onChange={(e) => {
+                    const tarefaId = e.target.value;
+                    const t = tarefas.find((x) => x.id === tarefaId);
+                    setAtividades((rows) =>
+                      rows.map((r, idx) => (idx === i ? { ...r, tarefaId, descricao: t && !r.descricao ? t.titulo : r.descricao } : r))
+                    );
+                  }}
+                  className="w-full pill-field px-2 py-2 text-sm sm:w-56"
+                  title="Associar a um tópico do Planejamento (opcional)"
+                >
+                  <option value="">📋 Tópico do planejamento...</option>
+                  {tarefas.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.fase ? `${t.fase} — ` : ""}{t.titulo}
+                    </option>
+                  ))}
+                </select>
                 <input
                   placeholder="Atividade executada"
                   value={a.descricao}
@@ -256,7 +285,7 @@ export default function NovoRdoPage() {
                   <option value="FINALIZADA">Finalizada</option>
                   <option value="PARCIAL">Parcial</option>
                 </select>
-                <button type="button" onClick={() => setAtividades((r) => r.filter((_, idx) => idx !== i))} className="px-2 text-xs text-red-600">
+                <button type="button" onClick={() => setAtividades((r) => r.filter((_, idx) => idx !== i))} className="self-end px-2 text-xs text-red-600 sm:self-auto">
                   ✕
                 </button>
               </div>

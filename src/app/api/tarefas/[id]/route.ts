@@ -27,6 +27,7 @@ const patchSchema = z.object({
   horasEstimadas: z.number().nonnegative().nullable().optional(),
   valorHora: z.number().nonnegative().nullable().optional(),
   ordem: z.number().int().optional(),
+  equipeIds: z.array(z.string()).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

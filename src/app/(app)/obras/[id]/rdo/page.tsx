@@ -15,7 +15,13 @@ const CLIMA_LABEL: Record<string, string> = {
 export default async function ObraRdoPage({ params }: { params: { id: string } }) {
   const rdos = await prisma.rdo.findMany({
     where: { obraId: params.id },
-    include: { autor: { select: { name: true } }, trabalhadores: true, atividades: true, pendencias: true, fotos: true },
+    include: {
+      autor: { select: { name: true } },
+      trabalhadores: true,
+      atividades: { include: { tarefa: { select: { id: true, titulo: true } } } },
+      pendencias: true,
+      fotos: true,
+    },
     orderBy: { data: "desc" },
   });
 
@@ -91,6 +97,11 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
                     {rdo.atividades.map((a) => (
                       <li key={a.id} className="text-sm text-fg">
                         {a.situacao === "FINALIZADA" ? "✅" : "🔶"} {a.descricao}
+                        {a.tarefa && (
+                          <span className="ml-1.5 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand-dark">
+                            📋 {a.tarefa.titulo}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

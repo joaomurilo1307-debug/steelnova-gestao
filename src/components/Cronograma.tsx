@@ -32,8 +32,20 @@ type Tarefa = {
   dataInicioReal: string | null;
   dataFimReal: string | null;
   valorHora: string | null;
+  equipeIds: string[];
   dependenciasComoSucessora: Dependencia[];
 };
+
+type Funcionario = { id: string; nome: string; cargo: string | null };
+type Ponto = { funcionarioId: string; dia: string; entrada: string; saida: string };
+
+function horasEntre(entrada: string, saida: string): number {
+  const [eh, em] = entrada.split(":").map(Number);
+  const [sh, sm] = saida.split(":").map(Number);
+  let mins = sh * 60 + sm - (eh * 60 + em);
+  if (mins < 0) mins += 24 * 60;
+  return mins / 60;
+}
 
 const SEM_BLOCO = "Sem bloco";
 const DEP_TYPE_LABEL: Record<DependencyType, string> = { FS: "Término → Início", SS: "Início → Início", FF: "Término → Término", SF: "Início → Término" };
@@ -65,6 +77,21 @@ function cpmDueISO(t: Tarefa) {
   if (!t.dataInicio) return null;
   return addDias(toDate(t.dataInicio), t.duracaoDias).toISOString();
 }
+// soma as horas batidas no Ponto pelas pessoas da equipe da tarefa, dentro da janela
+// dataInicio..fim dela — puxa realizado sem precisar digitar nada de novo
+function horasRealizadasDe(t: Tarefa, pontos: Ponto[]): number {
+  if (!t.dataInicio || t.equipeIds.length === 0) return 0;
+  const inicio = toDate(t.dataInicio);
+  const f = fim(t);
+  if (!f) return 0;
+  return pontos
+    .filter((p) => t.equipeIds.includes(p.funcionarioId))
+    .filter((p) => {
+      const dia = toDate(p.dia);
+      return dia >= inicio && dia <= f;
+    })
+    .reduce((s, p) => s + horasEntre(p.entrada, p.saida), 0);
+}
 
 export default function Cronograma({
   obraId,
@@ -79,6 +106,9 @@ export default function Cronograma({
   const [membros, setMembros] = useState<{ userId: string; nome: string; avatarUrl: string | null }[]>([]);
   const [diariaPadrao, setDiariaPadrao] = useState(150);
   const [horasPorDiaria, setHorasPorDiaria] = useState(8);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [equipePanelFor, setEquipePanelFor] = useState<string | null>(null);
   const [zoom, setZoom] = useState<keyof typeof ZOOM_LEVELS>("compacto");
   const [showForm, setShowForm] = useState(false);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
@@ -112,10 +142,12 @@ export default function Cronograma({
   });
 
   async function load() {
-    const [tRes, oRes, pRes] = await Promise.all([
+    const [tRes, oRes, pRes, fRes, ptRes] = await Promise.all([
       fetch(`/api/tarefas?obraId=${obraId}`),
       fetch(`/api/obras/${obraId}`),
       fetch(`/api/obras/${obraId}/parametros-orcamento`),
+      fetch(`/api/funcionarios`),
+      fetch(`/api/ponto?obraId=${obraId}`),
     ]);
     if (tRes.ok) setTarefas(await tRes.json());
     if (oRes.ok) {
@@ -126,6 +158,11 @@ export default function Cronograma({
       const p = await pRes.json();
       setDiariaPadrao(Number(p.diariaPadrao));
       setHorasPorDiaria(Number(p.horasPorDiaria));
+    }
+    if (fRes.ok) setFuncionarios(await fRes.json());
+    if (ptRes.ok) {
+      const pts = await ptRes.json();
+      setPontos(pts.map((l: any) => ({ funcionarioId: l.funcionario.id, dia: l.dia, entrada: l.entrada, saida: l.saida })));
     }
   }
 
@@ -446,6 +483,44 @@ export default function Cronograma({
         </div>
       </div>
 
+      {/* seletor de bloco — vem ANTES do formulário: escolhe/cria o bloco primeiro,
+          pra deixar claro em qual bloco a atividade vai entrar antes de preencher o resto */}
+      <div className="mb-3 flex flex-wrap items-center gap-2.5">
+        <span className="text-xs font-medium text-neutral-500">Bloco da próxima atividade:</span>
+        {!criandoBloco ? (
+          <>
+            <select value={novoBloco} onChange={(e) => setNovoBloco(e.target.value)} className={inputCls} style={{ width: 200 }}>
+              <option value="">Sem bloco</option>
+              {blocosParaSelecionar.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+            <button type="button" onClick={() => setCriandoBloco(true)} className="btn-ghost px-3 py-1.5 text-xs">
+              + Novo bloco
+            </button>
+          </>
+        ) : (
+          <form onSubmit={handleCriarBloco} className="flex items-center gap-2">
+            <input
+              autoFocus
+              value={nomeNovoBloco}
+              onChange={(e) => setNomeNovoBloco(e.target.value)}
+              placeholder="Nome do bloco (Preparação, Fabricação, Montagem...)"
+              className={inputCls}
+              style={{ width: 280 }}
+            />
+            <button type="submit" className="btn-primary px-3 py-1.5 text-xs">
+              Criar
+            </button>
+            <button type="button" onClick={() => setCriandoBloco(false)} className="btn-ghost px-3 py-1.5 text-xs">
+              Cancelar
+            </button>
+          </form>
+        )}
+      </div>
+
       {showForm && (
         <form onSubmit={handleAdd} className="mb-4 grid grid-cols-2 gap-2 card p-4 sm:grid-cols-4 lg:grid-cols-6">
           <div>
@@ -496,42 +571,6 @@ export default function Cronograma({
         </form>
       )}
 
-      {/* seletor de bloco — cria bloco ANTES de criar tarefa, igual a Lista */}
-      <div className="mb-4 flex flex-wrap items-center gap-2.5">
-        {!criandoBloco ? (
-          <>
-            <select value={novoBloco} onChange={(e) => setNovoBloco(e.target.value)} className={inputCls} style={{ width: 200 }}>
-              <option value="">Sem bloco</option>
-              {blocosParaSelecionar.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
-            <button type="button" onClick={() => setCriandoBloco(true)} className="btn-ghost px-3 py-1.5 text-xs">
-              + Novo bloco
-            </button>
-          </>
-        ) : (
-          <form onSubmit={handleCriarBloco} className="flex items-center gap-2">
-            <input
-              autoFocus
-              value={nomeNovoBloco}
-              onChange={(e) => setNomeNovoBloco(e.target.value)}
-              placeholder="Nome do bloco (Preparação, Fabricação, Montagem...)"
-              className={inputCls}
-              style={{ width: 280 }}
-            />
-            <button type="submit" className="btn-primary px-3 py-1.5 text-xs">
-              Criar
-            </button>
-            <button type="button" onClick={() => setCriandoBloco(false)} className="btn-ghost px-3 py-1.5 text-xs">
-              Cancelar
-            </button>
-          </form>
-        )}
-      </div>
-
       {tarefas.length === 0 ? (
         <p className="text-sm text-neutral-500">Nenhuma atividade cadastrada ainda.</p>
       ) : (
@@ -549,6 +588,7 @@ export default function Cronograma({
                   <th className="th-label border-b border-ink-800">%</th>
                   <th className="th-label border-b border-ink-800">Folga</th>
                   <th className="th-label border-b border-ink-800">Responsável</th>
+                  <th className="th-label border-b border-ink-800" title="Equipe de campo (Funcionario) — puxa horas reais do Ponto/RDO">Equipe</th>
                   <th className="th-label border-b border-ink-800">Predec.</th>
                   <th className="th-label border-b border-ink-800"></th>
                 </tr>
@@ -619,7 +659,14 @@ export default function Cronograma({
                                 <td className="px-3 py-2">
                                   <div className="flex items-center gap-1.5" style={{ paddingLeft: depth * 18 }}>
                                     {isCritica && <span className="h-3.5 w-1 shrink-0 rounded-full bg-rose-500" />}
-                                    <span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-400">{numero}</span>
+                                    <span className="shrink-0 font-mono text-[10px] tabular-nums text-neutral-400" title="Numeração automática (posição no bloco)">{numero}</span>
+                                    <input
+                                      defaultValue={t.eap ?? ""}
+                                      onBlur={(e) => patch(t.id, { eap: e.target.value || null })}
+                                      placeholder="eap"
+                                      title="EAP / numeração própria (editável, livre)"
+                                      className={`${cellInputCls} w-10 shrink-0 text-center text-[10px] text-neutral-500`}
+                                    />
                                     {temFilhas && (
                                       <button
                                         onClick={() =>
@@ -698,6 +745,58 @@ export default function Cronograma({
                                       ))}
                                     </select>
                                   </div>
+                                </td>
+                                <td className="relative px-3 py-2">
+                                  {(() => {
+                                    const nomesEquipe = t.equipeIds.map((id) => funcionarios.find((f) => f.id === id)?.nome).filter(Boolean) as string[];
+                                    const hRealizado = horasRealizadasDe(t, pontos);
+                                    return (
+                                      <>
+                                        <button
+                                          type="button"
+                                          onClick={() => setEquipePanelFor(equipePanelFor === t.id ? null : t.id)}
+                                          className={`truncate rounded px-1 py-1 text-left text-[11px] hover:bg-black/5 ${equipePanelFor === t.id ? "bg-brand/10 text-brand-dark" : "text-neutral-500"}`}
+                                          title="Equipe de campo alocada nesta atividade"
+                                        >
+                                          {nomesEquipe.length > 0 ? `👷 ${nomesEquipe.length}` : "+ equipe"}
+                                          {hRealizado > 0 && <span className="ml-1 text-emerald-600">· {hRealizado.toFixed(0)}h real.</span>}
+                                        </button>
+                                        {equipePanelFor === t.id && (
+                                          <>
+                                            <div className="fixed inset-0 z-30" onClick={() => setEquipePanelFor(null)} />
+                                            <div className="card absolute left-0 top-full z-40 w-56 p-2 text-xs normal-case" onClick={(e) => e.stopPropagation()}>
+                                              <p className="mb-1.5 px-1 text-[10px] font-semibold uppercase text-neutral-400">Equipe de campo</p>
+                                              <div className="max-h-52 overflow-y-auto">
+                                                {funcionarios.length === 0 && <p className="px-1 py-2 text-neutral-400">Cadastre em RH.</p>}
+                                                {funcionarios.map((f) => {
+                                                  const marcado = t.equipeIds.includes(f.id);
+                                                  return (
+                                                    <label key={f.id} className="flex cursor-pointer items-center gap-1.5 rounded px-1 py-1 hover:bg-black/5">
+                                                      <input
+                                                        type="checkbox"
+                                                        checked={marcado}
+                                                        onChange={() => {
+                                                          const novo = marcado ? t.equipeIds.filter((id) => id !== f.id) : [...t.equipeIds, f.id];
+                                                          patch(t.id, { equipeIds: novo });
+                                                        }}
+                                                      />
+                                                      <span className="truncate text-fg">{f.nome}</span>
+                                                      {f.cargo && <span className="shrink-0 text-[10px] text-neutral-400">{f.cargo}</span>}
+                                                    </label>
+                                                  );
+                                                })}
+                                              </div>
+                                              {hRealizado > 0 && (
+                                                <p className="mt-1.5 border-t border-ink-800 px-1 pt-1.5 text-[10px] text-emerald-600">
+                                                  {hRealizado.toFixed(1)}h batidas no Ponto dentro do período desta atividade
+                                                </p>
+                                              )}
+                                            </div>
+                                          </>
+                                        )}
+                                      </>
+                                    );
+                                  })()}
                                 </td>
                                 <td className="relative px-3 py-2">
                                   <button
