@@ -7,6 +7,7 @@ import AquisicoesView from "@/components/financas/AquisicoesView";
 import CustosIndiretosView from "@/components/financas/CustosIndiretosView";
 import ResultadoView from "@/components/financas/ResultadoView";
 import PropostasProjecaoView from "@/components/financas/PropostasProjecaoView";
+import DreView from "@/components/financas/DreView";
 
 type Lancamento = {
   id: string;
@@ -20,15 +21,16 @@ type Lancamento = {
 const TIPOS = ["Salário", "Retirada de caixa", "Contabilidade", "Nota fiscal", "Outro"];
 
 const ABAS = [
+  { key: "dre", label: "DRE" },
+  { key: "resultado", label: "Resultado por obra" },
   { key: "caixa", label: "Caixa" },
   { key: "aquisicoes", label: "Aquisições" },
   { key: "indiretos", label: "Custos indiretos" },
-  { key: "resultado", label: "Resultado operacional" },
   { key: "propostas", label: "Propostas" },
 ];
 
 export default function FinancasPage() {
-  const [aba, setAba] = useState("caixa");
+  const [aba, setAba] = useState("dre");
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [form, setForm] = useState({
     tipo: TIPOS[0],
@@ -91,6 +93,7 @@ export default function FinancasPage() {
       </div>
 
       <div className="p-8">
+        {aba === "dre" && <DreView />}
         {aba === "aquisicoes" && <AquisicoesView />}
         {aba === "indiretos" && <CustosIndiretosView />}
         {aba === "resultado" && <ResultadoView />}
