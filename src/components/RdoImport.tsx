@@ -26,6 +26,18 @@ function excelData(v: any): string | undefined {
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
   return undefined;
 }
+function hhmm(v: any): string | undefined {
+  if (v === "" || v == null) return undefined;
+  if (v instanceof Date) return `${String(v.getHours()).padStart(2, "0")}:${String(v.getMinutes()).padStart(2, "0")}`;
+  if (typeof v === "number") {
+    const mins = Math.round(v * 24 * 60);
+    const hh = Math.floor(mins / 60) % 24;
+    const mm = mins % 60;
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  }
+  const m = String(v).trim().match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : undefined;
+}
 function mapClima(v: string) {
   const n = norm(v);
   if (n.includes("nubl")) return "NUBLADO";
@@ -75,8 +87,8 @@ export default function RdoImport({ obraId }: { obraId: string }) {
           const h = Object.keys(r);
           const nome = String(r[acha(h, ["nome"]) ?? ""] ?? "").trim();
           const funcao = String(r[acha(h, ["função", "funcao", "cargo"]) ?? ""] ?? "").trim() || "Ajudante";
-          const entrada = String(r[acha(h, ["entrada"]) ?? ""] ?? "").trim() || undefined;
-          const saida = String(r[acha(h, ["saída", "saida"]) ?? ""] ?? "").trim() || undefined;
+          const entrada = hhmm(r[acha(h, ["entrada"]) ?? ""]);
+          const saida = hhmm(r[acha(h, ["saída", "saida"]) ?? ""]);
           return { nome, funcao, entrada, saida };
         })
         .filter((t) => t.nome);
@@ -121,7 +133,32 @@ export default function RdoImport({ obraId }: { obraId: string }) {
         body: JSON.stringify(body),
       });
       if (res.ok) {
-        setMsg(`RDO de ${data.split("-").reverse().join("/")} importado: ${trabalhadores.length} da equipe, ${atividades.length} atividade(s), ${pendencias.length} pendência(s).`);
+        // Alimenta as Diárias: cria lançamento de ponto pra cada trabalhador da ficha
+        // que casa (pelo nome) com um funcionário cadastrado no RH e tem entrada+saída.
+        let pontos = 0;
+        try {
+          const fRes = await fetch("/api/funcionarios");
+          const funcs: { id: string; nome: string }[] = fRes.ok ? await fRes.json() : [];
+          for (const t of trabalhadores) {
+            if (!t.entrada || !t.saida) continue;
+            const m = funcs.find(
+              (f) => norm(f.nome) === norm(t.nome) || norm(f.nome).includes(norm(t.nome)) || norm(t.nome).includes(norm(f.nome))
+            );
+            if (!m) continue;
+            const pr = await fetch("/api/ponto", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ obraId, funcionarioId: m.id, dia: data, entrada: t.entrada, saida: t.saida }),
+            });
+            if (pr.ok) pontos++;
+          }
+        } catch {}
+        const semPonto = trabalhadores.length - pontos;
+        setMsg(
+          `RDO de ${data.split("-").reverse().join("/")} importado: ${atividades.length} atividade(s), ${pendencias.length} pendência(s). ` +
+            `Diárias: ${pontos} ponto(s) lançado(s)` +
+            (semPonto > 0 ? ` — ${semPonto} da equipe não casou com o RH (cadastre no RH pra virar diária).` : ".")
+        );
         router.refresh();
       } else {
         const err = await res.json().catch(() => ({}));
