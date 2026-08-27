@@ -18,6 +18,8 @@ const createSchema = z.object({
   observacoes: z.string().optional(),
   responsavelId: z.string().optional(),
   obraId: z.string().optional(),
+  dataInicioPrevista: z.string().optional(),
+  prazoDiasContrato: z.number().int().positive().optional(),
 });
 
 export async function GET() {
@@ -27,7 +29,7 @@ export async function GET() {
   const propostas = await prisma.proposta.findMany({
     include: {
       responsavel: { select: { id: true, name: true, avatarUrl: true } },
-      obra: { select: { id: true, nome: true, status: true } },
+      obra: { select: { id: true, nome: true, status: true, dataInicio: true, prazoPrevistoDias: true } },
       arquivos: true,
     },
     orderBy: { createdAt: "desc" },
@@ -62,6 +64,8 @@ export async function POST(req: Request) {
       observacoes: parsed.data.observacoes,
       responsavelId: parsed.data.responsavelId,
       obraId: parsed.data.obraId,
+      dataInicioPrevista: parsed.data.dataInicioPrevista ? new Date(parsed.data.dataInicioPrevista) : undefined,
+      prazoDiasContrato: parsed.data.prazoDiasContrato,
     },
   });
 

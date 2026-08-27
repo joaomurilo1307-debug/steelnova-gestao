@@ -19,6 +19,8 @@ const patchSchema = z.object({
   motivoPerda: z.string().nullable().optional(),
   responsavelId: z.string().nullable().optional(),
   obraId: z.string().nullable().optional(),
+  dataInicioPrevista: z.string().nullable().optional(),
+  prazoDiasContrato: z.number().int().positive().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
@@ -35,6 +37,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const data: any = { ...parsed.data };
   if (data.dataEnvio) data.dataEnvio = new Date(data.dataEnvio);
   if (data.validade) data.validade = new Date(data.validade);
+  if (data.dataInicioPrevista) data.dataInicioPrevista = new Date(data.dataInicioPrevista);
 
   const proposta = await prisma.proposta.update({ where: { id: params.id }, data });
   return NextResponse.json(proposta);

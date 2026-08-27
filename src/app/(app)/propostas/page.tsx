@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import TopBar from "@/components/TopBar";
-import { formatBRL } from "@/lib/format";
+import { formatBRL, periodoContratoLabel } from "@/lib/format";
 
 type Proposta = {
   id: string;
@@ -19,9 +19,12 @@ type Proposta = {
   motivoPerda: string | null;
   responsavel: { id: string; name: string } | null;
   obraId: string | null;
-  obra: { id: string; nome: string; status: string } | null;
+  obra: { id: string; nome: string; status: string; dataInicio: string; prazoPrevistoDias: number } | null;
+  dataInicioPrevista: string | null;
+  prazoDiasContrato: number | null;
   arquivos: { id: string; nome: string; tamanho: number }[];
 };
+
 
 type Obra = { id: string; nome: string };
 type Material = { id: string; nome: string; quantidadePrevista: string; quantidadeRecebida: string; unidade: string; fornecedor: string | null };
@@ -108,7 +111,7 @@ function PropostaDetalhe({ p, obras, onChanged }: { p: Proposta; obras: Obra[]; 
 
   return (
     <tr className="border-t border-ink-800/60 bg-ink-800/30">
-      <td colSpan={7} className="px-4 py-4">
+      <td colSpan={8} className="px-4 py-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Custo estimado (R$)</label>
@@ -140,6 +143,27 @@ function PropostaDetalhe({ p, obras, onChanged }: { p: Proposta; obras: Obra[]; 
           <div>
             <label className="mb-1 block text-xs text-neutral-500">Motivo de perda (se recusada)</label>
             <input defaultValue={p.motivoPerda ?? ""} onBlur={(e) => patch({ motivoPerda: e.target.value || null })} className={inputCls} />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500">Início previsto (estimativa)</label>
+            <input
+              type="date"
+              defaultValue={p.dataInicioPrevista?.slice(0, 10) ?? ""}
+              onBlur={(e) => patch({ dataInicioPrevista: e.target.value || null })}
+              disabled={!!p.obraId}
+              className={`${inputCls} disabled:opacity-50`}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-neutral-500">Prazo do contrato (dias)</label>
+            <input
+              type="number"
+              defaultValue={p.prazoDiasContrato ?? ""}
+              onBlur={(e) => patch({ prazoDiasContrato: e.target.value ? Number(e.target.value) : null })}
+              disabled={!!p.obraId}
+              className={`${inputCls} disabled:opacity-50`}
+            />
+            {p.obraId && <p className="mt-1 text-[11px] text-neutral-500">Convertida em obra — período real vem do Planejamento.</p>}
           </div>
         </div>
 
@@ -200,6 +224,8 @@ export default function PropostasPage() {
     valor: "",
     validade: "",
     observacoes: "",
+    dataInicioPrevista: "",
+    prazoDiasContrato: "",
   });
 
   async function load() {
@@ -226,10 +252,12 @@ export default function PropostasPage() {
         valor: form.valor ? Number(form.valor) : undefined,
         validade: form.validade || undefined,
         observacoes: form.observacoes || undefined,
+        dataInicioPrevista: form.dataInicioPrevista || undefined,
+        prazoDiasContrato: form.prazoDiasContrato ? Number(form.prazoDiasContrato) : undefined,
       }),
     });
     if (res.ok) {
-      setForm({ cliente: "", contato: "", segmento: "", escopo: "", valor: "", validade: "", observacoes: "" });
+      setForm({ cliente: "", contato: "", segmento: "", escopo: "", valor: "", validade: "", observacoes: "", dataInicioPrevista: "", prazoDiasContrato: "" });
       setShowForm(false);
       load();
     }
@@ -313,6 +341,24 @@ export default function PropostasPage() {
               <label className="mb-1 block text-xs text-neutral-500">Validade</label>
               <input type="date" value={form.validade} onChange={(e) => setForm({ ...form, validade: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
             </div>
+            <div>
+              <label className="mb-1 block text-xs text-neutral-500">Início previsto (estimativa)</label>
+              <input
+                type="date"
+                value={form.dataInicioPrevista}
+                onChange={(e) => setForm({ ...form, dataInicioPrevista: e.target.value })}
+                className="w-full pill-field px-2 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-neutral-500">Prazo do contrato (dias)</label>
+              <input
+                type="number"
+                value={form.prazoDiasContrato}
+                onChange={(e) => setForm({ ...form, prazoDiasContrato: e.target.value })}
+                className="w-full pill-field px-2 py-1.5 text-sm"
+              />
+            </div>
             <div className="col-span-2">
               <label className="mb-1 block text-xs text-neutral-500">Observações</label>
               <input value={form.observacoes} onChange={(e) => setForm({ ...form, observacoes: e.target.value })} className="w-full pill-field px-2 py-1.5 text-sm" />
@@ -331,6 +377,7 @@ export default function PropostasPage() {
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Escopo</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Obra vinculada</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Valor</th>
+                <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label" title="Real (Planejamento) se já virou obra, senão a estimativa lançada">Período do contrato</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Validade</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Status</th>
                 <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label"></th>
@@ -350,6 +397,7 @@ export default function PropostasPage() {
                     <td className="px-4 py-3 text-neutral-600">{p.escopo}</td>
                     <td className="px-4 py-3 text-neutral-600">{p.obra?.nome ?? "—"}</td>
                     <td className="px-4 py-3 text-fg">{p.valor ? formatBRL(Number(p.valor)) : "—"}</td>
+                    <td className="px-4 py-3 text-neutral-600">{periodoContratoLabel(p)}</td>
                     <td className="px-4 py-3 text-neutral-600">
                       {p.validade ? new Date(p.validade).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
                     </td>
@@ -377,7 +425,7 @@ export default function PropostasPage() {
               ))}
               {propostas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-neutral-500">
+                  <td colSpan={8} className="px-4 py-10 text-center text-neutral-500">
                     Nenhuma proposta cadastrada ainda.
                   </td>
                 </tr>
