@@ -33,11 +33,13 @@ type Tarefa = {
   dataFimReal: string | null;
   valorHora: string | null;
   equipeIds: string[];
+  servicoOrcamentoId: string | null;
   dependenciasComoSucessora: Dependencia[];
 };
 
 type Funcionario = { id: string; nome: string; cargo: string | null };
 type Ponto = { funcionarioId: string; dia: string; entrada: string; saida: string };
+type ServicoOrc = { id: string; nome: string };
 
 function horasEntre(entrada: string, saida: string): number {
   const [eh, em] = entrada.split(":").map(Number);
@@ -52,11 +54,12 @@ const COLUNAS_OPCIONAIS = [
   { key: "horas", label: "Horas" },
   { key: "turno", label: "Turno" },
   { key: "equipe", label: "Equipe" },
+  { key: "servico", label: "Serviço (Orçamento)" },
   { key: "folga", label: "Folga" },
   { key: "predec", label: "Predecessora" },
 ] as const;
 type ColunaKey = (typeof COLUNAS_OPCIONAIS)[number]["key"];
-const COLUNAS_PADRAO: ColunaKey[] = ["pessoas", "horas", "equipe", "folga", "predec"];
+const COLUNAS_PADRAO: ColunaKey[] = ["pessoas", "horas", "equipe", "servico", "folga", "predec"];
 
 const SEM_BLOCO = "Sem bloco";
 const DEP_TYPE_LABEL: Record<DependencyType, string> = { FS: "Término → Início", SS: "Início → Início", FF: "Término → Término", SF: "Início → Término" };
@@ -119,6 +122,7 @@ export default function Cronograma({
   const [horasPorDiaria, setHorasPorDiaria] = useState(8);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [servicos, setServicos] = useState<ServicoOrc[]>([]);
   const [equipePanelFor, setEquipePanelFor] = useState<string | null>(null);
   const [colunasVisiveis, setColunasVisiveis] = useState<Set<ColunaKey>>(new Set(COLUNAS_PADRAO));
   const [colunasPanelAberto, setColunasPanelAberto] = useState(false);
@@ -172,14 +176,16 @@ export default function Cronograma({
   });
 
   async function load() {
-    const [tRes, oRes, pRes, fRes, ptRes] = await Promise.all([
+    const [tRes, oRes, pRes, fRes, ptRes, svRes] = await Promise.all([
       fetch(`/api/tarefas?obraId=${obraId}`),
       fetch(`/api/obras/${obraId}`),
       fetch(`/api/obras/${obraId}/parametros-orcamento`),
       fetch(`/api/funcionarios`),
       fetch(`/api/ponto?obraId=${obraId}`),
+      fetch(`/api/servicos-orcamento?obraId=${obraId}`),
     ]);
     if (tRes.ok) setTarefas(await tRes.json());
+    if (svRes.ok) setServicos((await svRes.json()).map((s: any) => ({ id: s.id, nome: s.nome })));
     if (oRes.ok) {
       const obra = await oRes.json();
       setMembros(obra.membros.map((m: any) => ({ userId: m.user.id, nome: m.user.name, avatarUrl: m.user.avatarUrl ?? null })));
@@ -663,6 +669,11 @@ export default function Cronograma({
                       Equipe
                     </th>
                   )}
+                  {colunasVisiveis.has("servico") && (
+                    <th className="th-label border-b border-ink-800" title="Vincula esta tarefa a um serviço do Orçamento — a Medição usa isso pra sugerir o % concluído">
+                      Serviço (Orç.)
+                    </th>
+                  )}
                   {colunasVisiveis.has("predec") && <th className="th-label border-b border-ink-800">Predec.</th>}
                   <th className="th-label border-b border-ink-800"></th>
                 </tr>
@@ -906,6 +917,23 @@ export default function Cronograma({
                                       </>
                                     );
                                   })()}
+                                </td>
+                                )}
+                                {colunasVisiveis.has("servico") && (
+                                <td className="px-3 py-2">
+                                  <select
+                                    value={t.servicoOrcamentoId ?? ""}
+                                    onChange={(e) => patch(t.id, { servicoOrcamentoId: e.target.value || null })}
+                                    className={`${cellInputCls} w-32`}
+                                    title="Serviço do Orçamento executado por esta tarefa"
+                                  >
+                                    <option value="">—</option>
+                                    {servicos.map((s) => (
+                                      <option key={s.id} value={s.id}>
+                                        {s.nome}
+                                      </option>
+                                    ))}
+                                  </select>
                                 </td>
                                 )}
                                 {colunasVisiveis.has("predec") && (

@@ -96,6 +96,46 @@ model User {
   raciAtribuicoes RaciAtribuicao[]
   mensagens      ChatMensagem[]
   propostas      Proposta[]
+  rotinas        Rotina[]
+}
+
+enum RotinaRecorrencia {
+  DIARIA
+  DIAS_UTEIS
+  SEMANAL
+  PONTUAL
+}
+
+// Tarefa de rotina/vida pessoal — não pertence a nenhuma Obra. Recriada "sozinha" a cada
+// virada de dia: RotinaExecucao guarda só se ela foi concluída NAQUELE dia (@@unique
+// [rotinaId,data]), então um dia novo automaticamente não tem execução ainda = pendente de
+// novo, sem precisar de job/cron pra "resetar" nada.
+model Rotina {
+  id           String            @id @default(cuid())
+  userId       String
+  titulo       String
+  descricao    String?
+  duracaoMin   Int?
+  recorrencia  RotinaRecorrencia @default(DIARIA)
+  diasSemana   Int[]             @default([]) // 0=domingo...6=sábado, usado só quando SEMANAL
+  ativo        Boolean           @default(true)
+  ordem        Int               @default(0)
+  createdAt    DateTime          @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  execucoes RotinaExecucao[]
+}
+
+model RotinaExecucao {
+  id           String   @id @default(cuid())
+  rotinaId     String
+  data         String   // yyyy-mm-dd (dia local do usuário, não UTC)
+  concluida    Boolean  @default(false)
+  concluidaEm  DateTime?
+
+  rotina Rotina @relation(fields: [rotinaId], references: [id], onDelete: Cascade)
+
+  @@unique([rotinaId, data])
 }
 
 model Obra {
@@ -235,13 +275,18 @@ model Tarefa {
   // (que é o sócio/User responsável). Serve pra puxar horas reais batidas no Ponto/RDO
   // por essas pessoas dentro da janela da tarefa, sem redigitar nada.
   equipeIds         String[]          @default([])
+  // Vínculo opcional com o serviço do Orçamento que essa tarefa executa (ex.: tarefas de
+  // solda/montagem de tesoura → serviço "B · Montagem"). Permite a Medição sugerir o %
+  // concluído de cada serviço a partir do progresso real do Planejamento, sem redigitar.
+  servicoOrcamentoId String?
 
-  obra         Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
-  responsavel  User?    @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
-  predecessora Tarefa?  @relation("TarefaPredecessora", fields: [predecessoraId], references: [id])
-  sucessoras   Tarefa[] @relation("TarefaPredecessora")
-  tarefaMae    Tarefa?  @relation("TarefaSubtarefas", fields: [tarefaMaeId], references: [id], onDelete: Cascade)
-  subtarefas   Tarefa[] @relation("TarefaSubtarefas")
+  obra             Obra              @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  responsavel      User?             @relation("TarefaResponsavel", fields: [responsavelId], references: [id])
+  predecessora     Tarefa?           @relation("TarefaPredecessora", fields: [predecessoraId], references: [id])
+  sucessoras       Tarefa[]          @relation("TarefaPredecessora")
+  tarefaMae        Tarefa?           @relation("TarefaSubtarefas", fields: [tarefaMaeId], references: [id], onDelete: Cascade)
+  subtarefas       Tarefa[]          @relation("TarefaSubtarefas")
+  servicoOrcamento ServicoOrcamento? @relation(fields: [servicoOrcamentoId], references: [id], onDelete: SetNull)
 
   // rede de dependências pra CPM de verdade (caminho crítico) — permite várias predecessoras por
   // tarefa, com tipo (FS/SS/FF/SF) e lag em dias, igual ao consominas. O predecessoraId acima é
@@ -385,7 +430,8 @@ model ServicoOrcamento {
   ordem           Int     @default(0)
   createdAt       DateTime @default(now())
 
-  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obra    Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  tarefas Tarefa[]
 }
 
 model Funcionario {
@@ -497,6 +543,11 @@ model Proposta {
   status         PropostaStatus @default(RASCUNHO)
   dataEnvio      DateTime?
   validade       DateTime?
+  // Período estimado do contrato (antes de virar Obra de verdade). Uma vez convertida
+  // (obraId setado), o período real/projetado passa a vir da curva S da Obra — estes dois
+  // campos ficam só como a estimativa original da proposta, pra comparar depois.
+  dataInicioPrevista DateTime?
+  prazoDiasContrato  Int?
   observacoes    String?
   motivoPerda    String?
   responsavelId  String?

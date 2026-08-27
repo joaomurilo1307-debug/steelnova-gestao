@@ -5,8 +5,24 @@ import * as XLSX from "xlsx";
 import { formatBRL } from "@/lib/format";
 
 type Medicao = { id: string; numero: number; data: string; descricao: string | null; valor: string };
-type LinhaComponente = { servicoId: string; nome: string; baseQtd: number; unidade: string; valor: number; pctConcluido: number };
-type ComponentesResp = { linhas: LinhaComponente[]; valorTotalServicos: number; pctObra: number; valorMedidoSugerido: number; valorContrato: number };
+type LinhaComponente = {
+  servicoId: string;
+  nome: string;
+  baseQtd: number;
+  unidade: string;
+  valor: number;
+  insumosCliente: number;
+  pctConcluido: number;
+  pctSugerido: number | null;
+};
+type ComponentesResp = {
+  linhas: LinhaComponente[];
+  valorTotalServicos: number;
+  valorInsumosCliente: number;
+  pctObra: number;
+  valorMedidoSugerido: number;
+  valorContrato: number;
+};
 type CurvaS = {
   previsto: { data: string; pct: number }[];
   realizado: { data: string; pct: number; valor: number }[];
@@ -115,6 +131,7 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
           Qtd: l.baseQtd,
           Un: l.unidade,
           "Valor do serviço (R$)": Number(l.valor.toFixed(2)),
+          "Insumos por conta do cliente (R$)": Number(l.insumosCliente.toFixed(2)),
           "% do valor total": componentes.valorTotalServicos > 0 ? Number(((l.valor / componentes.valorTotalServicos) * 100).toFixed(1)) : 0,
           "% Concluído": l.pctConcluido,
           "Valor medido (R$)": Number(((l.valor * l.pctConcluido) / 100).toFixed(2)),
@@ -125,7 +142,8 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
     XLSX.utils.book_append_sheet(
       wb,
       XLSX.utils.json_to_sheet([
-        { Indicador: "Valor total dos serviços orçados", Valor: Number(componentes.valorTotalServicos.toFixed(2)) },
+        { Indicador: "Valor total dos serviços orçados (SteelNova)", Valor: Number(componentes.valorTotalServicos.toFixed(2)) },
+        { Indicador: "Insumos por conta do cliente (fora do preço acima)", Valor: Number(componentes.valorInsumosCliente.toFixed(2)) },
         { Indicador: "% físico-financeiro da obra (ponderado pelo valor)", Valor: `${componentes.pctObra.toFixed(1)}%` },
         { Indicador: "Valor do contrato", Valor: componentes.valorContrato },
         { Indicador: "Valor medido sugerido (% físico × contrato)", Valor: Number(componentes.valorMedidoSugerido.toFixed(2)) },
@@ -229,8 +247,9 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
               <th className="th-label">Serviço (Orçamento)</th>
               <th className="th-label">Qtd.</th>
               <th className="th-label">Valor do serviço</th>
+              <th className="th-label" title="Consumíveis por conta do cliente — informativo, não pondera o %">Insumos (cliente)</th>
               <th className="th-label">% do valor</th>
-              <th className="th-label">% Concluído</th>
+              <th className="th-label" title="Sugerido a partir do progresso das tarefas do Planejamento vinculadas a este serviço">% Concluído</th>
               <th className="th-label">Valor medido</th>
             </tr>
           </thead>
@@ -246,7 +265,7 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
             ))}
             {(!componentes || componentes.linhas.length === 0) && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
                   Cadastre os serviços na aba Orçamento (Fabricação, Montagem, Instalação...) pra medir por valor real.
                 </td>
               </tr>
@@ -266,9 +285,14 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
         <button onClick={gerarRelatorio} disabled={!componentes} className="btn-secondary px-4 py-2 text-sm disabled:opacity-50">
           📄 Gerar relatório (Excel)
         </button>
+        <a href={`/api/obras/${obraId}/medicao-relatorio-pdf`} className="btn-secondary px-4 py-2 text-sm">
+          🧾 Gerar relatório (PDF)
+        </a>
         <span className="text-xs text-neutral-500">
-          Cada serviço pesa pelo valor real dele no Orçamento (fabricação e montagem, que carregam mão de obra, pesam
-          mais por kg do que instalação de telha, por exemplo) — não pelo peso físico puro.
+          Cada serviço pesa pelo valor real que a SteelNova cobra (fabricação e montagem, que carregam mão de obra,
+          pesam mais do que instalação de telha, por exemplo) — insumos por conta do cliente não entram no peso. O
+          % sugerido puxa do progresso real das tarefas do Planejamento vinculadas a cada serviço (aba Planejamento,
+          coluna &quot;Serviço (Orç.)&quot;).
         </span>
       </div>
 
@@ -393,6 +417,8 @@ function LinhaComponenteRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linha.pctConcluido]);
 
+  const sugestaoDiferente = linha.pctSugerido !== null && Math.round(linha.pctSugerido) !== Math.round(pct);
+
   return (
     <tr className="border-t border-ink-800">
       <td className="px-4 py-2.5 text-fg">{linha.nome}</td>
@@ -400,18 +426,34 @@ function LinhaComponenteRow({
         {linha.baseQtd.toLocaleString("pt-BR")} {linha.unidade}
       </td>
       <td className="px-4 py-2.5 text-neutral-600">{formatBRL(linha.valor)}</td>
+      <td className="px-4 py-2.5 text-amber-600">{linha.insumosCliente > 0 ? formatBRL(linha.insumosCliente) : "—"}</td>
       <td className="px-4 py-2.5 text-neutral-600">{valorTotal > 0 ? `${((linha.valor / valorTotal) * 100).toFixed(1)}%` : "—"}</td>
       <td className="px-4 py-2.5">
-        <input
-          type="number"
-          min={0}
-          max={100}
-          value={pct}
-          onChange={(e) => setPct(Number(e.target.value))}
-          onBlur={() => onSalvar(pct)}
-          className="w-20 pill-field px-2 py-1 text-sm"
-        />
-        {salvando && <span className="ml-1.5 text-xs text-neutral-400">salvando...</span>}
+        <div className="flex items-center gap-1.5">
+          <input
+            type="number"
+            min={0}
+            max={100}
+            value={pct}
+            onChange={(e) => setPct(Number(e.target.value))}
+            onBlur={() => onSalvar(pct)}
+            className="w-20 pill-field px-2 py-1 text-sm"
+          />
+          {salvando && <span className="text-xs text-neutral-400">salvando...</span>}
+        </div>
+        {sugestaoDiferente && (
+          <button
+            type="button"
+            onClick={() => {
+              setPct(linha.pctSugerido!);
+              onSalvar(linha.pctSugerido!);
+            }}
+            className="mt-1 block text-[11px] text-brand hover:underline"
+            title="Calculado a partir do progresso das tarefas do Planejamento vinculadas a este serviço"
+          >
+            📋 sugerido: {linha.pctSugerido!.toFixed(0)}% — usar
+          </button>
+        )}
       </td>
       <td className="px-4 py-2.5 font-medium text-fg">{formatBRL((linha.valor * pct) / 100)}</td>
     </tr>

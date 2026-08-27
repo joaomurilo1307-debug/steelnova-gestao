@@ -31,21 +31,25 @@ function num(v: string | number | null | undefined) {
   return v === null || v === undefined ? 0 : Number(v);
 }
 
+// Insumos (chapas de solda, consumíveis etc.) ficam POR CONTA DO CLIENTE — a SteelNova não
+// compra nem cobra por eles, só cobra matéria-prima + mão de obra + BDI. O valor de insumos
+// continua calculado e mostrado (nada é apagado), só não entra mais no custo/preço da
+// empresa — vira uma coluna informativa separada ("insumosCliente").
 function calcServico(s: Servico, p: Parametros) {
   const baseQtd = num(s.baseQtd);
   const materiaPrima = num(s.materiaPrima);
   const isKg = s.unidade.toLowerCase() === "kg";
-  const insumos = s.insumosManual !== null ? num(s.insumosManual) : isKg ? baseQtd * p.insumosPorKg : 0;
+  const insumosCliente = s.insumosManual !== null ? num(s.insumosManual) : isKg ? baseQtd * p.insumosPorKg : 0;
   const maoDeObra =
     s.maoDeObraManual !== null
       ? num(s.maoDeObraManual)
       : isKg
       ? baseQtd * p.maoDeObraPorKg
       : baseQtd * p.instalacaoPorM2;
-  const custo = materiaPrima + insumos + maoDeObra;
+  const custo = materiaPrima + maoDeObra;
   const bdi = s.bdiManual !== null ? num(s.bdiManual) : custo * p.bdiPercent;
   const preco = custo + bdi;
-  return { insumos, maoDeObra, custo, bdi, preco };
+  return { insumosCliente, maoDeObra, custo, bdi, preco };
 }
 
 const DEFAULT_PARAMS: Parametros = {
@@ -136,6 +140,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
   const totalPreco = servicos.reduce((s, sv) => s + calcServico(sv, params).preco, 0);
   const totalCusto = servicos.reduce((s, sv) => s + calcServico(sv, params).custo, 0);
   const totalBdi = servicos.reduce((s, sv) => s + calcServico(sv, params).bdi, 0);
+  const totalInsumosCliente = servicos.reduce((s, sv) => s + calcServico(sv, params).insumosCliente, 0);
   const ajusteParaAlvo = params.valorAlvo !== null ? params.valorAlvo - totalPreco : null;
 
   return (
@@ -239,11 +244,11 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Base</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Un</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Matéria-prima</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Insumos</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label" title="Consumíveis (eletrodo, solda etc.) — pagos direto pelo cliente, não entram no preço da SteelNova">Insumos (cliente)</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Mão de obra</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Custo</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label" title="Custo da SteelNova = matéria-prima + mão de obra (sem insumos)">Custo (nosso)</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">BDI</th>
-              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label">Preço</th>
+              <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label" title="O que a SteelNova cobra do cliente (sem insumos)">Preço (nosso)</th>
               <th className="sticky top-0 z-20 border-b border-ink-800 bg-ink-900 th-label"></th>
             </tr>
           </thead>
@@ -256,7 +261,7 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
                   <td className="px-3 py-3 text-neutral-600">{num(s.baseQtd)}</td>
                   <td className="px-3 py-3 text-neutral-600">{s.unidade}</td>
                   <td className="px-3 py-3 text-neutral-600">{formatBRL(num(s.materiaPrima))}</td>
-                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.insumos)}</td>
+                  <td className="px-3 py-3 text-amber-600">{formatBRL(c.insumosCliente)}</td>
                   <td className="px-3 py-3 text-neutral-600">{formatBRL(c.maoDeObra)}</td>
                   <td className="px-3 py-3 text-neutral-600">{formatBRL(c.custo)}</td>
                   <td className="px-3 py-3 text-neutral-600">{formatBRL(c.bdi)}</td>
@@ -280,9 +285,12 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           {servicos.length > 0 && (
             <tfoot>
               <tr className="border-t border-ink-700 bg-ink-900 font-medium text-fg">
-                <td className="px-3 py-3" colSpan={6}>
+                <td className="px-3 py-3" colSpan={3}>
                   TOTAL
                 </td>
+                <td className="px-3 py-3"></td>
+                <td className="px-3 py-3 text-amber-600">{formatBRL(totalInsumosCliente)}</td>
+                <td className="px-3 py-3"></td>
                 <td className="px-3 py-3">{formatBRL(totalCusto)}</td>
                 <td className="px-3 py-3">{formatBRL(totalBdi)}</td>
                 <td className="px-3 py-3">{formatBRL(totalPreco)}</td>
@@ -292,6 +300,13 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
           )}
         </table>
       </div>
+
+      {totalInsumosCliente > 0 && (
+        <p className="mt-2 text-xs text-amber-600">
+          + {formatBRL(totalInsumosCliente)} em insumos (consumíveis) ficam por conta do cliente — não estão
+          incluídos no preço acima cobrado pela SteelNova.
+        </p>
+      )}
 
       {params.valorAlvo !== null && (
         <p className="mt-3 text-sm text-neutral-600">

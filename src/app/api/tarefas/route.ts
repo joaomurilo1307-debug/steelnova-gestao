@@ -25,6 +25,7 @@ const createTarefaSchema = z.object({
   horasEstimadas: z.number().nonnegative().optional(),
   valorHora: z.number().nonnegative().optional(),
   equipeIds: z.array(z.string()).optional(),
+  servicoOrcamentoId: z.string().nullable().optional(),
 });
 
 export async function GET(req: Request) {
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
       horasEstimadas: parsed.data.horasEstimadas,
       valorHora: parsed.data.valorHora,
       equipeIds: parsed.data.equipeIds ?? [],
+      servicoOrcamentoId: parsed.data.servicoOrcamentoId,
       ordem: count,
     },
   });
