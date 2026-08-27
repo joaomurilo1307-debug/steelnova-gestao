@@ -394,10 +394,15 @@ model Material {
   pesoUnitario         Decimal? @db.Decimal(12, 3)
   fornecidoPeloCliente Boolean  @default(false)
   statusCompra         StatusCompra @default(A_COMPRAR)
+  // Vínculo opcional com o serviço do Orçamento que este material compõe — mesma ideia do
+  // Tarefa.servicoOrcamentoId, só que pelo lado físico (o que É a obra) em vez do lado de
+  // execução (o que FOI feito). Junto os dois formam a "composição da obra" por serviço.
+  servicoOrcamentoId   String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
-  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  obra             Obra              @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  servicoOrcamento ServicoOrcamento? @relation(fields: [servicoOrcamentoId], references: [id], onDelete: SetNull)
 }
 
 model ParametrosOrcamento {
@@ -430,8 +435,9 @@ model ServicoOrcamento {
   ordem           Int     @default(0)
   createdAt       DateTime @default(now())
 
-  obra    Obra     @relation(fields: [obraId], references: [id], onDelete: Cascade)
-  tarefas Tarefa[]
+  obra      Obra       @relation(fields: [obraId], references: [id], onDelete: Cascade)
+  tarefas   Tarefa[]
+  materiais Material[]
 }
 
 model Funcionario {

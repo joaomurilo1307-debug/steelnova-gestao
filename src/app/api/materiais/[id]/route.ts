@@ -10,6 +10,7 @@ const patchSchema = z.object({
   fornecedor: z.string().optional(),
   fornecidoPeloCliente: z.boolean().optional(),
   statusCompra: z.enum(["A_COMPRAR", "EM_COTACAO", "COMPRADO"]).optional(),
+  servicoOrcamentoId: z.string().nullable().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {

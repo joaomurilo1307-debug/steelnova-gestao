@@ -137,6 +137,15 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
     if (res.ok) load();
   }
 
+  async function patchServico(id: string, body: any) {
+    await fetch(`/api/servicos-orcamento/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    load();
+  }
+
   const totalPreco = servicos.reduce((s, sv) => s + calcServico(sv, params).preco, 0);
   const totalCusto = servicos.reduce((s, sv) => s + calcServico(sv, params).custo, 0);
   const totalBdi = servicos.reduce((s, sv) => s + calcServico(sv, params).bdi, 0);
@@ -253,27 +262,9 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
             </tr>
           </thead>
           <tbody>
-            {servicos.map((s) => {
-              const c = calcServico(s, params);
-              return (
-                <tr key={s.id} className="border-t border-ink-800">
-                  <td className="px-3 py-3 text-fg">{s.nome}</td>
-                  <td className="px-3 py-3 text-neutral-600">{num(s.baseQtd)}</td>
-                  <td className="px-3 py-3 text-neutral-600">{s.unidade}</td>
-                  <td className="px-3 py-3 text-neutral-600">{formatBRL(num(s.materiaPrima))}</td>
-                  <td className="px-3 py-3 text-amber-600">{formatBRL(c.insumosCliente)}</td>
-                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.maoDeObra)}</td>
-                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.custo)}</td>
-                  <td className="px-3 py-3 text-neutral-600">{formatBRL(c.bdi)}</td>
-                  <td className="px-3 py-3 font-medium text-fg">{formatBRL(c.preco)}</td>
-                  <td className="px-3 py-3">
-                    <button onClick={() => handleDeleteServico(s.id)} className="text-xs text-red-600 hover:underline">
-                      Remover
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {servicos.map((s) => (
+              <ServicoRow key={s.id} servico={s} params={params} onPatch={(body) => patchServico(s.id, body)} onDelete={() => handleDeleteServico(s.id)} />
+            ))}
             {servicos.length === 0 && (
               <tr>
                 <td colSpan={10} className="px-4 py-8 text-center text-neutral-500">
@@ -322,5 +313,97 @@ export default function OrcamentoObra({ obraId }: { obraId: string }) {
         </p>
       )}
     </div>
+  );
+}
+
+const editCls = "w-full min-w-0 bg-transparent px-1 py-0.5 text-sm outline-none focus:bg-ink-800 rounded";
+
+// Célula editável genérica: mostra o valor, edita no clique, salva no blur — sem re-render
+// a cada tecla (estado local só sobe pro pai quando o campo perde foco).
+function EditCell({
+  value,
+  onSave,
+  type = "text",
+  align = "left",
+}: {
+  value: string | number;
+  onSave: (v: string) => void;
+  type?: "text" | "number";
+  align?: "left" | "right";
+}) {
+  const [v, setV] = useState(String(value));
+  useEffect(() => setV(String(value)), [value]);
+  return (
+    <input
+      type={type}
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => v !== String(value) && onSave(v)}
+      className={`${editCls} ${align === "right" ? "text-right" : ""}`}
+    />
+  );
+}
+
+function ServicoRow({
+  servico: s,
+  params,
+  onPatch,
+  onDelete,
+}: {
+  servico: Servico;
+  params: Parametros;
+  onPatch: (body: any) => void;
+  onDelete: () => void;
+}) {
+  const c = calcServico(s, params);
+  return (
+    <tr className="border-t border-ink-800">
+      <td className="px-1 py-1.5 text-fg">
+        <EditCell value={s.nome} onSave={(v) => onPatch({ nome: v })} />
+      </td>
+      <td className="px-1 py-1.5 text-neutral-600">
+        <EditCell value={num(s.baseQtd)} type="number" onSave={(v) => onPatch({ baseQtd: Number(v) })} />
+      </td>
+      <td className="px-1 py-1.5 text-neutral-600">
+        <select value={s.unidade} onChange={(e) => onPatch({ unidade: e.target.value })} className={editCls}>
+          <option value="kg">kg</option>
+          <option value="m²">m²</option>
+          <option value="m">m</option>
+          <option value="vb">vb</option>
+          <option value="un">un</option>
+        </select>
+      </td>
+      <td className="px-1 py-1.5 text-neutral-600">
+        <EditCell value={num(s.materiaPrima)} type="number" onSave={(v) => onPatch({ materiaPrima: Number(v) })} />
+      </td>
+      <td className="px-1 py-1.5 text-amber-600" title="Vazio = calculado automático pelo parâmetro Insumos (R$/kg). Preencher = valor manual fixo.">
+        <EditCell
+          value={s.insumosManual !== null ? num(s.insumosManual) : ""}
+          type="number"
+          onSave={(v) => onPatch({ insumosManual: v === "" ? null : Number(v) })}
+        />
+      </td>
+      <td className="px-1 py-1.5 text-neutral-600" title="Vazio = calculado automático pelos parâmetros de mão de obra. Preencher = valor manual fixo.">
+        <EditCell
+          value={s.maoDeObraManual !== null ? num(s.maoDeObraManual) : ""}
+          type="number"
+          onSave={(v) => onPatch({ maoDeObraManual: v === "" ? null : Number(v) })}
+        />
+      </td>
+      <td className="px-3 py-1.5 text-neutral-600">{formatBRL(c.custo)}</td>
+      <td className="px-1 py-1.5 text-neutral-600" title="Vazio = calculado automático pelo % de BDI. Preencher = valor manual fixo.">
+        <EditCell
+          value={s.bdiManual !== null ? num(s.bdiManual) : ""}
+          type="number"
+          onSave={(v) => onPatch({ bdiManual: v === "" ? null : Number(v) })}
+        />
+      </td>
+      <td className="px-3 py-1.5 font-medium text-fg">{formatBRL(c.preco)}</td>
+      <td className="px-3 py-1.5">
+        <button onClick={onDelete} className="text-xs text-red-600 hover:underline">
+          Remover
+        </button>
+      </td>
+    </tr>
   );
 }

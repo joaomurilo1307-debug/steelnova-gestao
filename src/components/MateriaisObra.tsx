@@ -15,7 +15,10 @@ type Material = {
   pesoUnitario: string | null;
   fornecidoPeloCliente: boolean;
   statusCompra: StatusCompra;
+  servicoOrcamentoId: string | null;
 };
+
+type ServicoOrc = { id: string; nome: string };
 
 const STATUS_COMPRA: Record<StatusCompra, { label: string; cls: string }> = {
   A_COMPRAR: { label: "A comprar", cls: "bg-amber-100 text-amber-800 border-amber-300" },
@@ -40,11 +43,22 @@ const COMPONENTES = [
 
 export default function MateriaisObra({ obraId }: { obraId: string }) {
   const [materiais, setMateriais] = useState<Material[]>([]);
+  const [servicos, setServicos] = useState<ServicoOrc[]>([]);
   const [form, setForm] = useState({ grupo: "", nome: "", unidade: "", quantidadePrevista: "", fornecedor: "", pesoUnitario: "" });
 
   async function load() {
-    const res = await fetch(`/api/materiais?obraId=${obraId}`);
+    const [res, svRes] = await Promise.all([fetch(`/api/materiais?obraId=${obraId}`), fetch(`/api/servicos-orcamento?obraId=${obraId}`)]);
     if (res.ok) setMateriais(await res.json());
+    if (svRes.ok) setServicos((await svRes.json()).map((s: any) => ({ id: s.id, nome: s.nome })));
+  }
+
+  async function handleServico(id: string, servicoOrcamentoId: string) {
+    setMateriais((prev) => prev.map((m) => (m.id === id ? { ...m, servicoOrcamentoId: servicoOrcamentoId || null } : m)));
+    await fetch(`/api/materiais/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ servicoOrcamentoId: servicoOrcamentoId || null }),
+    });
   }
 
   useEffect(() => {
@@ -305,6 +319,9 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                     <th className="px-4 py-2 font-medium">Recebido</th>
                     <th className="px-4 py-2 font-medium">Peso total</th>
                     <th className="px-4 py-2 font-medium">Situação da compra</th>
+                    <th className="px-4 py-2 font-medium" title="A que serviço do Orçamento este material pertence — alimenta a composição da Medição">
+                      Serviço (Orç.)
+                    </th>
                     <th className="px-4 py-2 font-medium" title="Marca que o material é fornecido pelo cliente, não é compra da SteelNova">
                       Cliente fornece
                     </th>
@@ -333,6 +350,20 @@ export default function MateriaisObra({ obraId }: { obraId: string }) {
                             ))}
                           </select>
                         )}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <select
+                          value={m.servicoOrcamentoId ?? ""}
+                          onChange={(e) => handleServico(m.id, e.target.value)}
+                          className="rounded-lg border border-ink-700 bg-ink-950 px-2 py-1 text-xs"
+                        >
+                          <option value="">—</option>
+                          {servicos.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.nome}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                       <td className="px-4 py-2.5 text-center">
                         <input

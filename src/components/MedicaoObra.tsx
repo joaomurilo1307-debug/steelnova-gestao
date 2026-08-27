@@ -1,10 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { formatBRL } from "@/lib/format";
 
 type Medicao = { id: string; numero: number; data: string; descricao: string | null; valor: string };
+type MaterialVinculado = {
+  id: string;
+  nome: string;
+  unidade: string;
+  quantidadePrevista: number;
+  quantidadeRecebida: number;
+  pesoTotal: number;
+  fornecidoPeloCliente: boolean;
+  statusCompra: string;
+};
+type TarefaVinculada = { id: string; titulo: string; percentConcluido: number; dataInicio: string | null };
 type LinhaComponente = {
   servicoId: string;
   nome: string;
@@ -14,6 +25,8 @@ type LinhaComponente = {
   insumosCliente: number;
   pctConcluido: number;
   pctSugerido: number | null;
+  materiais: MaterialVinculado[];
+  tarefas: TarefaVinculada[];
 };
 type ComponentesResp = {
   linhas: LinhaComponente[];
@@ -46,6 +59,7 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
   const [componentes, setComponentes] = useState<ComponentesResp | null>(null);
   const [curva, setCurva] = useState<CurvaS | null>(null);
   const [salvandoGrupo, setSalvandoGrupo] = useState<string | null>(null);
+  const [expandido, setExpandido] = useState<string | null>(null);
   const [lancando, setLancando] = useState(false);
   const [form, setForm] = useState({ data: new Date().toISOString().slice(0, 10), descricao: "", valor: "" });
 
@@ -244,6 +258,7 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
         <table className="w-full text-sm">
           <thead className="text-left text-neutral-600">
             <tr>
+              <th className="th-label w-8"></th>
               <th className="th-label">Serviço (Orçamento)</th>
               <th className="th-label">Qtd.</th>
               <th className="th-label">Valor do serviço</th>
@@ -261,11 +276,13 @@ export default function MedicaoObra({ obraId }: { obraId: string }) {
                 valorTotal={componentes.valorTotalServicos}
                 salvando={salvandoGrupo === l.servicoId}
                 onSalvar={(pct) => salvarComponente(l.servicoId, pct)}
+                expandido={expandido === l.servicoId}
+                onToggleExpand={() => setExpandido(expandido === l.servicoId ? null : l.servicoId)}
               />
             ))}
             {(!componentes || componentes.linhas.length === 0) && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-neutral-500">
                   Cadastre os serviços na aba Orçamento (Fabricação, Montagem, Instalação...) pra medir por valor real.
                 </td>
               </tr>
@@ -404,11 +421,15 @@ function LinhaComponenteRow({
   valorTotal,
   salvando,
   onSalvar,
+  expandido,
+  onToggleExpand,
 }: {
   linha: LinhaComponente;
   valorTotal: number;
   salvando: boolean;
   onSalvar: (pctConcluido: number) => void;
+  expandido: boolean;
+  onToggleExpand: () => void;
 }) {
   const [pct, setPct] = useState(linha.pctConcluido);
 
@@ -418,10 +439,33 @@ function LinhaComponenteRow({
   }, [linha.pctConcluido]);
 
   const sugestaoDiferente = linha.pctSugerido !== null && Math.round(linha.pctSugerido) !== Math.round(pct);
+  const temComposicao = linha.materiais.length > 0 || linha.tarefas.length > 0;
+  const pesoVinculado = linha.materiais.reduce((s, m) => s + m.pesoTotal, 0);
 
   return (
+    <Fragment>
     <tr className="border-t border-ink-800">
-      <td className="px-4 py-2.5 text-fg">{linha.nome}</td>
+      <td className="px-2 py-2.5">
+        <button
+          type="button"
+          onClick={onToggleExpand}
+          disabled={!temComposicao}
+          className="text-neutral-400 hover:text-fg disabled:opacity-20"
+          title={temComposicao ? "Ver composição (materiais + tarefas do Planejamento)" : "Sem materiais/tarefas vinculados ainda"}
+        >
+          {expandido ? "▾" : "▸"}
+        </button>
+      </td>
+      <td className="px-4 py-2.5 text-fg">
+        {linha.nome}
+        {temComposicao && (
+          <span className="ml-1.5 text-[11px] text-neutral-500">
+            ({linha.materiais.length > 0 && `${pesoVinculado.toFixed(0)}kg/${linha.materiais.length}mat`}
+            {linha.materiais.length > 0 && linha.tarefas.length > 0 && " · "}
+            {linha.tarefas.length > 0 && `${linha.tarefas.length}tarefa${linha.tarefas.length > 1 ? "s" : ""}`})
+          </span>
+        )}
+      </td>
       <td className="px-4 py-2.5 text-neutral-600">
         {linha.baseQtd.toLocaleString("pt-BR")} {linha.unidade}
       </td>
@@ -457,5 +501,49 @@ function LinhaComponenteRow({
       </td>
       <td className="px-4 py-2.5 font-medium text-fg">{formatBRL((linha.valor * pct) / 100)}</td>
     </tr>
+    {expandido && temComposicao && (
+      <tr className="border-t border-ink-800 bg-ink-800/30">
+        <td></td>
+        <td colSpan={7} className="px-4 py-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {linha.materiais.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase text-neutral-400">
+                  Materiais vinculados ({pesoVinculado.toFixed(0)} kg)
+                </p>
+                <ul className="flex flex-col gap-1">
+                  {linha.materiais.map((m) => (
+                    <li key={m.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-fg">{m.nome}</span>
+                      <span className="shrink-0 text-neutral-500">
+                        {m.quantidadeRecebida}/{m.quantidadePrevista} {m.unidade}
+                        {m.pesoTotal > 0 && ` · ${m.pesoTotal.toFixed(0)}kg`}
+                        {m.fornecidoPeloCliente ? " · cliente" : ` · ${m.statusCompra === "COMPRADO" ? "comprado" : m.statusCompra === "EM_COTACAO" ? "cotação" : "a comprar"}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {linha.tarefas.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase text-neutral-400">Tarefas do Planejamento vinculadas</p>
+                <ul className="flex flex-col gap-1">
+                  {linha.tarefas.map((t) => (
+                    <li key={t.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="text-fg">{t.titulo}</span>
+                      <span className={`shrink-0 font-medium ${t.percentConcluido >= 100 ? "text-emerald-600" : "text-neutral-500"}`}>
+                        {t.percentConcluido}%
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    )}
+    </Fragment>
   );
 }

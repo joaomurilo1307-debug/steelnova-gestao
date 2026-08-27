@@ -25,6 +25,24 @@ function precoServico(
   return { preco: custo + bdi, insumosCliente };
 }
 
+export type MaterialVinculado = {
+  id: string;
+  nome: string;
+  unidade: string;
+  quantidadePrevista: number;
+  quantidadeRecebida: number;
+  pesoTotal: number;
+  fornecidoPeloCliente: boolean;
+  statusCompra: string;
+};
+
+export type TarefaVinculada = {
+  id: string;
+  titulo: string;
+  percentConcluido: number;
+  dataInicio: string | null;
+};
+
 export type LinhaMedicao = {
   servicoId: string;
   nome: string;
@@ -34,6 +52,10 @@ export type LinhaMedicao = {
   insumosCliente: number;
   pctConcluido: number;
   pctSugerido: number | null;
+  // composição real por trás do serviço — pra Medição deixar de ser um número solto e
+  // mostrar de onde ele vem: quais materiais (peso, compra) e quais tarefas (progresso)
+  materiais: MaterialVinculado[];
+  tarefas: TarefaVinculada[];
 };
 
 export type MedicaoData = {
@@ -51,14 +73,28 @@ export type MedicaoData = {
 // com fabricação/montagem, que carregam mão de obra) — medir por peso puro distorcia o %
 // financeiro real da obra.
 export async function getMedicaoData(obraId: string): Promise<MedicaoData> {
-  const [servicos, parametros, componentes, obra, tarefas] = await Promise.all([
+  const [servicos, parametros, componentes, obra, tarefas, materiais] = await Promise.all([
     prisma.servicoOrcamento.findMany({ where: { obraId }, orderBy: { ordem: "asc" } }),
     prisma.parametrosOrcamento.findUnique({ where: { obraId } }),
     prisma.medicaoComponente.findMany({ where: { obraId } }),
     prisma.obra.findUnique({ where: { id: obraId }, select: { valorContrato: true } }),
     prisma.tarefa.findMany({
       where: { obraId, servicoOrcamentoId: { not: null } },
-      select: { servicoOrcamentoId: true, percentConcluido: true, duracaoDias: true, pessoas: true, horas: true },
+      select: { id: true, titulo: true, dataInicio: true, servicoOrcamentoId: true, percentConcluido: true, duracaoDias: true, pessoas: true, horas: true },
+    }),
+    prisma.material.findMany({
+      where: { obraId, servicoOrcamentoId: { not: null } },
+      select: {
+        id: true,
+        nome: true,
+        unidade: true,
+        quantidadePrevista: true,
+        quantidadeRecebida: true,
+        pesoUnitario: true,
+        fornecidoPeloCliente: true,
+        statusCompra: true,
+        servicoOrcamentoId: true,
+      },
     }),
   ]);
 
@@ -74,6 +110,7 @@ export async function getMedicaoData(obraId: string): Promise<MedicaoData> {
   // Planejamento vinculadas a ele (Cronograma → "Serviço do orçamento"), ponderada pelo
   // esforço (HH) de cada tarefa — não some, só sugere; quem decide o % lançado é o usuário.
   const sugeridoPorServico = new Map<string, { somaHHxPct: number; somaHH: number }>();
+  const tarefasPorServico = new Map<string, TarefaVinculada[]>();
   for (const t of tarefas) {
     if (!t.servicoOrcamentoId) continue;
     const hh = Math.max((t.pessoas ?? 0) * Number(t.horas ?? 0), 1) * Math.max(t.duracaoDias, 1);
@@ -81,6 +118,27 @@ export async function getMedicaoData(obraId: string): Promise<MedicaoData> {
     acc.somaHHxPct += hh * t.percentConcluido;
     acc.somaHH += hh;
     sugeridoPorServico.set(t.servicoOrcamentoId, acc);
+
+    const lista = tarefasPorServico.get(t.servicoOrcamentoId) ?? [];
+    lista.push({ id: t.id, titulo: t.titulo, percentConcluido: t.percentConcluido, dataInicio: t.dataInicio ? t.dataInicio.toISOString().slice(0, 10) : null });
+    tarefasPorServico.set(t.servicoOrcamentoId, lista);
+  }
+
+  const materiaisPorServico = new Map<string, MaterialVinculado[]>();
+  for (const m of materiais) {
+    if (!m.servicoOrcamentoId) continue;
+    const lista = materiaisPorServico.get(m.servicoOrcamentoId) ?? [];
+    lista.push({
+      id: m.id,
+      nome: m.nome,
+      unidade: m.unidade,
+      quantidadePrevista: num(m.quantidadePrevista),
+      quantidadeRecebida: num(m.quantidadeRecebida),
+      pesoTotal: m.pesoUnitario ? num(m.pesoUnitario) * num(m.quantidadePrevista) : 0,
+      fornecidoPeloCliente: m.fornecidoPeloCliente,
+      statusCompra: m.statusCompra,
+    });
+    materiaisPorServico.set(m.servicoOrcamentoId, lista);
   }
 
   const linhas: LinhaMedicao[] = servicos.map((s) => {
@@ -100,6 +158,8 @@ export async function getMedicaoData(obraId: string): Promise<MedicaoData> {
       insumosCliente,
       pctConcluido,
       pctSugerido,
+      materiais: materiaisPorServico.get(s.id) ?? [],
+      tarefas: tarefasPorServico.get(s.id) ?? [],
     };
   });
 
