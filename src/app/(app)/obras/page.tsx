@@ -2,11 +2,18 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import TopBar from "@/components/TopBar";
 import { formatBRLCompact, obraStatusLabel } from "@/lib/format";
+import { getMedicaoData } from "@/lib/medicao";
 
 export const dynamic = "force-dynamic";
 
 export default async function ObrasPage() {
   const obras = await prisma.obra.findMany({ orderBy: { createdAt: "desc" } });
+  // progresso real (físico-financeiro da Medição), não o campo Obra.progresso manual —
+  // nada nunca escreve nesse campo, então ficava sempre 0.
+  const progressos = await Promise.all(
+    obras.map(async (o) => [o.id, o.status === "CONCLUIDA" ? 100 : Math.round((await getMedicaoData(o.id)).pctObra)] as const)
+  );
+  const progressoPorObra = new Map(progressos);
 
   return (
     <div>
@@ -41,7 +48,7 @@ export default async function ObrasPage() {
                   <td className="px-4 py-3 text-neutral-600">{obra.cliente}</td>
                   <td className="px-4 py-3 text-neutral-600">{obraStatusLabel(obra.status)}</td>
                   <td className="px-4 py-3 text-neutral-600">{formatBRLCompact(Number(obra.valorContrato))}</td>
-                  <td className="px-4 py-3 text-neutral-600">{obra.progresso}%</td>
+                  <td className="px-4 py-3 text-neutral-600">{progressoPorObra.get(obra.id)}%</td>
                 </tr>
               ))}
               {obras.length === 0 && (

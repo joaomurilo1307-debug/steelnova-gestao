@@ -1,19 +1,28 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatBRL } from "@/lib/format";
+import { getMedicaoData } from "@/lib/medicao";
+import { calcularResultados } from "@/lib/resultado";
 
 export const dynamic = "force-dynamic";
 
 export default async function ObraVisaoGeralPage({ params }: { params: { id: string } }) {
-  const obra = await prisma.obra.findUnique({
-    where: { id: params.id },
-    include: { custos: true, membros: { include: { user: true } } },
-  });
+  const [obra, medicao, resultado] = await Promise.all([
+    prisma.obra.findUnique({
+      where: { id: params.id },
+      include: { membros: { include: { user: true } } },
+    }),
+    getMedicaoData(params.id),
+    calcularResultados(),
+  ]);
 
   if (!obra) notFound();
 
-  const custoReal = obra.custos.reduce((s, c) => s + Number(c.valorRealizado ?? 0), 0);
-  const custoPrevisto = obra.custos.reduce((s, c) => s + Number(c.valorPrevisto), 0);
+  // mesmo motor real usado no DRE/Resultado — não o CustoLancamento avulso sozinho, que
+  // ficava sempre R$0,00 (ver aba Resultado desta obra pro detalhamento linha a linha).
+  const custoReal = resultado.obras.find((r) => r.obraId === obra.id)?.custoTotal ?? 0;
+  const custoPrevisto = medicao.valorTotalServicos;
+  const progresso = obra.status === "CONCLUIDA" ? 100 : Math.round(medicao.pctObra);
 
   return (
     <div>
@@ -32,7 +41,7 @@ export default async function ObraVisaoGeralPage({ params }: { params: { id: str
         </div>
         <div className="card p-4">
           <p className="text-xs uppercase text-neutral-500">Progresso</p>
-          <p className="mt-2 text-xl font-semibold text-fg">{obra.progresso}%</p>
+          <p className="mt-2 text-xl font-semibold text-fg">{progresso}%</p>
         </div>
       </div>
 

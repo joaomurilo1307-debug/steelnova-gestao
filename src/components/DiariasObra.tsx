@@ -169,40 +169,45 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
       </div>
 
       <h2 className="mb-2 text-sm font-semibold text-fg">Lançamentos de ponto</h2>
-      <form onSubmit={handleAddPonto} className="mb-3 flex flex-wrap items-end gap-2">
-        <select
-          value={novoPonto.funcionarioId}
-          onChange={(e) => setNovoPonto({ ...novoPonto, funcionarioId: e.target.value })}
-          className="pill-field px-3 py-2 text-sm"
-        >
-          <option value="">Funcionário...</option>
-          {funcionarios.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.nome}{f.cargo ? ` — ${f.cargo}` : ""}
-            </option>
-          ))}
-        </select>
-        <input
-          type="date"
-          value={novoPonto.dia}
-          onChange={(e) => setNovoPonto({ ...novoPonto, dia: e.target.value })}
-          className="pill-field px-3 py-2 text-sm"
-        />
-        <input
-          type="time"
-          value={novoPonto.entrada}
-          onChange={(e) => setNovoPonto({ ...novoPonto, entrada: e.target.value })}
-          className="pill-field px-3 py-2 text-sm"
-        />
-        <input
-          type="time"
-          value={novoPonto.saida}
-          onChange={(e) => setNovoPonto({ ...novoPonto, saida: e.target.value })}
-          className="pill-field px-3 py-2 text-sm"
-        />
-        <button type="submit" className="btn-primary px-4 py-2 text-sm">
-          Lançar
-        </button>
+      <div className="mb-3 flex flex-wrap items-end gap-2">
+        <form onSubmit={handleAddPonto} className="flex flex-wrap items-end gap-2">
+          <select
+            value={novoPonto.funcionarioId}
+            onChange={(e) => setNovoPonto({ ...novoPonto, funcionarioId: e.target.value })}
+            className="pill-field px-3 py-2 text-sm"
+          >
+            <option value="">Funcionário...</option>
+            {funcionarios.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nome}{f.cargo ? ` — ${f.cargo}` : ""}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={novoPonto.dia}
+            onChange={(e) => setNovoPonto({ ...novoPonto, dia: e.target.value })}
+            className="pill-field px-3 py-2 text-sm"
+          />
+          <input
+            type="time"
+            value={novoPonto.entrada}
+            onChange={(e) => setNovoPonto({ ...novoPonto, entrada: e.target.value })}
+            className="pill-field px-3 py-2 text-sm"
+          />
+          <input
+            type="time"
+            value={novoPonto.saida}
+            onChange={(e) => setNovoPonto({ ...novoPonto, saida: e.target.value })}
+            className="pill-field px-3 py-2 text-sm"
+          />
+          <button type="submit" className="btn-primary px-4 py-2 text-sm">
+            Lançar
+          </button>
+        </form>
+        {/* Fora do <form> de ponto de propósito — HTML não permite <form> aninhado, e um
+            form dentro de outro quebra a hidratação do React (o parser do navegador
+            descarta o form interno, gerando um DOM diferente do que o React esperava). */}
         <details className="ml-auto">
           <summary className="cursor-pointer text-xs text-neutral-500">+ Cadastrar funcionário</summary>
           <form onSubmit={handleAddFuncionario} className="mt-2 flex flex-wrap items-end gap-2">
@@ -253,7 +258,7 @@ export default function DiariasObra({ obraId }: { obraId: string }) {
             </button>
           </form>
         </details>
-      </form>
+      </div>
 
       <div className="mb-6 overflow-x-auto card">
         <table className="w-full text-sm">

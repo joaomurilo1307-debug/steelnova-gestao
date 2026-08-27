@@ -41,6 +41,7 @@ export default function ResultadoView() {
 
   const tot = data.obras.reduce(
     (a, o) => ({
+      horas: a.horas + o.horas,
       receita: a.receita + o.receita,
       diretos: a.diretos + o.diretos,
       indiretos: a.indiretos + o.indiretosRateados + o.depreciacaoRateada + o.indiretosUma,
@@ -48,7 +49,7 @@ export default function ResultadoView() {
       impostos: a.impostos + o.impostos,
       lucro: a.lucro + o.lucro,
     }),
-    { receita: 0, diretos: 0, indiretos: 0, custoTotal: 0, impostos: 0, lucro: 0 }
+    { horas: 0, receita: 0, diretos: 0, indiretos: 0, custoTotal: 0, impostos: 0, lucro: 0 }
   );
 
   return (
@@ -115,7 +116,7 @@ export default function ResultadoView() {
             <tfoot>
               <tr className="border-t-2 border-ink-700 font-semibold">
                 <td className="px-4 py-2.5 text-fg">TOTAL</td>
-                <td className="px-4 py-2.5 text-neutral-600">{data.horasAtivasTotal.toFixed(0)}h</td>
+                <td className="px-4 py-2.5 text-neutral-600">{tot.horas.toFixed(0)}h</td>
                 <td className="px-4 py-2.5 text-fg">{formatBRL(tot.receita)}</td>
                 <td className="px-4 py-2.5 text-fg">{formatBRL(tot.diretos)}</td>
                 <td className="px-4 py-2.5 text-fg">{formatBRL(tot.indiretos)}</td>

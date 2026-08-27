@@ -2,6 +2,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import TopBar from "@/components/TopBar";
 import { formatBRLCompact, obraStatusLabel } from "@/lib/format";
+import { getMedicaoData } from "@/lib/medicao";
+import { calcularResultados } from "@/lib/resultado";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +12,22 @@ function diasDesde(data: Date): number {
 }
 
 export default async function PainelPage() {
-  const obras = await prisma.obra.findMany({
-    include: { custos: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [obras, resultado] = await Promise.all([
+    prisma.obra.findMany({ orderBy: { createdAt: "desc" } }),
+    calcularResultados(),
+  ]);
+  // custo previsto = orçado (Orçamento/Medição, o que a SteelNova planejou gastar);
+  // custo realizado = motor de custo real (mão de obra do Ponto, materiais, desembolsos,
+  // indiretos rateados) — o mesmo que já alimenta o DRE. Não usa mais o CustoLancamento
+  // avulso sozinho, que quase nunca é preenchido e deixava tudo em R$0,00 mesmo em obra com
+  // custo real registrado.
+  const medicoes = await Promise.all(obras.map(async (o) => [o.id, await getMedicaoData(o.id)] as const));
+  const medicaoPorObra = new Map(medicoes);
+  const resultadoPorObra = new Map(resultado.obras.map((r) => [r.obraId, r]));
 
   const obrasAtivas = obras.filter((o) => o.status !== "CONCLUIDA");
-  const custoPrevisto = obras.reduce(
-    (acc, o) => acc + o.custos.reduce((s, c) => s + Number(c.valorPrevisto), 0),
-    0
-  );
-  const custoRealizado = obras.reduce(
-    (acc, o) => acc + o.custos.reduce((s, c) => s + Number(c.valorRealizado ?? 0), 0),
-    0
-  );
+  const custoPrevisto = obras.reduce((acc, o) => acc + (medicaoPorObra.get(o.id)?.valorTotalServicos ?? 0), 0);
+  const custoRealizado = obras.reduce((acc, o) => acc + (resultadoPorObra.get(o.id)?.custoTotal ?? 0), 0);
   const valorContratos = obrasAtivas.reduce((acc, o) => acc + Number(o.valorContrato), 0);
   const pctRealizado = custoPrevisto > 0 ? Math.round((custoRealizado / custoPrevisto) * 100) : 0;
 
@@ -66,9 +70,10 @@ export default async function PainelPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {obras.map((obra) => {
-              const custoReal = obra.custos.reduce((s, c) => s + Number(c.valorRealizado ?? 0), 0);
+              const custoReal = resultadoPorObra.get(obra.id)?.custoTotal ?? 0;
               const margem = Number(obra.valorContrato) - custoReal;
               const realizadoDias = diasDesde(obra.dataInicio);
+              const progresso = obra.status === "CONCLUIDA" ? 100 : Math.round(medicaoPorObra.get(obra.id)?.pctObra ?? 0);
 
               return (
                 <Link
@@ -87,10 +92,10 @@ export default async function PainelPage() {
                   <div className="mb-3">
                     <div className="mb-1 flex justify-between text-xs text-neutral-500">
                       <span>Progresso</span>
-                      <span>{obra.progresso}%</span>
+                      <span>{progresso}%</span>
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-ink-800">
-                      <div className="h-full rounded-full bg-brand" style={{ width: `${obra.progresso}%` }} />
+                      <div className="h-full rounded-full bg-brand" style={{ width: `${progresso}%` }} />
                     </div>
                   </div>
 
