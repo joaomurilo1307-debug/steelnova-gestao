@@ -44,7 +44,11 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pill-field px-4 py-2.5 text-sm"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              inputMode="email"
+              className="w-full pill-field px-4 py-2.5 text-base"
             />
           </div>
           <div>
@@ -54,7 +58,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pill-field px-4 py-2.5 text-sm"
+              className="w-full pill-field px-4 py-2.5 text-base"
             />
           </div>
 

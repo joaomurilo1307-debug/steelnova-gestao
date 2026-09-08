@@ -52,7 +52,7 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
-        const email = credentials.email.toLowerCase();
+        const email = credentials.email.trim().toLowerCase();
 
         if (isLocked(email)) {
           throw new Error("Muitas tentativas de login. Tente novamente em alguns minutos.");
