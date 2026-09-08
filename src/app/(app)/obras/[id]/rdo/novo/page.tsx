@@ -136,12 +136,12 @@ export default function NovoRdoPage() {
     router.refresh();
   }
 
-  const inputCls = "w-full pill-field px-3 py-2 text-sm";
+  const inputCls = "w-full pill-field px-3 py-2.5 text-base md:py-2 md:text-sm";
   const labelCls = "mb-1 block text-xs text-neutral-500";
 
   return (
-    <div className="p-8">
-      <form onSubmit={handleSubmit} className="flex max-w-4xl flex-col gap-6">
+    <div className="p-4 md:p-8">
+      <form onSubmit={handleSubmit} className="flex max-w-4xl flex-col gap-6 pb-24 md:pb-0">
         <div>
           <h2 className="mb-2 text-sm font-semibold text-fg">Identificação</h2>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -346,13 +346,15 @@ export default function NovoRdoPage() {
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="self-start btn-primary px-4 py-2 disabled:opacity-50"
-        >
-          {loading ? "Salvando..." : "Salvar RDO"}
-        </button>
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-800 bg-ink-950/95 p-4 backdrop-blur md:static md:mt-0 md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-primary px-4 py-3 text-base disabled:opacity-50 md:w-auto md:self-start md:py-2 md:text-sm"
+          >
+            {loading ? "Salvando..." : "Salvar RDO"}
+          </button>
+        </div>
       </form>
     </div>
   );
