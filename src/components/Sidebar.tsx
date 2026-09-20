@@ -7,6 +7,7 @@ import {
   IconInicio,
   IconPainel,
   IconObras,
+  IconDemandas,
   IconTarefas,
   IconCalendario,
   IconEquipe,
@@ -20,6 +21,7 @@ const OPERACAO = [
   { href: "/inicio", label: "Início", icon: IconInicio },
   { href: "/painel", label: "Painel", icon: IconPainel },
   { href: "/obras", label: "Obras", icon: IconObras },
+  { href: "/demandas", label: "Demandas", icon: IconDemandas },
   { href: "/tarefas", label: "Tarefas (todas)", icon: IconTarefas },
   { href: "/calendario", label: "Calendário", icon: IconCalendario },
 ];

@@ -18,22 +18,22 @@ export default function TopBar({ title, subtitle }: { title: string; subtitle?: 
   }, [session?.user]);
 
   return (
-    <header className="flex items-center justify-between border-b border-ink-800 bg-ink-950 px-6 py-4">
-      <div>
-        <h1 className="text-lg font-semibold text-fg">{title}</h1>
-        {subtitle && <p className="text-sm text-neutral-500">{subtitle}</p>}
+    <header className="flex items-center justify-between gap-3 border-b border-ink-800 bg-ink-950 px-4 py-3 sm:px-6 sm:py-4">
+      <div className="min-w-0">
+        <h1 className="truncate text-base font-semibold text-fg sm:text-lg">{title}</h1>
+        {subtitle && <p className="truncate text-xs text-neutral-500 sm:text-sm">{subtitle}</p>}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {readOnly && (
           <span className="flex items-center gap-1.5 text-xs text-neutral-600">
             <span className="h-1.5 w-1.5 rounded-full bg-red-500" /> Só leitura
           </span>
         )}
         {session?.user && (
-          <div className="flex items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-3 text-sm text-fg">
+          <div className="flex items-center gap-2 rounded-full bg-ink-800 py-1 pl-1 pr-1 text-sm text-fg sm:pr-3">
             <Avatar name={session.user.name ?? "?"} photoUrl={avatarUrl} size={24} />
-            {session.user.name}
+            <span className="hidden sm:inline">{session.user.name}</span>
           </div>
         )}
         <SignOutButton />

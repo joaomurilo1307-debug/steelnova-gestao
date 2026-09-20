@@ -25,7 +25,7 @@ export default function ObraTabs({ obraId }: { obraId: string }) {
   const base = `/obras/${obraId}`;
 
   return (
-    <div className="flex gap-1 overflow-x-auto border-b border-ink-800 px-6">
+    <div className="flex gap-1 overflow-x-auto border-b border-ink-800 px-3 sm:px-6 [-webkit-overflow-scrolling:touch]">
       {TABS.map((tab) => {
         const href = tab.seg ? `${base}/${tab.seg}` : base;
         const active = pathname === href;
@@ -33,7 +33,7 @@ export default function ObraTabs({ obraId }: { obraId: string }) {
           <Link
             key={tab.seg}
             href={href}
-            className={`shrink-0 border-b-2 px-3 py-2.5 text-sm transition ${
+            className={`shrink-0 border-b-2 px-2.5 py-2.5 text-[13px] sm:px-3 sm:text-sm transition ${
               active
                 ? "border-brand font-medium text-brand"
                 : "border-transparent text-neutral-600 hover:text-fg"

@@ -26,7 +26,7 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
   });
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <RdoImport obraId={params.id} />
         <Link

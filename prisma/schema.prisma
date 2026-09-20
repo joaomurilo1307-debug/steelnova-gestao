@@ -166,6 +166,7 @@ model Obra {
   medicoes           Medicao[]
   custosIndiretos    CustoIndireto[]
   medicaoComponentes MedicaoComponente[]
+  demandas           Demanda[]
 }
 
 // Medição física por componente (peso). % Fabricado e % Montado por grupo de material.
@@ -587,4 +588,37 @@ model RaciAtribuicao {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([processoId, userId, papel])
+}
+
+enum DemandaUrgencia {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
+enum DemandaStatus {
+  SOLICITADA
+  APROVADA
+  COMPRADA
+  ENTREGUE
+  RECUSADA
+}
+
+// Demanda de campo: a equipe da obra solicita compra de material/ferramenta/EPI etc.
+// Entra pelo celular (aba Demandas); os sócios acompanham e mudam o status.
+model Demanda {
+  id          String          @id @default(cuid())
+  obraId      String
+  categoria   String          @default("Material")
+  descricao   String
+  quantidade  Decimal?        @db.Decimal(14, 2)
+  unidade     String?
+  solicitante String
+  urgencia    DemandaUrgencia @default(MEDIA)
+  status      DemandaStatus   @default(SOLICITADA)
+  observacao  String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  obra Obra @relation(fields: [obraId], references: [id], onDelete: Cascade)
 }

@@ -62,6 +62,15 @@ export function IconObras(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+export function IconDemandas(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
+      <path d="M9 4h6a1 1 0 0 1 1 1v1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h1V5a1 1 0 0 1 1-1Z" strokeLinejoin="round" strokeLinecap="round" />
+      <path d="M12 11v5M9.5 13.5h5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconEquipe(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" {...props}>
