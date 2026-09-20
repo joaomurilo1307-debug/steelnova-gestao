@@ -193,6 +193,8 @@ model Aquisicao {
   valor         Decimal  @db.Decimal(14, 2)
   dataCompra    DateTime
   vidaUtilMeses Int      @default(24)
+  comprador     String?  // quem comprou
+  notaFiscalUrl String?  // arquivo da NF anexada
   createdAt     DateTime @default(now())
 }
 

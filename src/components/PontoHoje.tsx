@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 type Funcionario = { id: string; nome: string; cargo: string | null };
 type Trab = { id: string; nome: string; funcao: string; entrada: string | null; saida: string | null; funcionarioId: string | null };
-type Ativ = { id: string; descricao: string; situacao: "FINALIZADA" | "PARCIAL" };
+type Tarefa = { id: string; titulo: string; fase: string | null };
+type Ativ = { id: string; descricao: string; situacao: "FINALIZADA" | "PARCIAL"; tarefa: { id: string; titulo: string } | null };
 type Pend = { id: string; descricao: string; observacao: string | null };
 type Foto = { id: string };
 type Rdo = {
@@ -38,17 +39,21 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
   const [busy, setBusy] = useState(false);
   const [novaAtiv, setNovaAtiv] = useState("");
   const [ativFin, setAtivFin] = useState(false);
+  const [ativTarefa, setAtivTarefa] = useState("");
+  const [tarefas, setTarefas] = useState<Tarefa[]>([]);
   const [novaPend, setNovaPend] = useState("");
   const [flash, setFlash] = useState("");
   const fotoRef = useRef<HTMLInputElement>(null);
 
   async function carregar() {
-    const [r, f] = await Promise.all([
+    const [r, f, tk] = await Promise.all([
       fetch(`/api/rdo/hoje?obraId=${obraId}&data=${dataISO}`),
       fetch("/api/funcionarios"),
+      fetch(`/api/tarefas?obraId=${obraId}`),
     ]);
     if (r.ok) setRdo(await r.json());
     if (f.ok) setFuncs(await f.json());
+    if (tk.ok) { const ts = await tk.json(); setTarefas(ts.map((t: any) => ({ id: t.id, titulo: t.titulo, fase: t.fase }))); }
   }
   useEffect(() => { carregar(); /* eslint-disable-next-line */ }, [obraId]);
 
@@ -82,8 +87,8 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
   }
   async function addAtividade() {
     if (!rdo || !novaAtiv.trim()) return;
-    await fetch(`/api/rdo/${rdo.id}/atividade`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ descricao: novaAtiv.trim(), situacao: ativFin ? "FINALIZADA" : "PARCIAL" }) });
-    setNovaAtiv(""); setAtivFin(false); carregar();
+    await fetch(`/api/rdo/${rdo.id}/atividade`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ descricao: novaAtiv.trim(), situacao: ativFin ? "FINALIZADA" : "PARCIAL", tarefaId: ativTarefa || undefined }) });
+    setNovaAtiv(""); setAtivFin(false); setAtivTarefa(""); carregar();
   }
   async function delAtividade(aid: string) { await fetch(`/api/rdo/atividade/${aid}`, { method: "DELETE" }); carregar(); }
   async function addPendencia() {
@@ -197,15 +202,24 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
               {(rdo.atividades ?? []).map((a) => (
                 <div key={a.id} className="flex items-center gap-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-sm">
                   <span>{a.situacao === "FINALIZADA" ? "✅" : "🔶"}</span>
-                  <span className="min-w-0 flex-1 truncate text-fg">{a.descricao}</span>
-                  <button type="button" onClick={() => delAtividade(a.id)} className="text-xs text-red-500">✕</button>
+                  <span className="min-w-0 flex-1 truncate text-fg">
+                    {a.descricao}
+                    {a.tarefa && <span className="ml-1.5 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-medium text-brand">📋 {a.tarefa.titulo}</span>}
+                  </span>
+                  <button type="button" onClick={() => delAtividade(a.id)} className="shrink-0 text-xs text-red-500">✕</button>
                 </div>
               ))}
             </div>
-            <div className="mb-3 flex gap-2">
-              <input value={novaAtiv} onChange={(e) => setNovaAtiv(e.target.value)} placeholder="O que foi feito…" className={inp} />
-              <button type="button" onClick={() => setAtivFin((v) => !v)} className={`shrink-0 rounded-lg border px-2 text-xs ${ativFin ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-ink-300 text-neutral-500"}`} title="Finalizada?">{ativFin ? "✅ Fim" : "🔶 Parc"}</button>
-              <button type="button" onClick={addAtividade} className="shrink-0 rounded-lg bg-ink-900 px-3 text-sm font-semibold text-white">+</button>
+            <div className="mb-3 flex flex-col gap-2">
+              <select value={ativTarefa} onChange={(e) => { const id = e.target.value; setAtivTarefa(id); const t = tarefas.find((x) => x.id === id); if (t && !novaAtiv.trim()) setNovaAtiv(t.titulo); }} className={inp} title="Vincular a uma tarefa do Planejamento/Lista (opcional)">
+                <option value="">📋 Vincular a uma tarefa (opcional)…</option>
+                {tarefas.map((t) => (<option key={t.id} value={t.id}>{t.fase ? `${t.fase} — ` : ""}{t.titulo}</option>))}
+              </select>
+              <div className="flex gap-2">
+                <input value={novaAtiv} onChange={(e) => setNovaAtiv(e.target.value)} placeholder="O que foi feito…" className={inp} />
+                <button type="button" onClick={() => setAtivFin((v) => !v)} className={`shrink-0 rounded-lg border px-2 text-xs ${ativFin ? "border-emerald-400 bg-emerald-50 text-emerald-700" : "border-ink-300 text-neutral-500"}`} title="Finalizada?">{ativFin ? "✅ Fim" : "🔶 Parc"}</button>
+                <button type="button" onClick={addAtividade} className="shrink-0 rounded-lg bg-ink-900 px-3 text-sm font-semibold text-white">+</button>
+              </div>
             </div>
 
             {/* Pendências */}

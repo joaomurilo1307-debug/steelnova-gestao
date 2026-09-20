@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 const incl = {
   trabalhadores: { orderBy: { id: "asc" as const } },
-  atividades: { orderBy: { id: "asc" as const } },
+  atividades: { include: { tarefa: { select: { id: true, titulo: true } } }, orderBy: { id: "asc" as const } },
   pendencias: { orderBy: { id: "asc" as const } },
   fotos: true,
 };

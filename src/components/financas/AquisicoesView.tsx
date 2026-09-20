@@ -10,6 +10,8 @@ type Aquisicao = {
   valor: string;
   dataCompra: string;
   vidaUtilMeses: number;
+  comprador: string | null;
+  notaFiscalUrl: string | null;
 };
 
 const CATEGORIAS = ["Equipamento", "Máquina", "Veículo", "Ferramenta", "Móvel/TI", "Outro"];
@@ -22,6 +24,7 @@ export default function AquisicoesView() {
     valor: "",
     dataCompra: new Date().toISOString().slice(0, 10),
     vidaUtilMeses: "24",
+    comprador: "",
   });
 
   async function load() {
@@ -44,10 +47,11 @@ export default function AquisicoesView() {
         valor: Number(form.valor),
         dataCompra: form.dataCompra,
         vidaUtilMeses: Number(form.vidaUtilMeses) || 24,
+        comprador: form.comprador || undefined,
       }),
     });
     if (res.ok) {
-      setForm({ ...form, descricao: "", valor: "" });
+      setForm({ ...form, descricao: "", valor: "", comprador: "" });
       load();
     }
   }
@@ -55,6 +59,12 @@ export default function AquisicoesView() {
   async function excluir(id: string) {
     if (!confirm("Excluir esta aquisição?")) return;
     if ((await fetch(`/api/aquisicoes/${id}`, { method: "DELETE" })).ok) load();
+  }
+
+  async function anexarNota(id: string, file: File) {
+    const fd = new FormData();
+    fd.append("file", file);
+    if ((await fetch(`/api/aquisicoes/${id}/nota`, { method: "POST", body: fd })).ok) load();
   }
 
   const parcela = (a: Aquisicao) => Number(a.valor) / (a.vidaUtilMeses || 1);
@@ -107,6 +117,10 @@ export default function AquisicoesView() {
           <label className="mb-1 block text-xs text-neutral-500">Vida útil (meses)</label>
           <input type="number" value={form.vidaUtilMeses} onChange={(e) => setForm({ ...form, vidaUtilMeses: e.target.value })} className="w-24 pill-field px-3 py-2 text-sm" />
         </div>
+        <div>
+          <label className="mb-1 block text-xs text-neutral-500">Comprou (quem)</label>
+          <input value={form.comprador} onChange={(e) => setForm({ ...form, comprador: e.target.value })} placeholder="Nome" className="w-36 pill-field px-3 py-2 text-sm" />
+        </div>
         <button type="submit" className="btn-primary px-4 py-2 text-sm">Cadastrar</button>
       </form>
 
@@ -120,6 +134,8 @@ export default function AquisicoesView() {
               <th className="th-label">Compra</th>
               <th className="th-label">Vida útil</th>
               <th className="th-label">Parcela/mês</th>
+              <th className="th-label">Comprador</th>
+              <th className="th-label">NF</th>
               <th className="th-label"></th>
             </tr>
           </thead>
@@ -132,6 +148,17 @@ export default function AquisicoesView() {
                 <td className="px-4 py-2.5 text-neutral-600">{new Date(a.dataCompra).toLocaleDateString("pt-BR", { timeZone: "UTC" })}</td>
                 <td className="px-4 py-2.5 text-neutral-600">{a.vidaUtilMeses} meses</td>
                 <td className="px-4 py-2.5 text-sky-700">{formatBRL(parcela(a))}</td>
+                <td className="px-4 py-2.5 text-neutral-600">{a.comprador ?? "—"}</td>
+                <td className="px-4 py-2.5">
+                  {a.notaFiscalUrl ? (
+                    <a href={`/api/aquisicoes/${a.id}/nota`} target="_blank" rel="noreferrer" className="text-xs font-medium text-brand hover:underline">ver NF</a>
+                  ) : (
+                    <label className="cursor-pointer text-xs text-neutral-400 hover:text-brand">
+                      anexar
+                      <input type="file" accept="image/*,application/pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) anexarNota(a.id, f); e.currentTarget.value = ""; }} />
+                    </label>
+                  )}
+                </td>
                 <td className="px-4 py-2.5 text-right">
                   <button onClick={() => excluir(a.id)} className="text-xs text-neutral-400 hover:text-red-500">Excluir</button>
                 </td>
@@ -139,7 +166,7 @@ export default function AquisicoesView() {
             ))}
             {itens.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-neutral-500">Nenhuma aquisição cadastrada.</td>
+                <td colSpan={9} className="px-4 py-8 text-center text-neutral-500">Nenhuma aquisição cadastrada.</td>
               </tr>
             )}
           </tbody>

@@ -10,6 +10,7 @@ const createSchema = z.object({
   valor: z.number().nonnegative(),
   dataCompra: z.string(),
   vidaUtilMeses: z.number().int().positive().optional(),
+  comprador: z.string().optional(),
 });
 
 export async function GET() {
@@ -34,6 +35,7 @@ export async function POST(req: Request) {
       valor: parsed.data.valor,
       dataCompra: new Date(parsed.data.dataCompra),
       vidaUtilMeses: parsed.data.vidaUtilMeses ?? 24,
+      comprador: parsed.data.comprador || null,
     },
   });
   return NextResponse.json(aquisicao, { status: 201 });
