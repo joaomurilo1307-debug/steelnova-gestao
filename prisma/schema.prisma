@@ -340,12 +340,14 @@ model Rdo {
 }
 
 model RdoTrabalhador {
-  id      String @id @default(cuid())
-  rdoId   String
-  nome    String
-  funcao  String
-  entrada String?
-  saida   String?
+  id            String  @id @default(cuid())
+  rdoId         String
+  nome          String
+  funcao        String
+  entrada       String?
+  saida         String?
+  funcionarioId String? // vínculo p/ gerar a diária (ponto) ao finalizar
+  pontoId       String? // LancamentoPonto gerado no "finalizar" desta pessoa
 
   rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
 }

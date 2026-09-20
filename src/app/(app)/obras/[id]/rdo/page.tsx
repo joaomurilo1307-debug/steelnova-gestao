@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import RdoDeleteButton from "@/components/RdoDeleteButton";
 import RdoImport from "@/components/RdoImport";
+import PontoHoje from "@/components/PontoHoje";
 
 export const dynamic = "force-dynamic";
 
@@ -27,14 +28,19 @@ export default async function ObraRdoPage({ params }: { params: { id: string } }
 
   return (
     <div className="p-4 sm:p-8">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <RdoImport obraId={params.id} />
-        <Link
-          href={`/obras/${params.id}/rdo/novo`}
-          className="btn-primary px-3 py-1.5 text-sm"
-        >
-          + Novo RDO
-        </Link>
+      <PontoHoje obraId={params.id} />
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-neutral-500">Histórico de RDOs</h2>
+        <div className="flex items-center gap-2">
+          <RdoImport obraId={params.id} />
+          <Link
+            href={`/obras/${params.id}/rdo/novo`}
+            className="btn-primary px-3 py-1.5 text-sm"
+          >
+            + RDO detalhado
+          </Link>
+        </div>
       </div>
 
       {rdos.length === 0 ? (
