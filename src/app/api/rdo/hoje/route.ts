@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 
 const incl = {
   trabalhadores: { orderBy: { id: "asc" as const } },
+  atividades: { orderBy: { id: "asc" as const } },
+  pendencias: { orderBy: { id: "asc" as const } },
+  fotos: true,
 };
 
 // data = "YYYY-MM-DD" do dia local do celular
