@@ -11,6 +11,7 @@ type Foto = { id: string };
 type Rdo = {
   id: string; data: string; clima: string;
   horarioInicio: string | null; horarioTermino: string | null; observacoes: string | null;
+  almocoInicio: string | null; almocoFim: string | null; encerrado: boolean;
   trabalhadores: Trab[]; atividades: Ativ[]; pendencias: Pend[]; fotos: Foto[];
 };
 
@@ -20,10 +21,11 @@ const CLIMA = [
 ];
 
 function agora() { return new Date().toTimeString().slice(0, 5); }
-function horas(e: string | null, s: string | null) {
+function toMin(t: string) { const [h, m] = t.split(":").map(Number); return h * 60 + m; }
+function horas(e: string | null, s: string | null, ai?: string | null, af?: string | null) {
   if (!e || !s) return null;
-  const [eh, em] = e.split(":").map(Number); const [sh, sm] = s.split(":").map(Number);
-  let m = sh * 60 + sm - (eh * 60 + em); if (m < 0) m += 1440;
+  let m = toMin(s) - toMin(e); if (m < 0) m += 1440;
+  if (ai && af) { const lm = toMin(af) - toMin(ai); if (lm > 0) m -= Math.min(lm, m); } // desconta almoço
   return (m / 60).toFixed(1);
 }
 
@@ -117,6 +119,25 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
     setTimeout(() => setFlash(""), 4000);
     carregar();
   }
+  async function patchRdo(body: any) {
+    if (!rdo) return;
+    await fetch(`/api/rdo/${rdo.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    carregar();
+  }
+  async function encerrarDia() {
+    if (!rdo) return;
+    if (!confirm("Encerrar o dia? Quem ainda estiver trabalhando será finalizado agora.")) return;
+    setBusy(true);
+    const ag = agora();
+    for (const t of rdo.trabalhadores.filter((x) => !x.saida)) {
+      await fetch(`/api/rdo/trabalhador/${t.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ saida: ag }) });
+    }
+    const ent = rdo.trabalhadores.map((t) => t.entrada).filter(Boolean) as string[];
+    const inicio = rdo.horarioInicio || (ent.length ? ent.sort()[0] : ag);
+    await fetch(`/api/rdo/${rdo.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ encerrado: true, horarioInicio: inicio, horarioTermino: ag }) });
+    setBusy(false);
+    carregar();
+  }
 
   const dataLabel = hoje.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" });
   const trab = rdo?.trabalhadores ?? [];
@@ -183,7 +204,7 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
                 {prontos.map((t) => (
                   <div key={t.id} className="flex items-center gap-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-sm">
                     <span className="min-w-0 flex-1 truncate text-fg">{t.nome}</span>
-                    <span className="text-xs text-neutral-500">{t.entrada}–{t.saida} · {horas(t.entrada, t.saida)}h</span>
+                    <span className="text-xs text-neutral-500">{t.entrada}–{t.saida} · {horas(t.entrada, t.saida, rdo.almocoInicio, rdo.almocoFim)}h</span>
                     <button type="button" onClick={() => patchTrab(t.id, { saida: null })} className="text-xs text-brand" title="Reabrir">↩</button>
                     <button type="button" onClick={() => removerTrab(t.id)} className="text-xs text-red-500">✕</button>
                   </div>
@@ -192,9 +213,28 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
             </div>
           )}
 
-          {/* ---- resto do RDO (preenche durante/depois) ---- */}
+          {/* ---- almoço ---- */}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {!rdo.almocoInicio ? (
+              <button type="button" onClick={() => patchRdo({ almocoInicio: agora() })} className="rounded-lg border border-ink-300 bg-white px-3 py-2 text-sm font-medium text-fg-muted">🍴 Pausa almoço</button>
+            ) : !rdo.almocoFim ? (
+              <button type="button" onClick={() => patchRdo({ almocoFim: agora() })} className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700">▶ Voltar do almoço (pausa desde {rdo.almocoInicio})</button>
+            ) : (
+              <span className="rounded-lg bg-white/70 px-3 py-1.5 text-xs text-neutral-500">🍴 Almoço {rdo.almocoInicio}–{rdo.almocoFim} (descontado das horas)</span>
+            )}
+          </div>
+
+          {/* ---- encerrar o dia libera o relatório ---- */}
+          {!rdo.encerrado ? (
+            <button type="button" disabled={busy} onClick={encerrarDia} className="mt-3 w-full rounded-xl bg-ink-900 py-3 text-base font-semibold text-white disabled:opacity-50">
+              ⏹ Encerrar o dia
+            </button>
+          ) : (
           <div className="mt-4 border-t border-brand/20 pt-4">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">Relatório do dia</p>
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Relatório do dia</p>
+              <button type="button" onClick={() => patchRdo({ encerrado: false })} className="text-xs text-brand">↩ reabrir dia</button>
+            </div>
 
             {/* Atividades */}
             <p className="mb-1 text-xs font-medium text-neutral-500">Atividades realizadas</p>
@@ -259,8 +299,9 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
             <button type="button" onClick={gerarRDO} className="btn-primary w-full py-3 text-base">
               {rdo.horarioTermino ? "Atualizar RDO do dia" : "Gerar RDO do dia"}
             </button>
-            <p className="mt-2 text-[11px] text-neutral-500">Cada "Finalizar" já lança a diária da pessoa. O RDO do dia salva sozinho conforme você preenche — o botão acima registra a hora de término e deixa ele fechado no histórico.</p>
+            <p className="mt-2 text-[11px] text-neutral-500">Cada "Finalizar" já lançou a diária da pessoa. Preencha o relatório, anexe as fotos e toque em Gerar RDO do dia — ele fica salvo no histórico.</p>
           </div>
+          )}
         </>
       )}
     </div>

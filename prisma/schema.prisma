@@ -328,6 +328,9 @@ model Rdo {
   horarioParalisacao String?
   motivoParalisacao  String?
   observacoes        String?
+  almocoInicio       String?
+  almocoFim          String?
+  encerrado          Boolean     @default(false)
   autorId            String
   createdAt          DateTime    @default(now())
 

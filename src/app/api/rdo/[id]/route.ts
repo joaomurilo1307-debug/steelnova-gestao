@@ -12,6 +12,9 @@ const patchSchema = z.object({
   horarioParalisacao: z.string().nullable().optional(),
   motivoParalisacao: z.string().nullable().optional(),
   observacoes: z.string().nullable().optional(),
+  almocoInicio: z.string().nullable().optional(),
+  almocoFim: z.string().nullable().optional(),
+  encerrado: z.boolean().optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
