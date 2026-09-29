@@ -337,11 +337,23 @@ model Rdo {
   obra          Obra             @relation(fields: [obraId], references: [id], onDelete: Cascade)
   autor         User             @relation(fields: [autorId], references: [id])
   fotos         RdoFoto[]
-  trabalhadores RdoTrabalhador[]
-  atividades    RdoAtividade[]
-  pendencias    RdoPendencia[]
+  trabalhadores   RdoTrabalhador[]
+  atividades      RdoAtividade[]
+  pendencias      RdoPendencia[]
+  itensFabricados RdoItemFabricado[]
 
   @@unique([obraId, data])
+}
+
+model RdoItemFabricado {
+  id         String   @id @default(cuid())
+  rdoId      String
+  descricao  String
+  quantidade Int?
+  fotoData   String?  @db.Text // foto do item (data URL base64, redimensionada no cliente)
+  createdAt  DateTime @default(now())
+
+  rdo Rdo @relation(fields: [rdoId], references: [id], onDelete: Cascade)
 }
 
 model RdoTrabalhador {

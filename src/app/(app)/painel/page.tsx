@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import TopBar from "@/components/TopBar";
 import { formatBRLCompact, obraStatusLabel } from "@/lib/format";
 import { getMedicaoData } from "@/lib/medicao";
-import { calcularResultados } from "@/lib/resultado";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +11,7 @@ function diasDesde(data: Date): number {
 }
 
 export default async function PainelPage() {
-  const [obras, resultado] = await Promise.all([
-    prisma.obra.findMany({ orderBy: { createdAt: "desc" } }),
-    calcularResultados(),
-  ]);
+  const obras = await prisma.obra.findMany({ orderBy: { createdAt: "desc" } });
   // custo previsto = orçado (Orçamento/Medição, o que a SteelNova planejou gastar);
   // custo realizado = motor de custo real (mão de obra do Ponto, materiais, desembolsos,
   // indiretos rateados) — o mesmo que já alimenta o DRE. Não usa mais o CustoLancamento
@@ -23,19 +19,25 @@ export default async function PainelPage() {
   // custo real registrado.
   const medicoes = await Promise.all(obras.map(async (o) => [o.id, await getMedicaoData(o.id)] as const));
   const medicaoPorObra = new Map(medicoes);
-  const resultadoPorObra = new Map(resultado.obras.map((r) => [r.obraId, r]));
 
   const obrasAtivas = obras.filter((o) => o.status !== "CONCLUIDA");
-  const custoPrevisto = obras.reduce((acc, o) => acc + (medicaoPorObra.get(o.id)?.valorTotalServicos ?? 0), 0);
-  const custoRealizado = obras.reduce((acc, o) => acc + (resultadoPorObra.get(o.id)?.custoTotal ?? 0), 0);
-  const valorContratos = obrasAtivas.reduce((acc, o) => acc + Number(o.valorContrato), 0);
-  const pctRealizado = custoPrevisto > 0 ? Math.round((custoRealizado / custoPrevisto) * 100) : 0;
+  const emAndamento = obras.filter((o) => o.status === "EM_ANDAMENTO");
+  const aOrcar = obras.filter((o) => o.status === "PLANEJAMENTO");
+  const concluidas = obras.filter((o) => o.status === "CONCLUIDA");
+  const valorContratos = emAndamento.reduce((acc, o) => acc + Number(o.valorContrato), 0);
+  const lancamentos = await prisma.lancamentoFinanceiro.findMany();
+  const caixa = lancamentos.reduce(
+    (acc, l) => acc + (String(l.tipo).toUpperCase().startsWith("SA") ? -Number(l.valor) : Number(l.valor)),
+    0,
+  );
 
+  // Custo previsto/realizado ficam OCULTOS por ora: empresa recomeçando, sem controle
+  // confiável desses números ainda (decisão do João em 29/09/2026).
   const kpis = [
-    { label: "Obras ativas", value: String(obrasAtivas.length), hint: `${obras.length} no total` },
-    { label: "Custo previsto", value: formatBRLCompact(custoPrevisto), hint: "soma das obras" },
-    { label: "Custo realizado", value: formatBRLCompact(custoRealizado), hint: `${pctRealizado}% do previsto` },
-    { label: "Valor em contratos", value: formatBRLCompact(valorContratos), hint: "receita contratada" },
+    { label: "Em andamento", value: String(emAndamento.length), hint: `${aOrcar.length} a orçar · ${concluidas.length} concluídas` },
+    { label: "Valor em contratos", value: formatBRLCompact(valorContratos), hint: "obras em andamento" },
+    { label: "Caixa", value: formatBRLCompact(caixa), hint: "saldo disponível" },
+    { label: "Obras (total)", value: String(obras.length), hint: `${obrasAtivas.length} ativas` },
   ];
 
   return (
@@ -70,8 +72,6 @@ export default async function PainelPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {obras.map((obra) => {
-              const custoReal = resultadoPorObra.get(obra.id)?.custoTotal ?? 0;
-              const margem = Number(obra.valorContrato) - custoReal;
               const realizadoDias = diasDesde(obra.dataInicio);
               const progresso = obra.status === "CONCLUIDA" ? 100 : Math.round(medicaoPorObra.get(obra.id)?.pctObra ?? 0);
 
@@ -99,21 +99,9 @@ export default async function PainelPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 text-sm">
-                    <div>
-                      <p className="text-[11px] text-neutral-500">Contrato</p>
-                      <p className="font-medium text-fg">{formatBRLCompact(Number(obra.valorContrato))}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-neutral-500">Custo real</p>
-                      <p className="font-medium text-fg">{formatBRLCompact(custoReal)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] text-neutral-500">Margem</p>
-                      <p className={`font-medium ${margem >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                        {formatBRLCompact(margem)}
-                      </p>
-                    </div>
+                  <div className="text-sm">
+                    <p className="text-[11px] text-neutral-500">Contrato</p>
+                    <p className="font-medium text-fg">{Number(obra.valorContrato) > 0 ? formatBRLCompact(Number(obra.valorContrato)) : "a orçar"}</p>
                   </div>
 
                   <div className="mt-3 flex justify-between text-xs text-neutral-500">

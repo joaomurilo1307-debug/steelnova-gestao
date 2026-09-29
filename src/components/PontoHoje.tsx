@@ -8,11 +8,12 @@ type Tarefa = { id: string; titulo: string; fase: string | null };
 type Ativ = { id: string; descricao: string; situacao: "FINALIZADA" | "PARCIAL"; tarefa: { id: string; titulo: string } | null };
 type Pend = { id: string; descricao: string; observacao: string | null };
 type Foto = { id: string };
+type Item = { id: string; descricao: string; quantidade: number | null; fotoData: string | null };
 type Rdo = {
   id: string; data: string; clima: string;
   horarioInicio: string | null; horarioTermino: string | null; observacoes: string | null;
   almocoInicio: string | null; almocoFim: string | null; encerrado: boolean;
-  trabalhadores: Trab[]; atividades: Ativ[]; pendencias: Pend[]; fotos: Foto[];
+  trabalhadores: Trab[]; atividades: Ativ[]; pendencias: Pend[]; fotos: Foto[]; itensFabricados: Item[];
 };
 
 const CLIMA = [
@@ -27,6 +28,20 @@ function horas(e: string | null, s: string | null, ai?: string | null, af?: stri
   let m = toMin(s) - toMin(e); if (m < 0) m += 1440;
   if (ai && af) { const lm = toMin(af) - toMin(ai); if (lm > 0) m -= Math.min(lm, m); } // desconta almoço
   return (m / 60).toFixed(1);
+}
+function resizeImg(file: File, max = 900): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image(); const rd = new FileReader();
+    rd.onload = () => { img.src = rd.result as string; }; rd.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > max || height > max) { if (width >= height) { height = Math.round((height * max) / width); width = max; } else { width = Math.round((width * max) / height); height = max; } }
+      const c = document.createElement("canvas"); c.width = width; c.height = height;
+      c.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      resolve(c.toDataURL("image/jpeg", 0.72));
+    };
+    img.onerror = reject; rd.readAsDataURL(file);
+  });
 }
 
 export default function PontoHoje({ obraId }: { obraId: string }) {
@@ -46,6 +61,10 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
   const [novaPend, setNovaPend] = useState("");
   const [flash, setFlash] = useState("");
   const fotoRef = useRef<HTMLInputElement>(null);
+  const [horaEntrada, setHoraEntrada] = useState(agora());
+  const [novoItem, setNovoItem] = useState("");
+  const [itemFoto, setItemFoto] = useState<string | null>(null);
+  const itemFotoRef = useRef<HTMLInputElement>(null);
 
   async function carregar() {
     const [r, f, tk] = await Promise.all([
@@ -75,9 +94,9 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
     const nome = f?.nome || avulso.trim();
     if (!nome) return;
     setBusy(true);
-    const r = await fetch(`/api/rdo/${rdo.id}/trabalhador`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ funcionarioId: f?.id, nome, funcao: f?.cargo || "—", entrada: agora() }) });
+    const r = await fetch(`/api/rdo/${rdo.id}/trabalhador`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ funcionarioId: f?.id, nome, funcao: f?.cargo || "—", entrada: horaEntrada || agora() }) });
     setBusy(false);
-    if (r.ok) { setSel(""); setAvulso(""); setAberto(false); carregar(); }
+    if (r.ok) { setSel(""); setAvulso(""); setAberto(false); setHoraEntrada(agora()); carregar(); }
   }
   async function patchTrab(tid: string, body: any) {
     await fetch(`/api/rdo/trabalhador/${tid}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -110,6 +129,14 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
     await fetch(`/api/rdo/${rdo.id}/fotos`, { method: "POST", body: fd });
     setBusy(false); carregar();
   }
+  async function addItem() {
+    if (!rdo || !novoItem.trim()) return;
+    setBusy(true);
+    await fetch(`/api/rdo/${rdo.id}/item`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ descricao: novoItem.trim(), fotoData: itemFoto }) });
+    setBusy(false); setNovoItem(""); setItemFoto(null); carregar();
+  }
+  async function delItem(iid: string) { await fetch(`/api/rdo/item/${iid}`, { method: "DELETE" }); carregar(); }
+  async function fotoItem(iid: string, dataUrl: string) { await fetch(`/api/rdo/item/${iid}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fotoData: dataUrl }) }); carregar(); }
   async function gerarRDO() {
     if (!rdo) return;
     const entradas = rdo.trabalhadores.map((t) => t.entrada).filter(Boolean) as string[];
@@ -190,8 +217,13 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
                 {disp.map((f) => (<option key={f.id} value={f.id}>{f.nome}{f.cargo ? ` — ${f.cargo}` : ""}</option>))}
               </select>
               {!sel && <input value={avulso} onChange={(e) => setAvulso(e.target.value)} placeholder="ou nome avulso" className={`mb-2 ${inp}`} />}
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-xs text-neutral-500">Hora de entrada:</span>
+                <input type="time" value={horaEntrada} onChange={(e) => setHoraEntrada(e.target.value)} className="rounded-lg border border-ink-300 px-2 py-1.5 text-sm" />
+                <button type="button" onClick={() => setHoraEntrada(agora())} className="rounded-lg border border-ink-300 px-2 py-1 text-xs text-fg-muted">agora</button>
+              </div>
               <div className="flex gap-2">
-                <button type="button" disabled={busy || (!sel && !avulso.trim())} onClick={registrarEntrada} className="btn-primary flex-1 py-2.5 text-base disabled:opacity-50 sm:text-sm">Entrada agora ({agora()})</button>
+                <button type="button" disabled={busy || (!sel && !avulso.trim())} onClick={registrarEntrada} className="btn-primary flex-1 py-2.5 text-base disabled:opacity-50 sm:text-sm">Registrar entrada ({horaEntrada})</button>
                 <button type="button" onClick={() => { setAberto(false); setSel(""); setAvulso(""); }} className="rounded-lg border border-ink-300 px-3 text-sm text-fg-muted">Cancelar</button>
               </div>
             </div>
@@ -204,8 +236,9 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
                 {prontos.map((t) => (
                   <div key={t.id} className="flex items-center gap-2 rounded-lg bg-white/70 px-2.5 py-1.5 text-sm">
                     <span className="min-w-0 flex-1 truncate text-fg">{t.nome}</span>
-                    <span className="text-xs text-neutral-500">{t.entrada}–{t.saida} · {horas(t.entrada, t.saida, rdo.almocoInicio, rdo.almocoFim)}h</span>
-                    <button type="button" onClick={() => patchTrab(t.id, { saida: null })} className="text-xs text-brand" title="Reabrir">↩</button>
+                    <input type="time" value={t.entrada ?? ""} onChange={(e) => patchTrab(t.id, { entrada: e.target.value })} className="w-[74px] rounded border border-ink-300 px-1 py-1 text-xs" title="Entrada" />
+                    <input type="time" value={t.saida ?? ""} onChange={(e) => patchTrab(t.id, { saida: e.target.value })} className="w-[74px] rounded border border-ink-300 px-1 py-1 text-xs" title="Saída" />
+                    <span className="text-xs text-neutral-500">{horas(t.entrada, t.saida, rdo.almocoInicio, rdo.almocoFim)}h</span>
                     <button type="button" onClick={() => removerTrab(t.id)} className="text-xs text-red-500">✕</button>
                   </div>
                 ))}
@@ -292,6 +325,29 @@ export default function PontoHoje({ obraId }: { obraId: string }) {
               ))}
               <button type="button" disabled={busy} onClick={() => fotoRef.current?.click()} className="flex h-16 w-16 items-center justify-center rounded-lg border border-dashed border-brand/50 text-2xl text-brand disabled:opacity-50">＋</button>
               <input ref={fotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) enviarFoto(f); e.target.value = ""; }} />
+            </div>
+
+            {/* Itens fabricados */}
+            <p className="mb-1 text-xs font-medium text-neutral-500">Itens fabricados</p>
+            <div className="mb-2 flex flex-col gap-1.5">
+              {(rdo.itensFabricados ?? []).map((it) => (
+                <div key={it.id} className="flex items-center gap-2 rounded-lg bg-white/70 px-2 py-1.5 text-sm">
+                  {it.fotoData ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <a href={it.fotoData} target="_blank" rel="noreferrer"><img src={it.fotoData} alt="" className="h-12 w-12 rounded-md border border-ink-300 object-cover" /></a>
+                  ) : (
+                    <button type="button" onClick={() => { const el = document.createElement("input"); el.type = "file"; el.accept = "image/*"; (el as any).capture = "environment"; el.onchange = async () => { const f = (el.files || [])[0]; if (f) { setBusy(true); const d = await resizeImg(f); await fotoItem(it.id, d); setBusy(false); } }; el.click(); }} className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-dashed border-brand/50 text-lg text-brand" title="Adicionar foto">📷</button>
+                  )}
+                  <span className="min-w-0 flex-1 truncate text-fg">{it.descricao}</span>
+                  <button type="button" onClick={() => delItem(it.id)} className="shrink-0 text-xs text-red-500">✕</button>
+                </div>
+              ))}
+            </div>
+            <div className="mb-3 flex items-center gap-2">
+              <button type="button" onClick={() => itemFotoRef.current?.click()} className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border text-xl ${itemFoto ? "border-emerald-400 bg-emerald-50" : "border-dashed border-brand/50 text-brand"}`} title="Foto do item">{itemFoto ? "✅" : "📷"}</button>
+              <input ref={itemFotoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { setBusy(true); setItemFoto(await resizeImg(f)); setBusy(false); } e.target.value = ""; }} />
+              <input value={novoItem} onChange={(e) => setNovoItem(e.target.value)} placeholder="Item fabricado (ex.: Tesoura TES-01)…" className={inp} />
+              <button type="button" disabled={busy || !novoItem.trim()} onClick={addItem} className="shrink-0 rounded-lg bg-ink-900 px-3 text-sm font-semibold text-white disabled:opacity-50">+</button>
             </div>
 
             {/* Gerar / fechar RDO */}

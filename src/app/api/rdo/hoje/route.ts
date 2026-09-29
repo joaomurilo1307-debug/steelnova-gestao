@@ -9,6 +9,7 @@ const incl = {
   atividades: { include: { tarefa: { select: { id: true, titulo: true } } }, orderBy: { id: "asc" as const } },
   pendencias: { orderBy: { id: "asc" as const } },
   fotos: true,
+  itensFabricados: { orderBy: { createdAt: "asc" as const } },
 };
 
 // data = "YYYY-MM-DD" do dia local do celular
