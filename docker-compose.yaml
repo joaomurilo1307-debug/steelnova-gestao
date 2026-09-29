@@ -14,6 +14,7 @@ services:
       RUN_SEED: ${RUN_SEED}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD}
+      SYNC_EMPRESA: ${SYNC_EMPRESA:-}
     volumes:
       - uploads:/app/uploads
     labels:
